@@ -2328,7 +2328,7 @@ fn test_file_read() {
         .with_file("/test.txt", b"hello")
 
     using platform {
-        let content = std.fs.read_to_string("/test.txt")?
+        let content = std.fs.read_text("/test.txt")?
         assert_eq!(content, "hello")
     }
 }

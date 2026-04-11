@@ -8,6 +8,21 @@
 
 `io` defines the trait hierarchy for all IO. Concrete types live in `fs`, `net`, etc.
 
+### Bytes and Strings Are Separate
+
+**IO deals in bytes.** When you read from a file or socket, you get `&[u8]`. When you write, you provide `&[u8]`. There is no implicit encoding or decoding.
+
+**Strings require explicit conversion.** To interpret bytes as text:
+- Use `Utf8.validate(bytes)` to check and convert to `&str`
+- Use `String.from_utf8(vec)` to take ownership
+- Use `TextReader` for streaming text with any encoding
+
+To write text as bytes:
+- Use `str.as_bytes()` — free, zero-cost (always valid UTF-8)
+- Use `TextWriter` for streaming text with any encoding
+
+**Why?** Python 3's implicit encoding/decoding at IO boundaries caused confusion: when exactly does conversion happen? What encoding? What if it fails mid-stream? Ferrum makes you choose the conversion point deliberately. The type tells you whether you have bytes or text — there is no ambiguity.
+
 ### 5.1 Core IO Traits
 
 ```ferrum
@@ -27,12 +42,16 @@ trait Read {
     fn read_exact(&mut self, buf: &mut [u8]): Result[(), IoError] ! IO
         // Loops until buf is full or EOF/Err - Err(UnexpectedEof) if EOF before full
     fn read_to_end(&mut self, buf: &mut Vec[u8]): Result[usize, IoError] ! IO
-    fn read_to_string(&mut self, buf: &mut String): Result[usize, IoError] ! IO
     fn bytes(&mut self): Bytes[Self]          // iterator over bytes
     fn chain[R: Read](self, next: R): Chain[Self, R]
     fn take(self, limit: u64): Take[Self]
     fn by_ref(&mut self): &mut Self
 }
+
+// NOTE: There is no read_to_string on Read.
+// Read deals in bytes. If you want text, use TextReader explicitly.
+// This is intentional — bytes are not strings, and the encoding
+// conversion must be explicit and happen at a deliberate point.
 
 trait Write {
     // Write some or all of buf. Returns bytes written.
@@ -62,20 +81,17 @@ trait Seek {
 }
 
 // BufRead - for line-oriented and buffered reading
+// All methods work with BYTES, not strings. Use TextReader for text.
 trait BufRead: Read {
     fn fill_buf(&mut self): Result[&[u8], IoError] ! IO
     fn consume(&mut self, amt: usize)
 
     // Provided:
-    fn read_line(&mut self, buf: &mut String): Result[ReadLineResult, IoError] ! IO
-    fn lines(&mut self): Lines[Self]
     fn read_until(&mut self, byte: u8, buf: &mut Vec[u8]): Result[ReadUntilResult, IoError] ! IO
-    fn split(&mut self, byte: u8): Split[Self]
-}
-
-enum ReadLineResult {
-    Line(usize),    // bytes read including \n
-    Eof,            // no more lines
+    fn read_line(&mut self, buf: &mut Vec[u8]): Result[ReadUntilResult, IoError] ! IO
+        // Equivalent to read_until(b'\n', buf)
+    fn split(&mut self, byte: u8): Split[Self]   // iterator of Vec[u8]
+    fn lines(&mut self): Lines[Self]             // iterator of Vec[u8], splits on \n
 }
 
 enum ReadUntilResult {
@@ -355,19 +371,22 @@ impl Utf8 {
 
 ### 7.2 Text Readers and Writers
 
+This is where bytes become strings. You choose when this happens.
+
 ```ferrum
-// Wraps a byte reader, decodes to UTF-8 on the fly
+// Wraps a byte reader, decodes on the fly
+// The encoding is explicit — there is no default.
 type TextReader[R: Read, E: Encoding]  given [A: Allocator]
 
 impl[R: Read, E: Encoding] TextReader[R, E] {
     fn new(inner: R, encoding: E): Self
     fn read_char(&mut self): Result[Option[char], TextError] ! IO
-    fn read_line(&mut self): Result[ReadLineResult, TextError] ! IO
+    fn read_line(&mut self): Result[Option[String], TextError] ! IO  // None at EOF
     fn read_to_string(&mut self): Result[String, TextError] ! IO
-    fn lines(&mut self): TextLines[Self]
+    fn lines(&mut self): TextLines[Self]  // iterator of Result[String, TextError]
 }
 
-// Wraps a byte writer, encodes from UTF-8 on the fly
+// Wraps a byte writer, encodes on the fly
 type TextWriter[W: Write, E: Encoding]
 
 impl[W: Write, E: Encoding] TextWriter[W, E] {
@@ -377,6 +396,19 @@ impl[W: Write, E: Encoding] TextWriter[W, E] {
     fn writeln(&mut self, s: &str): Result[(), TextError] ! IO
     fn flush(&mut self): Result[(), IoError] ! IO
 }
+
+// Example: reading a UTF-8 file line by line
+let file = File.open("data.txt")?
+let reader = TextReader.new(BufReader.new(file), Utf8)
+for line in reader.lines() {
+    let line = line?    // TextError if invalid UTF-8
+    println!("{}", line)
+}
+
+// Example: reading a Latin-1 file
+let file = File.open("legacy.txt")?
+let reader = TextReader.new(BufReader.new(file), Latin1)
+let content = reader.read_to_string()?
 ```
 
 ### 7.3 Line Ending Handling
@@ -590,6 +622,21 @@ type DirEntry {
     fn file_type(&self): Result[FileType, IoError] ! IO
     fn metadata(&self): Result[Metadata, IoError] ! IO
 }
+
+// Convenience functions — read entire files
+fn read(path: impl AsRef[Path]): Result[Vec[u8], IoError] ! IO
+    // Reads entire file as bytes. Use this.
+
+fn read_text(path: impl AsRef[Path]): Result[String, IoError] ! IO
+    // Reads file as UTF-8. Fails if not valid UTF-8.
+    // Equivalent to: read(path).and_then(|b| String.from_utf8(b))
+
+fn write(path: impl AsRef[Path], contents: &[u8]): Result[(), IoError] ! IO
+    // Creates or truncates, writes all bytes.
+
+fn write_text(path: impl AsRef[Path], contents: &str): Result[(), IoError] ! IO
+    // Creates or truncates, writes UTF-8.
+    // Equivalent to: write(path, contents.as_bytes())
 ```
 
 ### 8.4 Temporary Files

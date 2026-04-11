@@ -147,11 +147,12 @@ trait AsyncBufRead: AsyncRead {
 }
 
 // Extension traits add .await-friendly methods
+// NOTE: No read_to_string — async IO deals in bytes.
+// Use AsyncTextReader for text with explicit encoding.
 trait AsyncReadExt: AsyncRead {
     fn read(&mut self, buf: &mut [u8]): impl Future[Output=ReadResult]
     fn read_exact(&mut self, buf: &mut [u8]): impl Future[Output=Result[(), IoError]]
     fn read_to_end(&mut self, buf: &mut Vec[u8]): impl Future[Output=Result[usize, IoError]]
-    fn read_to_string(&mut self, buf: &mut String): impl Future[Output=Result[usize, IoError]]
 }
 
 trait AsyncWriteExt: AsyncWrite {

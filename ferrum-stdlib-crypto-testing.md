@@ -174,7 +174,7 @@ fn test_div_zero() {
 // Test with result — can use ?
 @test
 fn test_file_read(): Result[(), IoError] ! IO {
-    let content = fs.read_to_string("test_data/sample.txt")?
+    let content = fs.read_text("test_data/sample.txt")?
     assert!(content.contains("expected"))
     Ok(())
 }
