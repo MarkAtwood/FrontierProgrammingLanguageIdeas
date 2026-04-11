@@ -10,7 +10,7 @@
 
 ## The Architecture in One Paragraph
 
-The Rust transpiler reads Ferrum source and emits JVM .class files with Ferrum semantic annotations embedded as custom JVM attributes. It does **no verification** — it just translates. A Kotlin runtime library provides the borrow tracker, effect stack, and contract evaluator that the instrumented bytecode calls into. A Kotlin load-time JVM agent runs before any user code executes, walks all loaded Ferrum-annotated methods, and either accepts them or produces structured errors with source locations. The runtime library is the backstop for anything dynamic. The load-time agent catches everything static. Together they achieve 100% detection.
+The Rust transpiler reads Ferrum source and emits Kotlin source files with Ferrum semantic metadata attached as Kotlin runtime annotations. It does **no verification** — it just translates. `kotlinc` compiles the emitted Kotlin to JVM class files. A Kotlin runtime library provides the borrow tracker, effect stack, and contract evaluator that the instrumented code calls into. A Kotlin load-time JVM agent runs before any user code executes, walks all loaded Ferrum-annotated methods, and either accepts them or produces structured errors with source locations. The runtime library is the backstop for anything dynamic. The load-time agent catches everything static. Together they achieve 100% detection.
 
 Boogie/Z3 is explicitly out of scope for this plan. It makes some errors appear earlier (compile-time instead of load-time) but does not change the detection rate. Add it in 0.2 when the core is solid.
 
@@ -52,9 +52,11 @@ Every decision below was chosen to minimize the distance between "nothing" and "
 
 **Parser: `chumsky`.** Combinator-based recursive descent with error recovery. Good error messages out of the box. Ferrum's grammar is context-free; chumsky handles it cleanly.
 
-**JVM bytecode: `cafebabe`.** Rust crate for reading and writing JVM class files. Custom attributes are supported. If cafebabe's write API proves incomplete for custom attributes, fall back to emitting Jasmin assembly (human-readable JVM assembler text) and shelling out to Jasmin — this adds one subprocess call but keeps the Rust transpiler self-contained.
+**Intermediate target: Kotlin source.** The transpiler emits `.kt` files. Codegen is string interpolation over the typed AST — no bytecode APIs, no stack frame calculation. `kotlinc` handles verification. The emitted Kotlin is readable and debuggable. Async Ferrum functions emit blocking stubs annotated `@FerrumAsync`; coroutine mapping is a 0.2 problem.
 
-**Runtime library and load-time agent: Kotlin.** JVM-native, good interop with the bytecode layer, ASM library available for bytecode manipulation in the load-time agent. The runtime library is a pure Kotlin library (.jar) linked at JVM startup. The load-time agent is a JVM premain agent that runs before main.
+**Semantic metadata: Kotlin runtime annotations.** Annotation types defined in `ferrum-runtime.jar` carry the same information that would have been custom JVM attributes: effects, borrows, contracts, source location. Kotlin `@Retention(RUNTIME)` annotations survive `kotlinc` and are readable by the load-time agent via ASM `visitAnnotation` — same mechanism, standard API.
+
+**Runtime library and load-time agent: Kotlin.** JVM-native. The runtime library is a pure Kotlin library (`.jar`) linked at JVM startup. The load-time agent is a JVM premain agent that runs before main, reading annotations via ASM.
 
 **JVM target version: 17 LTS.** Stable, widely available, good tooling.
 
@@ -76,7 +78,7 @@ Each phase ends with a concrete gate test. The phase is not done until the gate 
 - Gradle project: `ferrum-runtime` and `ferrum-agent` modules
 - Top-level `ferrum` shell script: parses subcommands (`run`, `build`, `check`)
 - Error reporting scaffolding: `FerrumDiagnostic` struct, ANSI-formatted output
-- `Ferrum.*` custom attribute constants defined
+- Kotlin annotation types defined in `ferrum-runtime`: `@FerrumSource`, `@FerrumEffects`, `@FerrumBorrows`, `@FerrumBorrow`, `@FerrumRequires`, `@FerrumEnsures`, `@FerrumInvariant`, `@FerrumAsync`
 
 **Gate:** `ferrum --version` prints a version string without crashing.
 
@@ -138,46 +140,65 @@ This is the hardest phase intellectually. Do it incrementally:
 
 ---
 
-### Phase 4 — Transpiler: JVM Bytecode Emission (Days 29–42)
+### Phase 4 — Transpiler: Kotlin Source Emission (Days 29–42)
 
-**Goal:** Ferrum source → valid JVM .class files with Ferrum custom attributes. Programs run.
+**Goal:** Ferrum source → Kotlin source with Ferrum annotations → compiled `.class` files. Programs run.
 
 This phase does **no verification**. The transpiler's job is translation.
 
-**JVM code generation:**
-- Scalars: `i8` → `byte`, `i32` → `int`, `i64` → `long`, `f32` → `float`, `f64` → `double`, `bool` → `boolean`, `u8`/`u16`/`u32`/`u64` → widened signed JVM types
-- Strings: `&str` → `java.lang.String`
-- Structs → JVM classes
-- Enums → sealed class hierarchy (one subclass per variant)
-- `Vec[T]` → `java.util.ArrayList`
-- `Option[T]` → nullable reference (`null` = None)
-- `Result[T,E]` → a `FerrumResult` class in the runtime library
-- Closures → JVM lambda via `invokedynamic`
-- Match → JVM switch or if-chain depending on pattern structure
+**Type mapping (Ferrum → Kotlin):**
+- Scalars: `i8` → `Byte`, `i32` → `Int`, `i64` → `Long`, `f32` → `Float`, `f64` → `Double`, `bool` → `Boolean`, `u8`/`u16`/`u32`/`u64` → widened signed Kotlin types
+- Strings: `&str` → `String`
+- Structs → Kotlin `data class`
+- Enums → Kotlin `sealed class` hierarchy (one subclass per variant)
+- `Vec[T]` → `MutableList<T>`
+- `Option[T]` → sealed class (`Some<T>` / `None`) — not nullable; keeps `when` pattern matching clean
+- `Result[T,E]` → `FerrumResult<T,E>` in the runtime library
+- Closures → Kotlin lambda `(T) -> R`
+- Match → Kotlin `when`
+- Async functions → blocking stub, `@FerrumAsync` annotation, coroutine mapping deferred to 0.2
 
-**Custom attribute emission (written into every annotated method and field):**
+**Annotation types (defined in `ferrum-runtime.jar`, emitted by transpiler):**
 
-| Attribute | Emitted when |
+| Annotation | Emitted when |
 |---|---|
-| `Ferrum.SourceLocation(file, line, col)` | Every method |
-| `Ferrum.Effects(set)` | Every function (empty set = pure) |
-| `Ferrum.Borrows(var, mode, region)` | Every `&T` or `&mut T` parameter and local |
-| `Ferrum.Requires(serialized_ast)` | Every `requires` clause |
-| `Ferrum.Ensures(serialized_ast, result_binding)` | Every `ensures` clause |
-| `Ferrum.Invariant(serialized_ast)` | Every type `invariant` |
-| `Ferrum.RegionEntry(id)` / `Ferrum.RegionExit(id)` | Region block entry/exit |
+| `@FerrumSource(file, line, col)` | Every function |
+| `@FerrumEffects(vararg effects: String)` | Every function (empty = pure) |
+| `@FerrumBorrows(vararg borrows: FerrumBorrow)` | Functions with `&T` / `&mut T` params |
+| `@FerrumRequires(expr: String)` | Every `requires` clause (compact JSON AST) |
+| `@FerrumEnsures(expr: String, result: String)` | Every `ensures` clause |
+| `@FerrumInvariant(expr: String)` | Every type `invariant` |
+| `@FerrumAsync` | Async functions emitted as blocking stubs |
 
-The `serialized_ast` format is compact JSON encoding the contract expression AST, referencing local variable names from the method's local variable table. The runtime evaluator uses these names to look up values via reflection.
+Example emitted Kotlin for `fn binary_search`:
 
-**Instrumentation:** Before and after every function body, the transpiler emits calls into the runtime library:
-- On entry: `BorrowTracker.enter(method_id)`, `EffectStack.push(effects)`, `ContractEvaluator.checkRequires(serialized_requires, locals)`
-- On exit: `ContractEvaluator.checkEnsures(serialized_ensures, locals, result)`, `EffectStack.pop()`, `BorrowTracker.exit(method_id)`
+```kotlin
+@FerrumSource(file = "search.fe", line = 1, col = 1)
+@FerrumEffects()  // pure
+@FerrumBorrows(FerrumBorrow(param = "haystack", kind = "Shared", region = "fn"))
+@FerrumRequires(expr = """{"op":"call","fn":"is_sorted","args":["haystack"]}""")
+@FerrumEnsures(expr = """{"op":"match","scrutinee":"result",...}""", result = "result")
+fun <T : Comparable<T>> binarySearch(haystack: List<T>, needle: T): Option<T> {
+    BorrowTracker.enter("search.fe:1")
+    ContractEvaluator.checkRequires("""...""", mapOf("haystack" to haystack))
+    BorrowTracker.acquireShared(haystack, "search.fe:1")
+    // ... body ...
+    val result: Option<T> = None
+    ContractEvaluator.checkEnsures("""...""", mapOf("haystack" to haystack), result)
+    BorrowTracker.exit("search.fe:1")
+    return result
+}
+```
+
+**Instrumentation** is emitted inline in the Kotlin source (not a post-processing step):
+- On entry: `BorrowTracker.enter(method_id)`, `EffectStack.push(effects)`, `ContractEvaluator.checkRequires(expr, locals)`
+- On exit: `ContractEvaluator.checkEnsures(expr, locals, result)`, `EffectStack.pop()`, `BorrowTracker.exit(method_id)`
 - At `&mut` acquisition: `BorrowTracker.acquireExclusive(obj, source_span)`
 - At `&` acquisition: `BorrowTracker.acquireShared(obj, source_span)`
 - At borrow release: `BorrowTracker.release(obj, source_span)`
-- At region exit: `RegionManager.exit(region_id)` which invalidates all region-local borrows
+- At region exit: `RegionManager.exit(region_id)`
 
-**Gate:** `ferrum run examples/hello.fe` prints "hello, world". `ferrum run examples/binary_search.fe` runs correctly on valid input (no contract checking yet — violations silently pass). `javap -v` on emitted class files shows `Ferrum.*` attributes.
+**Gate:** `ferrum run examples/hello.fe` prints "hello, world". `ferrum run examples/binary_search.fe` runs correctly on valid input (contract violations silently pass — that is Phase 5). `javap -verbose` on compiled class files shows `@FerrumSource`, `@FerrumEffects` annotations.
 
 ---
 
@@ -259,13 +280,13 @@ The load-time pass is a JVM premain agent. It attaches before the main class loa
 
 **Borrow flow analysis.** Forward dataflow over the bytecode of each method. Tracks borrow state at each bytecode instruction. If any instruction would create a conflicting borrow (exclusive while shared exists, or vice versa), emit a load-time error and abort before user code runs.
 
-Implementation: the `Ferrum.Borrows` attributes on the method tell the pass which parameters and locals are borrows, their mode, and their region. The pass tracks the borrow state through the bytecode's control flow graph. `BorrowTracker.acquireExclusive` calls in the bytecode identify borrow acquisition points. The pass simulates these calls statically, propagating state through all paths.
+Implementation: the `@FerrumBorrows` annotation on the method tells the pass which parameters and locals are borrows, their mode, and their region. The pass tracks borrow state through the bytecode's control flow graph via ASM `visitAnnotation`. `BorrowTracker.acquireExclusive` calls in the bytecode identify borrow acquisition points. The pass simulates these calls statically, propagating state through all paths.
 
-**Effect annotation verification.** For each method: read its `Ferrum.Effects` attribute (its declared effect set). Walk all `invokevirtual`/`invokestatic` instructions. Look up the `Ferrum.Effects` attribute of each callee. If the calling method is pure (empty effects) and any callee has non-empty effects, emit an effect violation error.
+**Effect annotation verification.** For each method: read its `@FerrumEffects` annotation (its declared effect set). Walk all `invokevirtual`/`invokestatic` instructions. Look up the `@FerrumEffects` annotation of each callee. If the calling method is pure (empty effects) and any callee has non-empty effects, emit an effect violation error.
 
 This catches 100% of effect violations statically for programs where all methods are visible at load time (the common case). Effect violations that depend on dynamic dispatch fall through to the runtime `EffectStack`.
 
-**Contract gate insertion.** For contracts not yet verified (all contracts in MVP, since Boogie is out of scope): verify that the `checkRequires` and `checkEnsures` instrumentation calls are present in the bytecode (the transpiler put them there in Phase 4). If any annotated function is missing its instrumentation (e.g., due to a transpiler bug), insert it now. This makes the load-time pass a correctness backstop for transpiler mistakes.
+**Contract gate insertion.** For contracts not yet statically verified (all contracts in MVP, since Boogie is out of scope): verify that the `checkRequires` and `checkEnsures` instrumentation calls are present in the bytecode for every method carrying `@FerrumRequires` / `@FerrumEnsures` annotations (the transpiler put them there in Phase 4). If any annotated method is missing its instrumentation (e.g., due to a transpiler bug), insert it now via ASM. This makes the load-time pass a correctness backstop for transpiler mistakes.
 
 **Abort on violation.** If the load-time pass finds any violation, it constructs a `FerrumDiagnostic` and writes it to stderr in the standard error format, then calls `System.exit(1)`. No user code runs.
 
@@ -319,27 +340,23 @@ Borrow errors are the hardest. For MVP, the minimum acceptable borrow error poin
 # ferrum-transpiler/Cargo.toml
 logos = "0.14"
 chumsky = "0.9"
-cafebabe = "0.6"   # JVM class file read/write; fall back to Jasmin text output if custom attrs prove difficult
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"   # for serialized contract AST
+serde_json = "1"   # for serialized contract AST in annotations
 ariadne = "0.4"    # diagnostic rendering (colors, spans, arrows)
 ```
 
 ```kotlin
 // ferrum-runtime/build.gradle.kts
 dependencies {
-    implementation("org.ow2.asm:asm:9.6")        // bytecode manipulation in load-time agent
+    implementation("org.ow2.asm:asm:9.6")        // annotation reading in load-time agent
     implementation("org.ow2.asm:asm-util:9.6")
 }
 ```
 
 **External tools required (must be on PATH):**
 - JDK 17+
-- `kotlinc` (or build via Gradle wrapper, no global install needed)
+- `kotlinc` (Kotlin compiler — used to compile emitted Kotlin source)
 - `java` 17+
-
-**Optional (not required for MVP):**
-- `jasmin` — only if cafebabe's write path proves insufficient for custom attributes
 
 ---
 
@@ -357,8 +374,9 @@ ferrum typecheck file.fe    # debug: dump typed AST
 ```
 
 `ferrum run` does:
-1. `ferrum-transpiler file.fe` → emits `.ferrum-out/*.class`
-2. `java -javaagent:ferrum-agent.jar -cp ferrum-runtime.jar:.ferrum-out MainClass`
+1. `ferrum-transpiler file.fe` → emits `.ferrum-out/*.kt`
+2. `kotlinc .ferrum-out/*.kt -cp ferrum-runtime.jar -d .ferrum-out/classes/`
+3. `java -javaagent:ferrum-agent.jar -cp ferrum-runtime.jar:.ferrum-out/classes MainClass`
 
 The agent runs before `MainClass.main()`, performs the load-time pass, and either aborts with a diagnostic or allows execution to proceed.
 
@@ -366,8 +384,8 @@ The agent runs before `MainClass.main()`, performs the load-time pass, and eithe
 
 ## Risks and Mitigations
 
-**Risk: cafebabe custom attribute write support is incomplete.**
-Mitigation: Emit Jasmin assembly text from the Rust transpiler (Jasmin supports `.attribute` directives). Shell out to `jasmin` to produce .class files. The custom attributes are preserved. This adds one subprocess call and one text format to maintain, but unblocks the phase.
+**Risk: `kotlinc` compile step is slow for large emitted outputs.**
+Mitigation: For MVP, all programs are small (~hundreds of lines of emitted Kotlin). `kotlinc` daemon mode (`kotlinc -daemon`) eliminates JVM startup overhead on subsequent compilations. Not a concern until programs exceed ~5000 lines of emitted Kotlin.
 
 **Risk: ContractEvaluator cannot evaluate complex contract expressions.**
 Mitigation: For MVP, restrict contract expressions to a well-defined subset: arithmetic over integer locals, comparison operators, boolean operators, len(), is_sorted(), is_empty(), contains() on Vec/slice types, and None-checks. Document the restriction. Contracts using unsupported expressions emit a warning and fall back to always-runtime-checked without static analysis. The subset covers the arXiv paper's benchmark contracts.
