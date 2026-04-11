@@ -416,6 +416,11 @@ trait TimePlatform: Send + Sync {
     /// Wall clock — can jump (NTP, manual adjustment).
     fn timestamp_now(&self) : Timestamp
 
+    /// The Julian Day Number at this platform's epoch (Timestamp.nanos = 0).
+    /// This is the only thing needed to convert timestamps to/from any calendar.
+    /// Example: Unix epoch = JDN 2440587.5, Windows epoch = JDN 2305813.5
+    fn epoch_jdn(&self) : f64
+
     /// Sleep the current thread.
     fn sleep(&self, dur: Duration) ! IO
 

@@ -262,22 +262,16 @@ impl Instant {
 
 ```ferrum
 // Timestamp — a point in time, calendar-agnostic
-// Stored as nanoseconds since J2000.0 (2000-01-01T12:00:00 TT)
-// This is an astronomical epoch, independent of any calendar system.
-// 64-bit signed nanoseconds = ±292 years from epoch = valid 1708–2292.
-// For dates outside this range, use Timestamp128.
+// Stored as nanoseconds since a platform-defined epoch.
+// The epoch is whatever the local OS provides; what matters is
+// that we can query its offset from JDN 0.0 for calendar conversion.
+// 64-bit signed nanoseconds = ±292 years from epoch.
 
 type Timestamp {
-    nanos_since_j2000: i64,
+    nanos: i64,
 }
 
 impl Timestamp {
-    /// J2000.0 epoch (Julian Date 2451545.0)
-    const J2000: Self = Timestamp { nanos_since_j2000: 0 }
-
-    /// Unix epoch expressed as a Timestamp
-    const UNIX_EPOCH: Self = Timestamp::from_jdn(2440587.5)
-
     fn now(): Self ! IO
 
     // Arithmetic
@@ -286,8 +280,9 @@ impl Timestamp {
     fn checked_sub(&self, d: Duration): Option[Self]
     fn elapsed(&self): Duration ! IO
 
-    // Julian Day Number — the universal astronomical time scale
+    // Julian Day Number — the universal interchange format
     // JDN 0.0 = noon on January 1, 4713 BCE (Julian proleptic calendar)
+    // These use the platform-provided epoch offset.
     fn to_jdn(&self): f64
     fn from_jdn(jdn: f64): Self
 
@@ -301,21 +296,31 @@ impl Timestamp {
     fn tai_offset(&self): Duration   // difference from TAI at this instant
 }
 
-// For historical dates or far future
+// For historical dates or far future (±10^22 years)
 type Timestamp128 {
-    nanos_since_j2000: i128,  // ±10^22 years
+    nanos: i128,
+}
+
+// Platform trait for time — see ferrum-stdlib-platform.md
+trait TimePlatform {
+    fn monotonic_now(&self): Instant
+    fn timestamp_now(&self): Timestamp
+
+    /// The JDN value at the platform's epoch (nanos = 0).
+    /// This is all we need to convert to/from any calendar.
+    fn epoch_jdn(&self): f64
 }
 ```
 
-**Why J2000.0 and JDN?**
+**Why JDN as the interchange format?**
 
 Julian Day Number is the only time scale that:
 - Is used by astronomers, historians, and calendar researchers worldwide
-- Has no embedded calendar system (it is just a day count)
+- Has no embedded calendar system (it is just a continuous day count)
 - Provides a universal reference for converting between any calendar
 - Is continuous (no leap seconds, no daylight saving, no missing days)
 
-Any calendar system can be implemented by converting to/from JDN.
+The platform tells us the JDN at its epoch. Any calendar converts through JDN.
 
 ### 20.4 Calendar Systems
 
