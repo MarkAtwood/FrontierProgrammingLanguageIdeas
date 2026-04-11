@@ -4,62 +4,187 @@
 
 ---
 
-## The Problem
+## The Problem: Two Extremes, Neither Great
 
-You know both extremes:
+You've probably worked with both ends of the spectrum.
 
-**C gives you full control:**
+**C gives you full control, but you carry the burden:**
+
 ```c
 char *buf = malloc(1024);
-// ... use buf ...
+process(buf);
+if (error_occurred) {
+    return -1;  // Oops, forgot to free buf
+}
 free(buf);
-// Oops, forgot to free on the error path
-// Oops, freed twice
-// Oops, used after free
+
+// Later, in another function...
+free(buf);  // Double-free: undefined behavior, possibly a security hole
+
+// Even later...
+printf("%s", buf);  // Use-after-free: reading garbage, or crashing
 ```
 
-Manual memory management is fast and predictable, but error-prone. You spend brain cycles tracking ownership instead of solving problems.
+Every `malloc` needs exactly one `free`. Not zero, not two. On every code path. Including error paths. Including early returns. Including exceptions (if you're using C++). You spend mental energy tracking who "owns" memory instead of solving your actual problem.
 
-**Python gives you no control:**
+**Python takes the burden away, but also takes control:**
+
 ```python
-buf = bytearray(1024)
-# ... use buf ...
-# GC frees it... eventually
-# Maybe during your latency-sensitive operation
-# Maybe never if there's a cycle
+def process():
+    huge_data = load_huge_dataset()  # 10 GB in RAM
+    result = analyze(huge_data)
+
+    # huge_data is "done" here, but...
+    # When does Python actually free those 10 GB?
+
+    do_more_work()  # This might run out of memory waiting for GC
+
+    return result
 ```
 
-Garbage collection eliminates memory bugs but takes away determinism. You can't predict when memory is freed, and you can't force it to happen *now*.
+The garbage collector frees memory "eventually." You can't say "free this now." You can call `gc.collect()`, but it might not free your object if there's a reference cycle. GC pauses can hit at bad times. And you have no visibility into when memory actually gets reclaimed.
 
-**What's in between?**
+**What we really want:**
 
-Ferrum's answer: smart pointers with compile-time ownership tracking. The compiler proves your memory management is correct. You get the control of C with the safety of Python — and better performance than both in many cases.
+- Memory freed automatically (like Python)
+- Memory freed *immediately* when we're done (not "eventually")
+- Compiler catches use-after-free at compile time (unlike C)
+- No runtime garbage collector (unlike Python)
+
+Ferrum's smart pointers give you all four.
+
+---
+
+## The Core Idea: Automatic Cleanup at Scope Exit
+
+Here's the key insight that makes smart pointers work:
+
+```ferrum
+fn example() {
+    let data = Box.new([0u8; 1_000_000]);  // allocate 1 MB on heap
+
+    use_data(&data);
+
+    if something_failed {
+        return;  // data is automatically freed here
+    }
+
+    more_work(&data);
+
+}   // data is automatically freed here too
+```
+
+When a value goes "out of scope" (the `}` at the end of the block, or an early `return`), Ferrum automatically runs cleanup code. For `Box`, that cleanup code frees the memory.
+
+This pattern is sometimes called "RAII" in C++ circles, but the name is confusing. Think of it simply as: **the compiler inserts `free()` for you, at every exit point, and guarantees you can't use the value after it's freed.**
+
+In C terms, it's as if the compiler rewrites your code to:
+
+```c
+void example() {
+    char *data = malloc(1000000);
+
+    use_data(data);
+
+    if (something_failed) {
+        free(data);  // compiler inserted this
+        return;
+    }
+
+    more_work(data);
+
+    free(data);  // compiler inserted this too
+}
+```
+
+Except the compiler also checks that you don't access `data` after it's freed. Try it and you get a compile error, not a runtime crash.
+
+---
+
+## Choosing the Right Smart Pointer: A Decision Tree
+
+Start here when deciding which pointer type to use:
+
+```
+Do you need HEAP allocation?
+├── NO → Just use the value directly (stack allocated)
+└── YES → Continue...
+
+Does exactly ONE thing own this data?
+├── YES → Use Box[T]
+└── NO (multiple owners) → Continue...
+
+Do multiple THREADS need access?
+├── NO (single thread) → Use Rc[T]
+└── YES (multi-threaded) → Use Arc[T]
+
+Do you have CYCLES (A points to B, B points to A)?
+└── YES → Use Weak[T] for the "back reference"
+
+Do you need to MUTATE through a shared reference?
+├── Single-threaded → Combine with RefCell[T]
+└── Multi-threaded → Combine with Mutex[T] or RwLock[T]
+```
+
+Let's go through each type with concrete examples.
 
 ---
 
 ## `Box[T]`: Single Owner, Heap Allocated
 
-`Box[T]` is the simplest smart pointer. It allocates a value on the heap and owns it exclusively. When the `Box` goes out of scope, the value is dropped and memory is freed. No manual `free()` required.
+`Box[T]` is the simplest smart pointer. It puts a value on the heap and owns it exclusively. When the `Box` goes out of scope, the memory is freed. One owner, one lifetime, no sharing.
 
 ```ferrum
-fn process_data() {
-    let data = Box.new([0u8; 1_000_000])  // 1MB on the heap
+fn process_image() {
+    // Allocate a large buffer on the heap, not the stack
+    let buffer = Box.new([0u8; 10_000_000]);  // 10 MB
 
-    use_data(&data)
+    load_image_into(&buffer);
+    process(&buffer);
 
-}   // data dropped here, memory freed automatically
+}   // buffer freed automatically here
 ```
 
-Think of `Box` as `malloc` with an automatic `free` at scope exit — except the compiler guarantees you can't use it after free, because the value is moved or dropped.
+Think of `Box.new(value)` as `malloc` + assignment, and the closing `}` as an automatic `free`.
 
-### When to Use Box
+### When You Need Box
 
-**Recursive types.** Structs can't contain themselves directly (infinite size), but they can contain a `Box` to themselves:
+**Problem 1: Recursive types have infinite size**
+
+This won't compile:
+
+```ferrum
+// ERROR: recursive type has infinite size
+type LinkedList[T] {
+    value: T,
+    next: Option[LinkedList[T]],  // LinkedList contains LinkedList contains...
+}
+```
+
+The compiler error:
+
+```
+error[E0072]: recursive type `LinkedList` has infinite size
+ --> src/main.fe:2:1
+  |
+2 | type LinkedList[T] {
+  | ^^^^^^^^^^^^^^^^^^ recursive type has infinite size
+3 |     value: T,
+4 |     next: Option[LinkedList[T]],
+  |           --------------------- recursive without indirection
+  |
+help: insert some indirection (e.g., a `Box`) to make `LinkedList` representable
+  |
+4 |     next: Option[Box[LinkedList[T]]],
+  |           ++++++++               +
+```
+
+The fix: use `Box` for indirection. `Box` has a fixed size (one pointer), even though what it points to can vary:
 
 ```ferrum
 type LinkedList[T] {
     value: T,
-    next: Option[Box[LinkedList[T]]],  // Box provides indirection
+    next: Option[Box[LinkedList[T]]],  // Box is just a pointer - fixed size
 }
 
 fn build_list(): LinkedList[i32] {
@@ -67,378 +192,498 @@ fn build_list(): LinkedList[i32] {
         value: 1,
         next: Some(Box.new(LinkedList {
             value: 2,
-            next: None,
+            next: Some(Box.new(LinkedList {
+                value: 3,
+                next: None,
+            })),
         })),
     }
 }
 ```
 
-Without `Box`, the compiler would reject this — `LinkedList` would have infinite size.
+**Problem 2: Stack space is limited**
 
-**Large data you don't want on the stack.** Stack space is limited (typically 1-8 MB). Large arrays belong on the heap:
+Stack size is typically 1-8 MB. Try to put a huge array on the stack and you'll overflow it:
 
 ```ferrum
-// Bad: might overflow the stack
-fn bad(): [u8; 10_000_000] {
-    [0; 10_000_000]
-}
-
-// Good: heap allocated
-fn good(): Box[[u8; 10_000_000]] {
-    Box.new([0; 10_000_000])
+fn dangerous(): [u8; 50_000_000] {  // 50 MB on stack - will overflow!
+    [0; 50_000_000]
 }
 ```
 
-**Trait objects.** When you need a value of "some type that implements this trait" but don't know the concrete type at compile time:
+The fix: heap allocate with Box:
+
+```ferrum
+fn safe(): Box[[u8; 50_000_000]] {  // 50 MB on heap - fine
+    Box.new([0; 50_000_000])
+}
+```
+
+**Problem 3: You need a value of "any type implementing trait X"**
+
+Sometimes you don't know the concrete type at compile time:
 
 ```ferrum
 trait Drawable {
-    fn draw(&self)
+    fn draw(&self);
 }
 
 type Circle { radius: f32 }
 type Square { side: f32 }
+type Triangle { base: f32, height: f32 }
 
 impl Drawable for Circle { fn draw(&self) { /* ... */ } }
 impl Drawable for Square { fn draw(&self) { /* ... */ } }
+impl Drawable for Triangle { fn draw(&self) { /* ... */ } }
 
-fn make_shape(use_circle: bool): Box[dyn Drawable] {
-    if use_circle {
-        Box.new(Circle { radius: 5.0 })
-    } else {
-        Box.new(Square { side: 10.0 })
+// What's the return type here? Circle? Square? Triangle?
+// We don't know at compile time - depends on user input
+fn shape_from_user_input(input: &str): Box[dyn Drawable] {
+    match input {
+        "circle" => Box.new(Circle { radius: 5.0 }),
+        "square" => Box.new(Square { side: 10.0 }),
+        _ => Box.new(Triangle { base: 3.0, height: 4.0 }),
+    }
+}
+
+fn main() {
+    let shapes: Vec[Box[dyn Drawable]] = vec![
+        Box.new(Circle { radius: 1.0 }),
+        Box.new(Square { side: 2.0 }),
+    ];
+
+    for shape in &shapes {
+        shape.draw();  // Works! Calls the right implementation
     }
 }
 ```
 
-The `Box[dyn Drawable]` can hold any `Drawable` — the actual type is determined at runtime.
+The `dyn Drawable` part means "some type that implements Drawable, figured out at runtime." The `Box` is needed because different types have different sizes, but `Box` (a pointer) has a fixed size.
 
 ---
 
-## `Rc[T]`: Reference Counting for Shared Ownership
+## `Rc[T]`: Multiple Owners, Single Thread
 
-Sometimes one owner isn't enough. Multiple parts of your program need access to the same data, and you can't determine at compile time which one will be done with it last.
+Sometimes one owner isn't enough. Consider a tree where a node can have multiple parents, or a cache where multiple parts of your code hold references to the same entry.
 
-`Rc[T]` (reference-counted pointer) solves this. Multiple `Rc`s can point to the same value. Each clone increments a counter. When an `Rc` is dropped, the counter decrements. When the counter hits zero, the value is dropped.
+`Rc[T]` (reference-counted pointer) solves this. Here's how it works:
+
+1. `Rc.new(value)` creates the value and sets a counter to 1
+2. `rc.clone()` increments the counter (doesn't copy the data!)
+3. When an `Rc` is dropped, the counter decrements
+4. When the counter hits 0, the value is actually freed
+
+**It's just counting how many things point to the value.** When nothing points to it anymore, it's freed.
 
 ```ferrum
 import alloc.rc.Rc
 
-fn shared_config() {
-    let config = Rc.new(Config.load())
+fn demonstrate_reference_counting() {
+    let shared = Rc.new(ExpensiveData.load());  // count = 1
+    print("Count: {}", Rc.strong_count(&shared));  // prints: Count: 1
 
-    let handler1 = Handler.new(config.clone())  // count: 2
-    let handler2 = Handler.new(config.clone())  // count: 3
+    let copy1 = shared.clone();  // count = 2 (same data, new pointer)
+    print("Count: {}", Rc.strong_count(&shared));  // prints: Count: 2
 
-    drop(handler1)  // count: 2
-    drop(handler2)  // count: 1
+    let copy2 = shared.clone();  // count = 3
+    print("Count: {}", Rc.strong_count(&shared));  // prints: Count: 3
 
-}   // count: 0, Config dropped here
+    drop(copy1);  // count = 2 (copy1 goes away)
+    print("Count: {}", Rc.strong_count(&shared));  // prints: Count: 2
+
+    drop(copy2);  // count = 1
+    print("Count: {}", Rc.strong_count(&shared));  // prints: Count: 1
+
+}   // count = 0, ExpensiveData finally freed here
 ```
 
-### When to Use Rc
+Note: `clone()` on an `Rc` is cheap! It just increments a counter and copies a pointer. It does NOT copy the underlying data.
 
-**Shared ownership in trees or graphs.** A tree node might have multiple parents, or a graph node multiple incoming edges:
+### Concrete Example: Shared Configuration
 
-```ferrum
-import alloc.rc.{Rc, Weak}
-
-type TreeNode {
-    value: i32,
-    children: Vec[Rc[TreeNode]],
-}
-
-fn build_tree(): Rc[TreeNode] {
-    let leaf1 = Rc.new(TreeNode { value: 1, children: Vec.new() })
-    let leaf2 = Rc.new(TreeNode { value: 2, children: Vec.new() })
-
-    // Both leaves shared by the root
-    Rc.new(TreeNode {
-        value: 0,
-        children: vec![leaf1.clone(), leaf2.clone()],
-    })
-}
-```
-
-**Caches and interned data.** When multiple parts of your program should share the same instance:
+Multiple handlers need access to the same config. You don't want to copy the config, and you can't easily determine which handler outlives the others:
 
 ```ferrum
-type StringInterner {
-    strings: HashMap[String, Rc[String]],
+import alloc.rc.Rc
+
+type AppConfig {
+    database_url: String,
+    max_connections: u32,
+    debug_mode: bool,
 }
 
-impl StringInterner {
-    fn intern(&mut self, s: &str): Rc[String] {
-        if let Some(existing) = self.strings.get(s) {
-            existing.clone()  // share existing allocation
-        } else {
-            let new = Rc.new(String.from(s))
-            self.strings.insert(s.to_owned(), new.clone())
-            new
-        }
+type DatabaseHandler {
+    config: Rc[AppConfig],
+}
+
+type CacheHandler {
+    config: Rc[AppConfig],
+}
+
+type LogHandler {
+    config: Rc[AppConfig],
+}
+
+fn setup_app(): (DatabaseHandler, CacheHandler, LogHandler) {
+    // Load config once
+    let config = Rc.new(AppConfig {
+        database_url: "postgres://localhost/mydb".to_string(),
+        max_connections: 100,
+        debug_mode: true,
+    });
+
+    // Share it with all handlers - each gets its own Rc pointing to same data
+    let db = DatabaseHandler { config: config.clone() };
+    let cache = CacheHandler { config: config.clone() };
+    let log = LogHandler { config: config.clone() };
+
+    // Original `config` can even be dropped now - handlers keep data alive
+    drop(config);
+
+    (db, cache, log)
+    // Config stays alive until ALL handlers are dropped
+}
+
+impl DatabaseHandler {
+    fn connect(&self) {
+        // All handlers see the same config
+        print("Connecting to: {}", self.config.database_url);
     }
 }
 ```
 
-**When you genuinely can't determine a single owner.** Sometimes the ownership structure is dynamic — determined by runtime conditions rather than code structure. `Rc` handles this gracefully.
+### Concrete Example: Building a Graph
 
-### The Single-Threaded Limitation
+Graphs have nodes that can be reached from multiple other nodes:
 
-`Rc` is **not thread-safe**. The reference count is a plain integer, not atomic. If you try to send an `Rc` to another thread, the compiler stops you:
+```ferrum
+import alloc.rc.Rc
+import core.cell.RefCell
+
+type GraphNode[T] {
+    value: T,
+    // Multiple nodes can point to the same neighbor
+    neighbors: RefCell[Vec[Rc[GraphNode[T]]]],
+}
+
+fn build_graph(): Vec[Rc[GraphNode[i32]]] {
+    // Create nodes
+    let node_a = Rc.new(GraphNode {
+        value: 1,
+        neighbors: RefCell.new(Vec.new())
+    });
+    let node_b = Rc.new(GraphNode {
+        value: 2,
+        neighbors: RefCell.new(Vec.new())
+    });
+    let node_c = Rc.new(GraphNode {
+        value: 3,
+        neighbors: RefCell.new(Vec.new())
+    });
+
+    // A -> B, A -> C
+    node_a.neighbors.borrow_mut().push(node_b.clone());
+    node_a.neighbors.borrow_mut().push(node_c.clone());
+
+    // B -> C (now C is reachable from both A and B)
+    node_b.neighbors.borrow_mut().push(node_c.clone());
+
+    // C -> B (creates a cycle B <-> C, see Weak section for how to handle)
+    node_c.neighbors.borrow_mut().push(node_b.clone());
+
+    vec![node_a, node_b, node_c]
+}
+```
+
+### The Single-Thread Limitation: Rc Is Not Thread-Safe
+
+`Rc`'s counter is a plain integer. If two threads try to increment it at the same time, you get a data race. Ferrum prevents this at compile time:
 
 ```ferrum
 import alloc.rc.Rc
 
-fn broken() {
-    let shared = Rc.new(42)
+fn this_will_not_compile() {
+    let shared = Rc.new(42);
 
     scope s {
+        let copy = shared.clone();
         s.spawn(|| {
-            print(*shared)  // ERROR: Rc[i32] is not Send
-        })
+            print("{}", *copy);  // Try to use Rc in another thread
+        });
     }
 }
 ```
 
-The error message is clear:
+The compiler error:
 
 ```
-error: `Rc[i32]` cannot be sent between threads safely
-  --> src/main.rs:6:17
+error[E0277]: `Rc[i32]` cannot be sent between threads safely
+  --> src/main.fe:8:17
    |
-6  |         s.spawn(|| {
-   |                 ^^ Rc[i32] is not Send
+8  |         s.spawn(|| {
+   |           ----- ^^ `Rc[i32]` cannot be sent between threads safely
+   |           |
+   |           required by a bound introduced by this call
+9  |             print("{}", *copy);
+   |                          ---- `Rc[i32]` is captured here
    |
    = help: the trait `Send` is not implemented for `Rc[i32]`
-   = note: use `Arc[i32]` for thread-safe reference counting
+   = note: required for `&Rc[i32]` to implement `Send`
+note: required because it's used within this closure
+  --> src/main.fe:8:17
+   |
+8  |         s.spawn(|| {
+   |                 ^^
+help: consider using `Arc[i32]` instead, which is thread-safe
+   |
+4  |     let shared = Arc.new(42);
+   |                  ~~~
 ```
 
-This isn't a runtime check that might fail. The compiler won't let you compile this code. Data races are impossible.
+This isn't a runtime crash. The code never compiles. Data races are impossible because you can't even build the broken program.
 
 ---
 
-## `Arc[T]`: Atomic Reference Counting for Threads
+## `Arc[T]`: Multiple Owners, Thread-Safe
 
-`Arc[T]` is `Rc[T]`'s thread-safe sibling. The only difference: `Arc` uses atomic operations for the reference count, so it's safe to share across threads.
+`Arc[T]` is `Rc[T]` with atomic operations. The only difference: the counter uses CPU atomic instructions that are safe across threads.
 
 ```ferrum
 import sync.Arc
 
-fn thread_safe_config() {
-    let config = Arc.new(Config.load())
+fn share_across_threads() {
+    let config = Arc.new(AppConfig.load());
 
     scope s {
         for i in 0..4 {
-            let cfg = config.clone()  // atomic increment
+            let cfg = config.clone();  // Atomic increment
             s.spawn(|| {
-                process_with_config(&cfg)
-            })  // atomic decrement when task ends
+                // Each thread has its own Arc pointing to the same config
+                print("Thread {}: max_conn = {}", i, cfg.max_connections);
+            });  // Atomic decrement when thread ends
         }
-    }   // all tasks joined, config dropped
+    }   // All threads joined, config dropped if this was last reference
 }
 ```
 
-### When to Use Arc
+### Arc vs Rc: When to Use Which
 
-**Shared data across threads.** Any time multiple threads need read access to the same data:
+| Situation | Use |
+|-----------|-----|
+| Single-threaded program | `Rc` (faster) |
+| Data shared across threads | `Arc` (required) |
+| Not sure / might add threads later | `Arc` (safe default) |
+
+The performance difference is small in most real code. An atomic increment is about 10-20x slower than a regular increment, but you're incrementing reference counts, not doing math in a tight loop. Unless profiling shows it matters, just use `Arc` if there's any chance of threading.
+
+### Concrete Example: Thread-Safe Cache
 
 ```ferrum
 import sync.{Arc, Mutex}
+import collections.HashMap
 
-type ThreadSafeCache {
-    data: Arc[Mutex[HashMap[String, String]]],
+type Cache[K, V] {
+    data: Arc[Mutex[HashMap[K, V]]],
 }
 
-impl ThreadSafeCache {
+impl[K: Eq + Hash + Clone, V: Clone] Cache[K, V] {
     fn new(): Self {
-        ThreadSafeCache {
+        Cache {
             data: Arc.new(Mutex.new(HashMap.new())),
         }
     }
 
-    fn get(&self, key: &str): Option[String] {
-        let guard = self.data.lock()
+    fn get(&self, key: &K): Option[V] {
+        let guard = self.data.lock();  // Blocks until lock acquired
         guard.get(key).cloned()
+    }   // Lock released when guard goes out of scope
+
+    fn set(&self, key: K, value: V) {
+        let mut guard = self.data.lock();
+        guard.insert(key, value);
     }
 
-    fn set(&self, key: String, value: String) {
-        let mut guard = self.data.lock()
-        guard.insert(key, value)
+    // Get a new handle to the same cache (for passing to another thread)
+    fn share(&self): Self {
+        Cache { data: self.data.clone() }
     }
 }
 
-fn use_cache() {
-    let cache = ThreadSafeCache.new()
+fn use_shared_cache() {
+    let cache = Cache.new();
+    cache.set("key1".to_string(), "value1".to_string());
 
     scope s {
-        // Multiple threads can hold Arc clones
-        let c1 = cache.data.clone()
-        let c2 = cache.data.clone()
+        let c1 = cache.share();
+        let c2 = cache.share();
 
-        s.spawn(|| { /* use c1 */ })
-        s.spawn(|| { /* use c2 */ })
+        s.spawn(|| {
+            c1.set("from_thread_1".to_string(), "data".to_string());
+        });
+
+        s.spawn(|| {
+            if let Some(v) = c2.get(&"key1".to_string()) {
+                print("Thread 2 got: {}", v);
+            }
+        });
     }
 }
 ```
-
-### Arc vs Rc: The Cost
-
-`Arc` is slightly slower than `Rc` because atomic operations have overhead. On x86-64, an atomic increment is about 10-20x slower than a regular increment. This sounds scary but usually doesn't matter — you're not incrementing reference counts in a tight loop.
-
-Rule of thumb:
-- Single-threaded code: use `Rc`
-- Multi-threaded code: use `Arc`
-- Don't optimize prematurely; profile first
 
 ---
 
-## `Weak[T]`: Breaking Cycles
+## `Weak[T]`: Breaking Reference Cycles
 
-Reference counting has a weakness: cycles. If A points to B and B points to A, both reference counts stay at 1 forever. Memory leaks.
+Here's a problem that bites everyone eventually:
 
 ```ferrum
-// DON'T DO THIS - creates a cycle
+import alloc.rc.Rc
+import core.cell.RefCell
+
 type Parent {
-    children: Vec[Rc[Child]],
+    name: String,
+    children: RefCell[Vec[Rc[Child]]],
 }
 
 type Child {
-    parent: Rc[Parent],  // Cycle! Parent -> Child -> Parent
+    name: String,
+    parent: Rc[Parent],  // PROBLEM: Child holds strong reference to Parent
+}
+
+fn create_family() {
+    let parent = Rc.new(Parent {
+        name: "Alice".to_string(),
+        children: RefCell.new(Vec.new())
+    });
+
+    let child = Rc.new(Child {
+        name: "Bob".to_string(),
+        parent: parent.clone(),  // parent count = 2
+    });
+
+    parent.children.borrow_mut().push(child.clone());  // child count = 2
+
+    // At end of scope:
+    // - We drop `child` variable: child count = 1 (parent still holds it)
+    // - We drop `parent` variable: parent count = 1 (child still holds it)
+    // - Both counts stuck at 1 forever!
+    // - MEMORY LEAK
 }
 ```
 
-`Weak[T]` solves this. A `Weak` reference doesn't keep the value alive — it's an observer, not an owner. When all strong references (`Rc` or `Arc`) are gone, the value is dropped, even if `Weak` references remain.
+The cycle: Parent -> Child -> Parent. Neither count ever reaches 0.
+
+### The Fix: Use Weak for Back-References
+
+`Weak[T]` is a reference that doesn't increment the count. It doesn't keep the value alive. It just lets you get to the value *if it's still alive*.
+
+Think of it as: "I want to know about this thing, but I don't need it to stick around just for me."
 
 ```ferrum
 import alloc.rc.{Rc, Weak}
+import core.cell.RefCell
 
 type Parent {
-    children: Vec[Rc[Child]],
+    name: String,
+    children: RefCell[Vec[Rc[Child]]],
 }
 
 type Child {
-    parent: Weak[Parent],  // Weak! No cycle.
+    name: String,
+    parent: Weak[Parent],  // FIXED: Weak doesn't keep Parent alive
 }
 
-fn build_family(): Rc[Parent] {
-    let parent = Rc.new(Parent { children: Vec.new() })
+fn create_family(): Rc[Parent] {
+    let parent = Rc.new(Parent {
+        name: "Alice".to_string(),
+        children: RefCell.new(Vec.new())
+    });
 
     let child = Rc.new(Child {
-        parent: Rc.downgrade(&parent),  // create Weak from Rc
-    })
+        name: "Bob".to_string(),
+        parent: Rc.downgrade(&parent),  // Create Weak from Rc
+    });
 
-    Rc.get_mut(&mut parent).unwrap().children.push(child)
+    parent.children.borrow_mut().push(child);
 
-    parent
-}   // When parent is dropped, children are dropped, no cycle
+    parent  // Return parent; when caller drops it, everything is freed
+}
+
+// Now the ownership is clear:
+// - Parent owns Children (strong references)
+// - Children reference Parent weakly (don't keep it alive)
+// When Parent is dropped, Children are dropped, no cycle.
 ```
 
-### Using Weak References
+### Using a Weak Reference
 
-A `Weak` might point to a dropped value. You must check before using:
+Since a `Weak` doesn't keep the value alive, the value might already be gone when you try to use it. You must check:
 
 ```ferrum
-fn access_parent(child: &Child) {
-    match child.parent.upgrade() {
-        Some(parent) => {
-            // parent is a valid Rc[Parent]
-            print("Parent exists")
-        }
-        None => {
-            // Parent was already dropped
-            print("Parent is gone")
+impl Child {
+    fn get_parent_name(&self): Option[String] {
+        // upgrade() returns Some(Rc) if value exists, None if it's been freed
+        match self.parent.upgrade() {
+            Some(parent_rc) => Some(parent_rc.name.clone()),
+            None => {
+                print("Parent was already dropped!");
+                None
+            }
         }
     }
 }
-```
 
-`upgrade()` returns `Option[Rc[T]]` (or `Option[Arc[T]]` for `sync.Weak`). If the value still exists, you get a strong reference. If not, you get `None`.
+fn demonstrate_weak() {
+    let child: Rc[Child];
 
----
+    {
+        let parent = Rc.new(Parent {
+            name: "Alice".to_string(),
+            children: RefCell.new(Vec.new()),
+        });
 
-## Comparing to C: Automating What You'd Do Manually
+        child = Rc.new(Child {
+            name: "Bob".to_string(),
+            parent: Rc.downgrade(&parent),
+        });
 
-In C, you'd implement reference counting yourself:
+        parent.children.borrow_mut().push(child.clone());
 
-```c
-struct RefCounted {
-    int ref_count;
-    void *data;
-};
+        // Parent still alive here
+        print("{:?}", child.get_parent_name());  // prints: Some("Alice")
 
-void retain(struct RefCounted *rc) {
-    rc->ref_count++;
-}
+    }   // Parent dropped here (child's Weak doesn't keep it alive)
 
-void release(struct RefCounted *rc) {
-    if (--rc->ref_count == 0) {
-        free(rc->data);
-        free(rc);
-    }
-}
-```
-
-This is error-prone:
-- Forget to call `retain`? Use-after-free.
-- Forget to call `release`? Memory leak.
-- Call `release` twice? Double-free.
-- Use the wrong atomic operations? Data race.
-
-Ferrum's smart pointers do the same thing, but the compiler:
-1. Inserts the `retain`/`release` calls automatically
-2. Proves you can't use a value after it's freed
-3. Refuses to compile code that would create a data race
-
-You get the same performance (or better — no virtual dispatch overhead) with none of the bugs.
-
----
-
-## Comparing to Python: Deterministic Instead of "Eventually"
-
-Python's garbage collector frees objects "eventually":
-
-```python
-def process():
-    huge_data = load_huge_dataset()  # 10 GB
-    result = analyze(huge_data)
-    # huge_data is "no longer needed" but...
-
-    # GC might not run here
-    other_work()  # might OOM because huge_data is still in memory
-
-    return result
-```
-
-You can call `gc.collect()`, but it's not guaranteed to free your object if there's a reference cycle.
-
-Ferrum is deterministic:
-
-```ferrum
-fn process(): Result {
-    let huge_data = load_huge_dataset()?  // 10 GB
-    let result = analyze(&huge_data)?
-
-    drop(huge_data)  // freed NOW, guaranteed
-
-    other_work()?    // 10 GB already freed
-
-    Ok(result)
+    // Parent is gone now
+    print("{:?}", child.get_parent_name());  // prints: None
 }
 ```
 
-When a value goes out of scope or is explicitly `drop()`ed, it's freed immediately. No GC pause, no "maybe later," no hoping the reference count reaches zero.
+### The Pattern: Strong References for Ownership, Weak for Back-References
+
+```
+Owner (strong) → Owned (strong) → Back-reference (WEAK)
+     └──────────────────────────────────────┘
+
+     The cycle is broken because Weak doesn't count as ownership
+```
+
+Common examples:
+- **Tree nodes**: Parent → Children (Rc), Child → Parent (Weak)
+- **Observer pattern**: Subject → Observers (Rc), Observer → Subject (Weak)
+- **Cache with expiration**: Index → Entry (Weak), so entries can be dropped when nothing else uses them
 
 ---
 
-## Interior Mutability: When You Need to Mutate Through Shared References
+## Interior Mutability: Mutating Shared Data
 
-Ferrum's borrowing rules say: either many shared references OR one mutable reference, never both. But sometimes you need to mutate data that's shared.
+Ferrum's normal rule: many shared references (`&T`) OR one mutable reference (`&mut T`), never both at the same time.
 
-Enter interior mutability — types that let you mutate through a shared reference, with the safety checks moved from compile time to runtime.
+But sometimes you need to mutate data that multiple things reference. That's where "interior mutability" comes in: types that let you mutate through a shared `&T` reference.
 
 ### `RefCell[T]`: Runtime Borrow Checking
 
-`RefCell` enforces borrowing rules at runtime:
+`RefCell` moves borrow checking from compile time to runtime:
 
 ```ferrum
 import core.cell.RefCell
@@ -452,201 +697,395 @@ impl Counter {
         Counter { value: RefCell.new(0) }
     }
 
-    fn increment(&self) {  // Note: &self, not &mut self
-        let mut val = self.value.borrow_mut()
-        *val += 1
-    }
+    fn increment(&self) {  // Note: &self (shared), not &mut self
+        let mut val = self.value.borrow_mut();  // Runtime check
+        *val += 1;
+    }   // borrow_mut guard dropped here
 
     fn get(&self): i32 {
-        *self.value.borrow()
+        *self.value.borrow()  // Runtime check
+    }
+}
+
+fn use_counter() {
+    let counter = Counter.new();
+
+    // Multiple things can have &Counter at the same time
+    let ref1 = &counter;
+    let ref2 = &counter;
+
+    ref1.increment();  // Works: borrow_mut() succeeds
+    print("{}", ref2.get());  // Works: borrow() succeeds (no overlap)
+}
+```
+
+**Important**: RefCell panics if you violate borrow rules at runtime:
+
+```ferrum
+fn this_panics() {
+    let cell = RefCell.new(42);
+
+    let borrowed = cell.borrow();       // Shared borrow active
+    let mutable = cell.borrow_mut();    // PANIC! Can't mutably borrow while shared borrow exists
+}
+```
+
+Runtime error:
+
+```
+thread 'main' panicked at 'already borrowed: BorrowMutError'
+```
+
+Use `try_borrow()` and `try_borrow_mut()` if you want to handle this gracefully:
+
+```ferrum
+fn safe_approach() {
+    let cell = RefCell.new(42);
+
+    let borrowed = cell.borrow();
+
+    match cell.try_borrow_mut() {
+        Ok(mut val) => *val += 1,
+        Err(_) => print("Couldn't get mutable access, already borrowed"),
     }
 }
 ```
 
-With `RefCell`, the compiler lets you call `borrow_mut()` through a shared reference. But if you violate the borrowing rules at runtime — say, calling `borrow_mut()` while a `borrow()` is active — the program panics:
+### Common Pattern: Rc + RefCell
+
+Since `Rc` gives you shared ownership and `RefCell` gives you interior mutability, they're often combined:
 
 ```ferrum
-fn broken() {
-    let cell = RefCell.new(42)
+import alloc.rc.Rc
+import core.cell.RefCell
 
-    let borrowed = cell.borrow()      // shared borrow
-    let mutable = cell.borrow_mut()   // PANIC: already borrowed
+type SharedVec[T] {
+    data: Rc[RefCell[Vec[T]]],
+}
+
+impl[T: Clone] SharedVec[T] {
+    fn new(): Self {
+        SharedVec { data: Rc.new(RefCell.new(Vec.new())) }
+    }
+
+    fn push(&self, value: T) {
+        self.data.borrow_mut().push(value);
+    }
+
+    fn get(&self, index: usize): Option[T] {
+        self.data.borrow().get(index).cloned()
+    }
+
+    fn share(&self): Self {
+        SharedVec { data: self.data.clone() }
+    }
 }
 ```
-
-Use `try_borrow()` and `try_borrow_mut()` if you want to handle conflicts gracefully.
 
 ### `Mutex[T]`: Thread-Safe Interior Mutability
 
-`RefCell` is single-threaded. For multi-threaded interior mutability, use `Mutex`:
+`RefCell` is not thread-safe. For multi-threaded code, use `Mutex`:
 
 ```ferrum
 import sync.{Arc, Mutex}
 
-fn shared_counter() {
-    let counter = Arc.new(Mutex.new(0))
+fn concurrent_counter() {
+    let counter = Arc.new(Mutex.new(0));
 
     scope s {
         for _ in 0..10 {
-            let c = counter.clone()
+            let c = counter.clone();
             s.spawn(|| {
-                let mut guard = c.lock()  // blocks until lock acquired
-                *guard += 1
-            })
+                let mut guard = c.lock();  // Blocks until lock acquired
+                *guard += 1;
+            });  // Lock released when guard dropped
         }
     }
 
-    print("Final count: {}", *counter.lock())
+    print("Final count: {}", *counter.lock());  // prints: 10
 }
 ```
 
-`Mutex.lock()` returns a guard that:
-1. Holds the lock until dropped
-2. Dereferences to the inner value
-3. Automatically unlocks when it goes out of scope
+Key differences from RefCell:
+- `lock()` blocks (waits) instead of panicking
+- Thread-safe
+- Slightly more overhead
 
-No manual unlock, no forgetting to release.
+### `RwLock[T]`: Many Readers, One Writer
 
-### `RwLock[T]`: Multiple Readers or One Writer
-
-`RwLock` allows either multiple readers OR one writer:
+If you have mostly reads and few writes, `RwLock` is more efficient than `Mutex`:
 
 ```ferrum
 import sync.{Arc, RwLock}
 
-fn concurrent_read_write() {
-    let data = Arc.new(RwLock.new(vec![1, 2, 3]))
+fn mostly_reads() {
+    let data = Arc.new(RwLock.new(vec![1, 2, 3, 4, 5]));
 
     scope s {
         // Many readers can proceed simultaneously
         for i in 0..10 {
-            let d = data.clone()
+            let d = data.clone();
             s.spawn(|| {
-                let guard = d.read()  // shared lock
-                print("Reader {}: {:?}", i, *guard)
-            })
+                let guard = d.read();  // Shared lock - multiple allowed
+                print("Reader {}: first = {}", i, guard[0]);
+            });
         }
 
-        // Writer blocks until all readers are done
-        let d = data.clone()
+        // Writer waits for all readers to finish
+        let d = data.clone();
         s.spawn(|| {
-            let mut guard = d.write()  // exclusive lock
-            guard.push(4)
-        })
+            let mut guard = d.write();  // Exclusive lock - waits for readers
+            guard.push(6);
+        });
     }
 }
 ```
 
 ---
 
-## Practical Example: A Thread-Safe LRU Cache
+## Common Mistakes and How to Fix Them
 
-Let's put it together. Here's a thread-safe LRU cache using `Arc`, `Mutex`, and smart interior design:
+### Mistake 1: Using Rc Across Threads
+
+**The problem:**
+```ferrum
+let shared = Rc.new(data);
+s.spawn(|| use(shared.clone()));  // Won't compile
+```
+
+**The error:**
+```
+error[E0277]: `Rc[Data]` cannot be sent between threads safely
+```
+
+**The fix:** Use `Arc` instead of `Rc`:
+```ferrum
+let shared = Arc.new(data);
+s.spawn(|| use(shared.clone()));  // Works
+```
+
+### Mistake 2: Creating Reference Cycles
+
+**The problem:**
+```ferrum
+type Node {
+    next: Option[Rc[Node]],
+    prev: Option[Rc[Node]],  // Creates cycle: A -> B -> A
+}
+```
+
+**What happens:** Memory leaks. Nodes never freed.
+
+**The fix:** Use `Weak` for back-references:
+```ferrum
+type Node {
+    next: Option[Rc[Node]],   // Strong: I own my successor
+    prev: Option[Weak[Node]], // Weak: I know my predecessor, but don't keep it alive
+}
+```
+
+### Mistake 3: Holding RefCell Borrows Too Long
+
+**The problem:**
+```ferrum
+fn bad() {
+    let cell = RefCell.new(vec![1, 2, 3]);
+
+    let borrowed = cell.borrow();  // Borrowed here...
+
+    // ... lots of code ...
+
+    cell.borrow_mut().push(4);  // PANIC! `borrowed` still alive
+
+    drop(borrowed);  // Too late
+}
+```
+
+**The fix:** Limit borrow scope:
+```ferrum
+fn good() {
+    let cell = RefCell.new(vec![1, 2, 3]);
+
+    {
+        let borrowed = cell.borrow();
+        print("{:?}", *borrowed);
+    }   // borrowed dropped here
+
+    cell.borrow_mut().push(4);  // Works now
+}
+```
+
+Or use block expressions:
+```ferrum
+fn also_good() {
+    let cell = RefCell.new(vec![1, 2, 3]);
+
+    let first = { cell.borrow()[0] };  // Borrow ends at }
+
+    cell.borrow_mut().push(4);  // Works
+}
+```
+
+### Mistake 4: Forgetting to Clone Rc/Arc
+
+**The problem:**
+```ferrum
+let shared = Rc.new(data);
+let handler1 = Handler { config: shared };      // Moves shared
+let handler2 = Handler { config: shared };      // ERROR: shared already moved
+```
+
+**The error:**
+```
+error[E0382]: use of moved value: `shared`
+```
+
+**The fix:** Clone before moving:
+```ferrum
+let shared = Rc.new(data);
+let handler1 = Handler { config: shared.clone() };  // Clone, count = 2
+let handler2 = Handler { config: shared.clone() };  // Clone, count = 3
+// original `shared` still valid, count = 3
+```
+
+### Mistake 5: Deadlocks with Multiple Locks
+
+**The problem:**
+```ferrum
+// Thread 1:
+let a = lock_a.lock();
+let b = lock_b.lock();  // Waits for lock_b
+
+// Thread 2:
+let b = lock_b.lock();
+let a = lock_a.lock();  // Waits for lock_a
+
+// Both threads wait forever!
+```
+
+**The fix:** Always lock in the same order:
+```ferrum
+// Both threads:
+let a = lock_a.lock();  // Always lock_a first
+let b = lock_b.lock();  // Then lock_b
+```
+
+### Mistake 6: Upgrading a Weak That's Gone
+
+**The problem:**
+```ferrum
+fn access_parent(weak: &Weak[Parent]) {
+    let parent = weak.upgrade().unwrap();  // Panics if parent is gone!
+}
+```
+
+**The fix:** Handle the `None` case:
+```ferrum
+fn access_parent(weak: &Weak[Parent]) {
+    match weak.upgrade() {
+        Some(parent) => {
+            // Use parent
+        }
+        None => {
+            // Handle the case where parent was already dropped
+            print("Parent no longer exists");
+        }
+    }
+}
+```
+
+---
+
+## Practical Patterns: "Here's What You Do When..."
+
+### "I need to allocate large data"
 
 ```ferrum
-import sync.{Arc, Mutex}
-import collections.LinkedHashMap
+// Put it on the heap with Box
+let big_data = Box.new([0u8; 10_000_000]);
+```
 
-type LruCache[K: Eq + Hash + Clone, V: Clone] {
-    inner: Arc[Mutex[LruInner[K, V]]],
-    capacity: usize,
+### "I need a recursive data structure"
+
+```ferrum
+// Use Box for indirection
+type Tree[T] {
+    value: T,
+    children: Vec[Box[Tree[T]]],
 }
+```
 
-type LruInner[K, V] {
-    map: LinkedHashMap[K, V],
-}
+### "Multiple parts of my code need the same data"
 
-impl[K: Eq + Hash + Clone, V: Clone] LruCache[K, V] {
-    fn new(capacity: usize): Self {
-        LruCache {
-            inner: Arc.new(Mutex.new(LruInner {
-                map: LinkedHashMap.new(),
-            })),
-            capacity,
-        }
-    }
+```ferrum
+// Use Rc (single-threaded) or Arc (multi-threaded)
+let shared = Rc.new(expensive_computation());
+let copy1 = shared.clone();
+let copy2 = shared.clone();
+```
 
-    fn get(&self, key: &K): Option[V] {
-        let mut inner = self.inner.lock()
+### "I have a parent/child relationship"
 
-        // Move to end (most recently used)
-        if let Some(value) = inner.map.remove(key) {
-            inner.map.insert(key.clone(), value.clone())
-            Some(value)
-        } else {
-            None
-        }
-    }
+```ferrum
+// Parents own children (Rc), children reference parents (Weak)
+type Parent { children: Vec[Rc[Child]] }
+type Child { parent: Weak[Parent] }
+```
 
-    fn put(&self, key: K, value: V) {
-        let mut inner = self.inner.lock()
+### "I need to modify shared data (single thread)"
 
-        // Remove if exists (to update position)
-        inner.map.remove(&key)
+```ferrum
+// Use Rc<RefCell<T>>
+let shared = Rc.new(RefCell.new(data));
+shared.borrow_mut().modify();
+```
 
-        // Evict oldest if at capacity
-        while inner.map.len() >= self.capacity {
-            if let Some((oldest_key, _)) = inner.map.iter().next() {
-                let k = oldest_key.clone()
-                inner.map.remove(&k)
-            }
-        }
+### "I need to modify shared data (multiple threads)"
 
-        inner.map.insert(key, value)
-    }
+```ferrum
+// Use Arc<Mutex<T>>
+let shared = Arc.new(Mutex.new(data));
+shared.lock().modify();
+```
 
-    // Clone the Arc to share with another thread
-    fn share(&self): Self {
-        LruCache {
-            inner: self.inner.clone(),
-            capacity: self.capacity,
-        }
-    }
-}
+### "I have mostly reads, few writes (multiple threads)"
 
-// Usage across threads
-fn main() {
-    let cache = LruCache.new(100)
-
-    scope s {
-        let c1 = cache.share()
-        let c2 = cache.share()
-
-        s.spawn(|| {
-            c1.put("key1".to_string(), "value1".to_string())
-        })
-
-        s.spawn(|| {
-            if let Some(v) = c2.get(&"key1".to_string()) {
-                print("Got: {}", v)
-            }
-        })
-    }
-}
+```ferrum
+// Use Arc<RwLock<T>>
+let shared = Arc.new(RwLock.new(data));
+shared.read();   // Many simultaneous readers OK
+shared.write();  // Exclusive access for writing
 ```
 
 ---
 
 ## Quick Reference
 
-| Type | Ownership | Thread-Safe | Use Case |
-|------|-----------|-------------|----------|
-| `Box[T]` | Single owner | Yes (if T is) | Heap allocation, recursive types, trait objects |
-| `Rc[T]` | Shared (counted) | No | Shared ownership, single-threaded |
-| `Arc[T]` | Shared (atomic counted) | Yes | Shared ownership, multi-threaded |
-| `Weak[T]` | Non-owning | Matches Rc/Arc | Breaking cycles, optional references |
-| `RefCell[T]` | N/A (interior mut) | No | Mutate through &self, single-threaded |
-| `Mutex[T]` | N/A (interior mut) | Yes | Mutate through &self, multi-threaded |
-| `RwLock[T]` | N/A (interior mut) | Yes | Many readers OR one writer |
+| Type | What It Does | Thread-Safe | When to Use |
+|------|--------------|-------------|-------------|
+| `Box[T]` | Single owner, heap allocated | Yes | Large data, recursive types, trait objects |
+| `Rc[T]` | Counts how many things point to it | **No** | Shared ownership, single thread |
+| `Arc[T]` | Same as Rc but atomic | **Yes** | Shared ownership across threads |
+| `Weak[T]` | Doesn't keep value alive | Same as Rc/Arc | Breaking cycles, optional references |
+| `RefCell[T]` | Mutate through shared reference | **No** | Interior mutability, single thread |
+| `Mutex[T]` | Lock for exclusive access | **Yes** | Interior mutability across threads |
+| `RwLock[T]` | Many readers OR one writer | **Yes** | Read-heavy shared data |
 
 ---
 
-## The Key Insight
+## The Big Picture
 
-Smart pointers aren't magic. They're the same patterns you'd implement manually in C — single ownership, reference counting, locking. The difference is:
+Smart pointers in Ferrum aren't magic. They're the same patterns you'd implement manually in C:
 
-1. **The compiler inserts the bookkeeping.** No forgotten `free()` or `release()`.
-2. **The type system prevents misuse.** No use-after-free, no data races.
-3. **Cleanup is deterministic.** No GC pause, no "eventually."
+- **Box** = malloc + guaranteed free at scope exit
+- **Rc/Arc** = reference counting (like COM's AddRef/Release, or Python's refcount)
+- **RefCell/Mutex** = runtime checked borrows / locks
 
-You're not giving up control. You're getting the compiler to check your work.
+The difference is that the compiler:
+
+1. **Inserts the cleanup automatically** — no forgotten `free()` or `release()`
+2. **Checks your work at compile time** — use-after-free is a compile error, not a crash
+3. **Enforces thread safety** — data races are impossible because unsafe code won't compile
+4. **Makes cleanup deterministic** — values are freed immediately when the last reference goes away, not "eventually" by a GC
+
+You're not giving up control. You're getting the compiler to verify that your manual memory management is correct — and getting it to write the boring parts for you.

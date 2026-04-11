@@ -1,6 +1,6 @@
 # Introduction to FFI and C Interoperability in Ferrum
 
-**Audience:** Programmers who know C and Python, familiar with ctypes or cffi
+**Audience:** Programmers who know C well and have used Python's ctypes or cffi. Not a CS academic. You want to call C libraries from Ferrum, and you want to know what can go wrong.
 
 ---
 
@@ -28,7 +28,7 @@ That's what FFI is for: calling C code from Ferrum, and letting C code call Ferr
 
 You know the basics already. You declare the function signature, load the library, call the function. The mechanics in Ferrum are similar, but with one massive difference: **the compiler catches your mistakes**.
 
-In Python:
+### Python: Runtime Errors (Maybe)
 
 ```python
 from ctypes import *
@@ -42,7 +42,20 @@ libc.printf(b"Hello, %d!\n", b"world")  # passes a pointer where int expected
 
 Python's ctypes doesn't know what types `printf` expects. You tell it nothing, it believes you, and if you lie, you corrupt memory or crash. Maybe not immediately. Maybe three hours later, in an unrelated function, when the heap corruption finally manifests.
 
-In Ferrum:
+With cffi, you can declare types, but mistakes are still runtime errors:
+
+```python
+from cffi import FFI
+ffi = FFI()
+ffi.cdef("int strlen(const char* s);")
+lib = ffi.dlopen(None)
+
+lib.strlen("hello")      # works
+lib.strlen(42)           # TypeError at runtime
+lib.strlen(None)         # segfault
+```
+
+### Ferrum: Compile-Time Errors
 
 ```ferrum
 extern "C" fn printf(fmt: *const c_char, ...): c_int  ! Unsafe
@@ -56,6 +69,19 @@ extern "C" fn printf(fmt: *const c_char, ...): c_int  ! Unsafe
 ```
 
 The types are checked at compile time. Pass the wrong type, get a compile error. The runtime segfault that ruined your Thursday afternoon in Python becomes a compiler error you fix in five seconds.
+
+### Side-by-Side Comparison
+
+| What You Do | Python ctypes | Ferrum |
+|-------------|---------------|--------|
+| Wrong argument type | Compiles, crashes at runtime (maybe) | Compile error |
+| Missing argument | Compiles, undefined behavior | Compile error |
+| Wrong return type | Compiles, garbage value or crash | Compile error |
+| Pass null where non-null expected | Segfault | Must be handled in unsafe block |
+| Forget to free memory | Memory leak, no warning | RAII wrapper handles it |
+| Call non-thread-safe code from threads | Data race, silent corruption | You still have this problem |
+
+The last row is important: **FFI can't make C code safer than it is.** If the C library has bugs, undefined behavior, or thread-safety issues, Ferrum can't fix that. But Ferrum can prevent you from making *new* mistakes at the boundary.
 
 ---
 
@@ -96,6 +122,19 @@ extern "C" fn snprintf(buf: *mut c_char, size: c_size_t, fmt: *const c_char, ...
 ```
 
 When you call a variadic function, each argument after `...` must be a type that C understands: integers, floats, pointers. Not Ferrum structs, not references, not strings.
+
+```ferrum
+// What you CAN pass to variadic args:
+unsafe {
+    printf(c"%d %f %p\n".as_ptr(), 42 as c_int, 3.14, some_ptr)
+}
+
+// What you CANNOT pass:
+unsafe {
+    printf(c"%s\n".as_ptr(), "hello")  // error: &str is not C-compatible
+    printf(c"%d\n".as_ptr(), my_struct) // error: Ferrum struct
+}
+```
 
 ### Grouping Declarations
 
@@ -158,6 +197,39 @@ fn ferrum_code() {
 }
 ```
 
+### What the Compiler Tells You
+
+If you get the types wrong:
+
+```ferrum
+extern "C" fn process(n: c_int): c_int  ! Unsafe
+
+fn main() {
+    let big: i64 = 1_000_000_000_000
+    unsafe { process(big) }
+}
+```
+
+Compiler error:
+
+```
+error[E0308]: mismatched types
+ --> src/main.fe:5:22
+  |
+5 |     unsafe { process(big) }
+  |              ------- ^^^ expected `c_int`, found `i64`
+  |              |
+  |              arguments to this function are incorrect
+  |
+  = note: c_int is i32 on this platform
+help: consider using `as` for a truncating conversion
+  |
+5 |     unsafe { process(big as c_int) }
+  |                          +++++++++
+```
+
+Compare to Python ctypes, where this would silently truncate or corrupt memory.
+
 ---
 
 ## Pointers: Raw Pointers for C Interop
@@ -199,6 +271,38 @@ unsafe {
 }
 ```
 
+### What Happens When You Dereference a Bad Pointer
+
+In C, dereferencing a null or dangling pointer is undefined behavior. The same is true in Ferrum's unsafe blocks. Here's what you might see:
+
+```ferrum
+fn dangerous() {
+    let null: *const i32 = core.ptr.null()
+    unsafe {
+        let value = *null  // undefined behavior
+    }
+}
+```
+
+If you're lucky: immediate segfault with a stack trace pointing to the line.
+
+If you're unlucky: the program continues with garbage data, corrupts something else, and crashes hours later in unrelated code.
+
+This is why you always check for null:
+
+```ferrum
+let ptr: *const i32 = get_pointer()
+
+if ptr.is_null() {
+    return Err(MyError.NullPointer)
+}
+
+// Now safe to dereference (but still requires unsafe block)
+unsafe {
+    let value = *ptr
+}
+```
+
 ### Pointer Arithmetic
 
 ```ferrum
@@ -214,25 +318,13 @@ unsafe {
 }
 ```
 
-### Checking for Null
-
-```ferrum
-let ptr: *const i32 = get_pointer()
-
-if ptr.is_null() {
-    // handle null case
-} else {
-    unsafe {
-        let value = *ptr
-    }
-}
-```
-
 ---
 
 ## Strings: The FFI Nightmare Made Manageable
 
-Strings are where C and Ferrum disagree completely.
+Strings are where C and Ferrum disagree completely. This is the #1 source of FFI bugs. Read this section carefully.
+
+### The Fundamental Difference
 
 | Aspect | C strings | Ferrum strings |
 |--------|-----------|----------------|
@@ -242,72 +334,111 @@ Strings are where C and Ferrum disagree completely.
 | Interior nulls | Impossible (terminates string) | Allowed |
 | Mutability | Depends on declaration | Explicit (&str vs &mut str) |
 
-Ferrum provides two types for C strings:
+C strings end with a null byte (`\0`). Ferrum strings don't have a null terminator; they store their length separately. This means you can't just pass a Ferrum `&str` to a C function expecting `char*`.
+
+### The Two String Types: CStr and CString
+
+Ferrum provides two types for C strings. Understanding when to use each is critical.
+
+**`CStr`** - Borrowed C string. Like `&str` for Ferrum strings. You don't own the memory; you're borrowing it from somewhere else.
+
+**`CString`** - Owned C string. Like `String` for Ferrum strings. You own the memory and are responsible for it (but Ferrum handles cleanup automatically via Drop).
+
+### Memory Ownership: Who Frees What?
+
+This is the most important thing to understand about FFI strings.
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│                     STRING MEMORY OWNERSHIP                        │
+├────────────────────────────────────────────────────────────────────┤
+│                                                                    │
+│  CStr (&CStr)           CString                                    │
+│  ┌─────────────┐        ┌─────────────┐                            │
+│  │ ptr ────────┼───┐    │ ptr ────────┼───┐                        │
+│  │ len         │   │    │ len         │   │                        │
+│  └─────────────┘   │    │ cap         │   │                        │
+│                    │    └─────────────┘   │                        │
+│                    │                      │                        │
+│                    ▼                      ▼                        │
+│            ┌───────────────┐      ┌───────────────┐                │
+│            │ h │ i │ \0 │  │      │ h │ i │ \0 │  │                │
+│            └───────────────┘      └───────────────┘                │
+│            Memory owned by        Memory owned by                  │
+│            SOMEONE ELSE           THIS CString                     │
+│            (C code, static        (will be freed                   │
+│            data, etc.)            when CString drops)              │
+│                                                                    │
+└────────────────────────────────────────────────────────────────────┘
+```
 
 ### CStr: Borrowed C String
 
-`CStr` is like `&str` for C strings. It doesn't own the memory; it borrows it.
+Use `CStr` when:
+- You have a compile-time string literal you want to pass to C
+- A C function returned a `char*` that C still owns
+- You're looking at memory that someone else will free
 
 ```ferrum
 import core.ffi.CStr
 
-// Create from a literal (compile-time checked)
+// Create from a literal (compile-time checked, zero runtime cost)
 let greeting: &CStr = c"Hello, World!"
 
-// Create from a pointer (unsafe - you vouch for validity)
-unsafe {
-    let s: &CStr = CStr.from_ptr(some_c_char_ptr)
-}
+// The c"..." syntax:
+// - Adds a null terminator automatically
+// - Verifies no interior nulls at compile time
+// - Creates a static string (lives forever, no allocation)
+```
 
-// Create from bytes (checked)
-let bytes: [u8; 6] = [b'h', b'e', b'l', b'l', b'o', 0]
-let s: &CStr = CStr.from_bytes_with_nul(&bytes)?
+Creating `CStr` from a C pointer:
 
-// Use it
-extern "C" fn puts(s: *const c_char): c_int  ! Unsafe
+```ferrum
+extern "C" fn getenv(name: *const c_char): *const c_char  ! Unsafe
 
-unsafe {
-    puts(greeting.as_ptr())
+fn get_home_dir(): Option[&CStr] {
+    let ptr = unsafe { getenv(c"HOME".as_ptr()) }
+
+    if ptr.is_null() {
+        return None
+    }
+
+    // SAFETY: getenv returns a pointer to static environment data
+    // that remains valid for the lifetime of the process.
+    Some(unsafe { CStr.from_ptr(ptr) })
 }
 ```
 
+**Warning:** `CStr.from_ptr()` is unsafe because you're vouching that:
+1. The pointer is not null
+2. The pointer points to a null-terminated string
+3. The memory won't be freed while the `CStr` exists
+
+If any of these are false, you get undefined behavior.
+
 ### CString: Owned C String
 
-`CString` is like `String` for C strings. It owns the memory.
+Use `CString` when:
+- You have a Ferrum `String` or `&str` you need to pass to C
+- You're creating a new string at runtime to pass to C
+- You need to own the string and control its lifetime
 
 ```ferrum
 import alloc.ffi.CString
 
 // Create from a Ferrum string
-let s = CString.new("Hello, World!")?  // ? because the string might contain interior nulls
-
-// Create from bytes
-let s = CString.new(vec![b'h', b'e', b'l', b'l', b'o'])?
+let name = "Alice"
+let c_name = CString.new(name)?  // ? because might contain interior null
 
 // Use it
-extern "C" fn puts(s: *const c_char): c_int  ! Unsafe
+extern "C" fn greet(name: *const c_char)  ! Unsafe
 
 unsafe {
-    puts(s.as_ptr())
+    greet(c_name.as_ptr())  // passes the pointer to C
 }
 
-// Convert back to Ferrum string (if valid UTF-8)
-let ferrum_str: &str = s.to_str()?
-```
-
-### Converting Between String Types
-
-```ferrum
-// Ferrum &str to CString (copies, adds null terminator)
-let ferrum: &str = "hello"
-let c: CString = CString.new(ferrum)?
-
-// CStr to Ferrum &str (zero-copy if valid UTF-8)
-let c: &CStr = c"hello"
-let ferrum: &str = c.to_str()?
-
-// CStr to String (always works, replaces invalid UTF-8)
-let lossy: String = c.to_string_lossy().into_owned()
+// c_name still owns the memory
+// When c_name goes out of scope, the memory is freed
 ```
 
 ### The Interior Null Problem
@@ -317,13 +448,111 @@ C strings can't contain `\0` except at the end. If your Ferrum string has a null
 ```ferrum
 let bad = CString.new("hello\0world")
 // Returns Err(NulError { position: 5 })
+
+// Why? Because C would see: "hello" (5 characters)
+// The "world" part would be invisible, unreachable.
 ```
+
+If you have data with embedded nulls, you need to pass it as a byte buffer with an explicit length, not as a C string.
+
+### Converting Back: CStr to Ferrum Strings
+
+```ferrum
+let c: &CStr = c"hello"
+
+// If you KNOW it's valid UTF-8:
+let s: &str = c.to_str()?  // Returns Err if invalid UTF-8
+
+// If you're not sure (replaces invalid sequences with U+FFFD):
+let s: String = c.to_string_lossy().into_owned()
+```
+
+### Common String Mistakes
+
+**Mistake 1: Using a CString after it's dropped**
+
+```ferrum
+fn get_name_ptr(): *const c_char {
+    let name = CString.new("Alice").unwrap()
+    name.as_ptr()  // Returns pointer to name's buffer
+}   // name is dropped here, buffer is freed
+
+fn main() {
+    let ptr = get_name_ptr()  // ptr is now dangling!
+    unsafe { puts(ptr) }       // undefined behavior
+}
+```
+
+The compiler can't catch this because raw pointers aren't tracked. The fix:
+
+```ferrum
+fn greet_user() {
+    let name = CString.new("Alice").unwrap()
+    unsafe {
+        greet(name.as_ptr())
+        // name is still alive here, ptr is valid
+    }
+}   // name dropped after greet() returns
+```
+
+**Mistake 2: Passing &str directly to C**
+
+```ferrum
+extern "C" fn puts(s: *const c_char): c_int  ! Unsafe
+
+fn bad() {
+    let s = "hello"
+    unsafe {
+        puts(s.as_ptr() as *const c_char)  // WRONG!
+    }
+}
+```
+
+This compiles but is wrong: Ferrum strings don't have a null terminator. The C code will read past the end of the string until it finds a `\0` byte somewhere in memory.
+
+The fix:
+
+```ferrum
+fn good() {
+    unsafe {
+        puts(c"hello".as_ptr())  // literal with null terminator
+    }
+}
+
+// Or at runtime:
+fn also_good(s: &str) {
+    let c_str = CString.new(s).unwrap()
+    unsafe {
+        puts(c_str.as_ptr())
+    }
+}
+```
+
+**Mistake 3: C frees memory you're still using**
+
+```ferrum
+extern "C" fn get_message(): *const c_char  ! Unsafe
+extern "C" fn free_message(ptr: *const c_char)  ! Unsafe
+
+fn use_message() {
+    let ptr = unsafe { get_message() }
+    let msg: &CStr = unsafe { CStr.from_ptr(ptr) }
+
+    unsafe { free_message(ptr) }  // C frees the memory
+
+    println!("{}", msg.to_str().unwrap())  // DANGLING POINTER
+}
+```
+
+The `CStr` doesn't own the memory; it just points to it. When C frees the underlying buffer, the `CStr` becomes invalid.
 
 ---
 
 ## Matching C Struct Layouts: @repr(C)
 
-Ferrum structs don't have the same memory layout as C structs. Ferrum can reorder fields, add padding differently, or use different alignment. If you need to pass a struct to C, you must tell Ferrum to use C's layout:
+Ferrum structs don't have the same memory layout as C structs. Ferrum can reorder fields, add padding differently, or use different alignment. If you need to pass a struct to C, you must tell Ferrum to use C's layout.
+
+### Basic Usage
 
 ```ferrum
 @repr(C)
@@ -331,34 +560,102 @@ type Point {
     x: f64,
     y: f64,
 }
+```
 
-@repr(C)
-type Person {
-    name: *const c_char,
-    age: c_int,
-    height: f32,
-}
+This guarantees `Point` has the same layout as:
+
+```c
+struct Point {
+    double x;
+    double y;
+};
 ```
 
 ### What @repr(C) Guarantees
 
-1. Fields are in declaration order (Ferrum normally may reorder)
-2. Padding is added where C would add padding
-3. Alignment matches C's alignment rules
-4. Total size matches what C's `sizeof` would return
+1. **Fields are in declaration order.** Ferrum normally may reorder fields for efficiency.
+2. **Padding matches C.** Fields are aligned as C would align them.
+3. **Alignment matches C.** The struct's overall alignment matches C's rules.
+4. **Total size matches.** `size_of::<Point>()` equals C's `sizeof(struct Point)`.
 
-### When You Need @repr(C)
+### A Detailed Example: The stat Structure
 
-- Passing structs to C functions
-- Receiving structs from C functions
-- Laying out data that C code will read/write
-- Memory-mapped I/O with hardware (which expects C layout)
-- File formats defined in terms of C structs
+Here's a real-world example wrapping part of POSIX `stat`:
 
-### When You Don't Need @repr(C)
+```c
+// C definition (simplified, Linux x86_64)
+struct stat {
+    dev_t     st_dev;      // 8 bytes
+    ino_t     st_ino;      // 8 bytes
+    mode_t    st_mode;     // 4 bytes
+    nlink_t   st_nlink;    // 8 bytes
+    uid_t     st_uid;      // 4 bytes
+    gid_t     st_gid;      // 4 bytes
+    // ... more fields ...
+    off_t     st_size;     // 8 bytes
+    time_t    st_atime;    // 8 bytes
+    time_t    st_mtime;    // 8 bytes
+    time_t    st_ctime;    // 8 bytes
+};
+```
 
-- Structs that stay entirely within Ferrum code
-- Ferrum's optimizer can pack them more efficiently if you don't force C layout
+```ferrum
+@repr(C)
+type Stat {
+    st_dev:   c_ulong,
+    st_ino:   c_ulong,
+    st_mode:  c_uint,
+    st_nlink: c_ulong,
+    st_uid:   c_uint,
+    st_gid:   c_uint,
+    // padding would go here in the full struct
+    st_size:  c_long,
+    st_atime: c_long,
+    st_mtime: c_long,
+    st_ctime: c_long,
+}
+
+extern "C" fn stat(path: *const c_char, buf: *mut Stat): c_int  ! Unsafe
+
+fn get_file_size(path: &CStr): Result[i64, IoError] {
+    let mut buf: Stat = zeroed()
+    let result = unsafe { stat(path.as_ptr(), &mut buf) }
+
+    if result == -1 {
+        return Err(IoError.from_errno())
+    }
+
+    Ok(buf.st_size as i64)
+}
+```
+
+### When Layout Matters: Getting It Wrong
+
+If you forget `@repr(C)`, you get undefined behavior:
+
+```ferrum
+// BUG: Missing @repr(C)
+type BadPoint {
+    x: f64,
+    y: f64,
+}
+
+extern "C" fn use_point(p: *const BadPoint)  ! Unsafe
+
+fn main() {
+    let p = BadPoint { x: 1.0, y: 2.0 }
+    unsafe { use_point(&p) }  // C sees garbage!
+}
+```
+
+The Ferrum compiler might lay out `BadPoint` as:
+- `y` first, then `x` (for cache efficiency)
+- Different padding
+- Different alignment
+
+The C code expects x at offset 0, y at offset 8. Instead it gets... whatever Ferrum decided.
+
+**The compiler doesn't warn you.** This compiles fine. It just doesn't work.
 
 ### The @layout Attribute for Bit-Level Control
 
@@ -379,6 +676,26 @@ type TcpHeader {
     urgent_pointer:   u16,
 }
 ```
+
+The `@layout` attribute:
+- Packs fields at bit granularity
+- No implicit padding
+- Fields laid out in declaration order
+- Useful for network protocols, file formats, hardware registers
+
+### Controlling Alignment with @align
+
+Sometimes C code requires specific alignment:
+
+```ferrum
+@repr(C)
+@align(16)
+type SIMDVector {
+    data: [f32; 4],
+}
+```
+
+This ensures the struct is 16-byte aligned, which is required for SSE/AVX instructions.
 
 ---
 
@@ -437,6 +754,7 @@ fn main() {
 
     // This doesn't compile:
     // let y = abs(x)
+    // error: cannot call function with `Unsafe` effect outside `unsafe` block
 
     // This does:
     let y = unsafe { abs(x) }
@@ -451,6 +769,470 @@ Why? Because the compiler can't verify what C code does. The C function might:
 - Not be thread-safe
 
 The `unsafe` block is you saying "I've read the docs for this C function. I understand its requirements. I'm calling it correctly."
+
+---
+
+## Complete Example: Wrapping xxHash
+
+Let's wrap a real C library: xxHash, a fast non-cryptographic hash function. This example shows the complete pattern you'll use for most C libraries.
+
+### The C API We're Wrapping
+
+```c
+// xxhash.h (simplified)
+
+#include <stdint.h>
+#include <stddef.h>
+
+// One-shot hashing
+uint64_t XXH64(const void* input, size_t length, uint64_t seed);
+
+// Streaming API
+typedef struct XXH64_state_s XXH64_state_t;
+
+XXH64_state_t* XXH64_createState(void);
+int            XXH64_freeState(XXH64_state_t* state);
+int            XXH64_reset(XXH64_state_t* state, uint64_t seed);
+int            XXH64_update(XXH64_state_t* state, const void* input, size_t length);
+uint64_t       XXH64_digest(const XXH64_state_t* state);
+
+// Error codes
+#define XXH_OK    0
+#define XXH_ERROR 1
+```
+
+### Step 1: Raw FFI Bindings
+
+First, create exact bindings to the C API. This layer is all unsafe and mirrors C exactly.
+
+```ferrum
+// xxhash_ffi.fe - raw bindings
+
+import core.ffi.{c_int, c_void, c_size_t}
+
+/// Opaque type representing xxHash state.
+/// We don't know (or care) what's inside; the C library manages it.
+@repr(C)
+pub type XXH64State {
+    _opaque: [u8; 0],  // zero-sized, prevents direct instantiation
+}
+
+// Error codes from the C header
+pub const XXH_OK: c_int = 0
+pub const XXH_ERROR: c_int = 1
+
+@link(name = "xxhash")
+extern "C" {
+    /// Compute XXH64 hash of a buffer in one call.
+    pub fn XXH64(input: *const c_void, length: c_size_t, seed: u64): u64  ! Unsafe
+
+    /// Create a new streaming hash state.
+    pub fn XXH64_createState(): *mut XXH64State  ! Unsafe
+
+    /// Free a streaming hash state. Returns XXH_OK or XXH_ERROR.
+    pub fn XXH64_freeState(state: *mut XXH64State): c_int  ! Unsafe
+
+    /// Reset a state to start a new hash with the given seed.
+    pub fn XXH64_reset(state: *mut XXH64State, seed: u64): c_int  ! Unsafe
+
+    /// Add more data to the hash.
+    pub fn XXH64_update(
+        state: *mut XXH64State,
+        input: *const c_void,
+        length: c_size_t,
+    ): c_int  ! Unsafe
+
+    /// Compute the final hash value. State can continue to be used.
+    pub fn XXH64_digest(state: *const XXH64State): u64  ! Unsafe
+}
+```
+
+### Step 2: Safe Wrapper API
+
+Now wrap the unsafe FFI in a safe, idiomatic Ferrum API.
+
+```ferrum
+// xxhash.fe - safe wrapper
+
+import xxhash_ffi.{self, XXH64State, XXH_OK}
+
+/// Error from xxHash operations.
+pub enum XxHashError {
+    /// Failed to allocate state (out of memory).
+    AllocationFailed,
+    /// The C library returned an error code.
+    OperationFailed,
+}
+
+/// Compute the XXH64 hash of a byte slice.
+///
+/// This is the simplest way to hash data. For large data or streaming,
+/// use `XxHash64` instead.
+///
+/// # Example
+/// ```
+/// let hash = xxhash.hash64(b"hello world", seed: 0)
+/// assert_eq(hash, 0x74e3b98a0d3c5877)
+/// ```
+pub fn hash64(data: &[u8], seed: u64 = 0): u64 {
+    unsafe {
+        xxhash_ffi.XXH64(
+            data.as_ptr() as *const c_void,
+            data.len() as c_size_t,
+            seed,
+        )
+    }
+}
+
+/// Streaming XXH64 hasher.
+///
+/// Use this when you can't load all data into memory at once,
+/// or when data arrives in chunks.
+///
+/// # Example
+/// ```
+/// let mut hasher = XxHash64.new()?
+/// hasher.update(b"hello ")?
+/// hasher.update(b"world")?
+/// let hash = hasher.finish()
+/// ```
+pub type XxHash64 {
+    state: *mut XXH64State,
+}
+
+impl XxHash64 {
+    /// Create a new hasher with the given seed.
+    pub fn new(seed: u64 = 0): Result[Self, XxHashError] {
+        let state = unsafe { xxhash_ffi.XXH64_createState() }
+
+        if state.is_null() {
+            return Err(XxHashError.AllocationFailed)
+        }
+
+        let result = unsafe { xxhash_ffi.XXH64_reset(state, seed) }
+        if result != XXH_OK {
+            // Clean up the state we just allocated
+            unsafe { xxhash_ffi.XXH64_freeState(state) }
+            return Err(XxHashError.OperationFailed)
+        }
+
+        Ok(XxHash64 { state })
+    }
+
+    /// Reset the hasher to compute a new hash with the given seed.
+    ///
+    /// This is more efficient than creating a new hasher.
+    pub fn reset(&mut self, seed: u64 = 0): Result[(), XxHashError] {
+        let result = unsafe { xxhash_ffi.XXH64_reset(self.state, seed) }
+        if result != XXH_OK {
+            Err(XxHashError.OperationFailed)
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Add data to the hash.
+    pub fn update(&mut self, data: &[u8]): Result[(), XxHashError] {
+        let result = unsafe {
+            xxhash_ffi.XXH64_update(
+                self.state,
+                data.as_ptr() as *const c_void,
+                data.len() as c_size_t,
+            )
+        };
+
+        if result != XXH_OK {
+            Err(XxHashError.OperationFailed)
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Compute the hash of all data added so far.
+    ///
+    /// The hasher can continue to be used after this call.
+    pub fn finish(&self): u64 {
+        unsafe { xxhash_ffi.XXH64_digest(self.state) }
+    }
+
+    /// Compute the hash and reset the hasher in one operation.
+    pub fn finish_reset(&mut self, seed: u64 = 0): Result[u64, XxHashError] {
+        let hash = self.finish()
+        self.reset(seed)?
+        Ok(hash)
+    }
+}
+
+impl Drop for XxHash64 {
+    fn drop(&mut self) {
+        // Always clean up the C state when the Ferrum wrapper is dropped.
+        // We ignore the return value because we can't report errors from drop.
+        unsafe { xxhash_ffi.XXH64_freeState(self.state) }
+    }
+}
+
+// Prevent sending XxHash64 to other threads.
+// The xxHash state might not be thread-safe.
+impl !Send for XxHash64 {}
+impl !Sync for XxHash64 {}
+```
+
+### Step 3: Usage
+
+Now users get a completely safe, idiomatic API:
+
+```ferrum
+import xxhash.{hash64, XxHash64}
+
+fn main(): Result[(), XxHashError] {
+    // One-shot hashing
+    let hash = hash64(b"hello world")
+    println("Hash: {hash:016x}")
+
+    // Streaming hashing
+    let mut hasher = XxHash64.new()?
+
+    // Hash a file in chunks
+    let file = File.open("large_file.bin")?
+    let mut buffer = [0u8; 8192]
+
+    loop {
+        let n = file.read(&mut buffer)?
+        if n == 0 { break }
+        hasher.update(&buffer[..n])?
+    }
+
+    let file_hash = hasher.finish()
+    println("File hash: {file_hash:016x}")
+
+    Ok(())
+}   // hasher is dropped here, XXH64_freeState called automatically
+```
+
+No `unsafe` anywhere in the user's code. Memory management is automatic. Errors are handled with `Result`.
+
+### What We Achieved
+
+1. **Type safety**: Can't pass wrong types to the hasher
+2. **Memory safety**: State is freed automatically via Drop
+3. **Error handling**: C error codes become Ferrum Results
+4. **Idiomatic API**: Looks like native Ferrum code
+5. **Zero overhead**: The safe wrapper compiles to the same code as calling C directly
+
+---
+
+## Callbacks: C Calling Back Into Ferrum
+
+C libraries often take callback functions. This is one of the most dangerous FFI patterns because lifetime issues are invisible to the compiler.
+
+### The Pattern
+
+C callbacks typically look like this:
+
+```c
+// C header
+typedef void (*callback_fn)(void* user_data, int event);
+
+void register_callback(callback_fn cb, void* user_data);
+void trigger_events(void);
+void unregister_callback(callback_fn cb);
+```
+
+The `void* user_data` is a "context pointer" - opaque data that gets passed to the callback. This is how C passes state to callbacks.
+
+### Basic Callback Example
+
+```ferrum
+// FFI bindings
+type CallbackFn = extern "C" fn(*mut c_void, c_int)
+
+extern "C" {
+    fn register_callback(cb: CallbackFn, user_data: *mut c_void)  ! Unsafe
+    fn trigger_events()  ! Unsafe
+    fn unregister_callback(cb: CallbackFn)  ! Unsafe
+}
+
+// Our callback function - must be extern "C" and @no_mangle
+@no_mangle
+extern "C" fn my_callback(user_data: *mut c_void, event: c_int) {
+    // Recover the Ferrum data from the void pointer
+    // SAFETY: We registered this pointer, and it must still be valid
+    let handler: &mut EventHandler = unsafe {
+        &mut *(user_data as *mut EventHandler)
+    }
+
+    handler.on_event(event as i32)
+}
+
+type EventHandler {
+    name: String,
+    count: i32,
+}
+
+impl EventHandler {
+    fn on_event(&mut self, event: i32) {
+        self.count += 1
+        println("[{self.name}] Event {event}, total: {self.count}")
+    }
+}
+```
+
+### The Lifetime Problem
+
+Here's what goes wrong:
+
+```ferrum
+fn broken() {
+    let handler = EventHandler { name: "test".into(), count: 0 }
+
+    unsafe {
+        register_callback(
+            my_callback,
+            &mut handler as *mut EventHandler as *mut c_void,
+        )
+    }
+}   // handler is dropped here!
+
+fn main() {
+    broken()
+    unsafe { trigger_events() }  // callback receives dangling pointer!
+}
+```
+
+The C library holds a pointer to `handler`. When `handler` goes out of scope, the pointer dangles. When the callback is invoked, it accesses freed memory.
+
+**The compiler cannot catch this.** Raw pointers aren't tracked by the borrow checker.
+
+### Safe Callback Pattern 1: Box and Pin
+
+Keep the data alive by boxing it and ensuring it won't move:
+
+```ferrum
+import core.pin.Pin
+import alloc.boxed.Box
+
+type CallbackState {
+    handler: Pin[Box[EventHandler]],
+}
+
+impl CallbackState {
+    fn new(name: String): Self {
+        let handler = Box.pin(EventHandler { name, count: 0 })
+        CallbackState { handler }
+    }
+
+    fn register(&mut self) {
+        let ptr = &mut *self.handler as *mut EventHandler as *mut c_void
+        unsafe {
+            register_callback(my_callback, ptr)
+        }
+    }
+
+    fn unregister(&self) {
+        unsafe {
+            unregister_callback(my_callback)
+        }
+    }
+}
+
+impl Drop for CallbackState {
+    fn drop(&mut self) {
+        // CRITICAL: Unregister before the handler is dropped!
+        self.unregister()
+    }
+}
+
+fn main() {
+    let mut state = CallbackState.new("test".into())
+    state.register()
+
+    unsafe { trigger_events() }  // safe: state is still alive
+
+    // state dropped here, unregister called, then handler freed
+}
+```
+
+### Safe Callback Pattern 2: Static or Leaked Data
+
+For callbacks that live for the entire program:
+
+```ferrum
+fn register_permanent_callback() {
+    // Box::leak intentionally leaks the memory - it lives forever
+    let handler: &'static mut EventHandler = Box.leak(Box.new(
+        EventHandler { name: "permanent".into(), count: 0 }
+    ))
+
+    unsafe {
+        register_callback(
+            my_callback,
+            handler as *mut EventHandler as *mut c_void,
+        )
+    }
+
+    // No cleanup needed - the handler lives until the process exits
+}
+```
+
+### Callback Error Handling
+
+What if the callback needs to report an error? C callbacks often return error codes:
+
+```c
+typedef int (*validator_fn)(void* user_data, const char* input);
+// Returns 0 for valid, non-zero for invalid
+```
+
+```ferrum
+type ValidatorFn = extern "C" fn(*mut c_void, *const c_char): c_int
+
+@no_mangle
+extern "C" fn validate_callback(user_data: *mut c_void, input: *const c_char): c_int {
+    let validator: &Validator = unsafe { &*(user_data as *const Validator) }
+
+    // Handle null input
+    if input.is_null() {
+        return -1  // error code
+    }
+
+    // Convert C string to Ferrum, handling invalid UTF-8
+    let input_str = unsafe { CStr.from_ptr(input) }
+    let Ok(s) = input_str.to_str() else {
+        return -2  // invalid UTF-8 error
+    }
+
+    // Run validation
+    if validator.is_valid(s) {
+        0
+    } else {
+        1
+    }
+}
+```
+
+### Panics in Callbacks
+
+**Never let a panic escape a callback.** Unwinding across FFI boundaries is undefined behavior.
+
+```ferrum
+@no_mangle
+extern "C" fn safe_callback(user_data: *mut c_void, value: c_int): c_int {
+    // Catch any panic and convert to error code
+    let result = catch_unwind(|| {
+        let handler: &mut Handler = unsafe { &mut *(user_data as *mut Handler) }
+        handler.process(value)
+    })
+
+    match result {
+        Ok(()) => 0,
+        Err(_) => {
+            // Log the panic somewhere if possible
+            eprintln("Panic in callback, returning error")
+            -1
+        }
+    }
+}
+```
 
 ---
 
@@ -476,7 +1258,7 @@ extern "C" fn my_callback(data: *const c_void, len: c_size_t): c_int {
 
 `extern "C"` makes the function use C calling convention, so C code knows how to call it.
 
-### Exposing Types to C
+### Generating C Headers
 
 You can generate C header files for your Ferrum types:
 
@@ -511,314 +1293,293 @@ MyStruct* my_struct_new(void);
 void my_struct_free(MyStruct* s);
 ```
 
----
+### Creating a Ferrum Library for C Consumers
 
-## Wrapping a C Library: A Complete Example
-
-Let's wrap a simple C library properly. We'll use a hypothetical "counter" library:
-
-```c
-// counter.h
-typedef struct Counter Counter;
-
-Counter* counter_new(int initial_value);
-void counter_free(Counter* c);
-int counter_get(const Counter* c);
-void counter_increment(Counter* c);
-void counter_add(Counter* c, int amount);
-```
-
-### Step 1: Raw FFI Bindings
-
-First, create low-level bindings that match the C API exactly:
+Here's a complete example of a Ferrum library that C code can use:
 
 ```ferrum
-// counter_ffi.fe - raw bindings, all unsafe
+// mylib.fe - A key-value store library
 
-import core.ffi.c_int
+import alloc.ffi.CString
+import core.ffi.{CStr, c_int, c_char}
+import collections.HashMap
 
-// Opaque type - we don't know what's inside, and we shouldn't
-@repr(C)
-type Counter {
-    _opaque: [u8; 0],  // zero-sized, can't be instantiated directly
+/// Opaque handle to a key-value store.
+/// C code only sees a pointer; they can't inspect the contents.
+pub type KvStore {
+    data: HashMap[String, String],
 }
 
-@link(name = "counter")
-extern "C" {
-    fn counter_new(initial_value: c_int): *mut Counter  ! Unsafe
-    fn counter_free(c: *mut Counter)  ! Unsafe
-    fn counter_get(c: *const Counter): c_int  ! Unsafe
-    fn counter_increment(c: *mut Counter)  ! Unsafe
-    fn counter_add(c: *mut Counter, amount: c_int)  ! Unsafe
-}
-```
-
-### Step 2: Safe Wrapper
-
-Now wrap it in a safe Ferrum API:
-
-```ferrum
-// counter.fe - safe wrapper
-
-import counter_ffi
-
-/// A counter that can be incremented.
-///
-/// Wraps the C `counter` library with a safe Ferrum interface.
-pub type SafeCounter {
-    ptr: *mut counter_ffi.Counter,
-}
-
-impl SafeCounter {
-    /// Creates a new counter with the given initial value.
-    pub fn new(initial: i32): Result[Self, CounterError] {
-        let ptr = unsafe { counter_ffi.counter_new(initial as c_int) }
-        if ptr.is_null() {
-            Err(CounterError.AllocationFailed)
-        } else {
-            Ok(SafeCounter { ptr })
-        }
-    }
-
-    /// Returns the current value.
-    pub fn get(&self): i32 {
-        unsafe { counter_ffi.counter_get(self.ptr) as i32 }
-    }
-
-    /// Increments the counter by 1.
-    pub fn increment(&mut self) {
-        unsafe { counter_ffi.counter_increment(self.ptr) }
-    }
-
-    /// Adds the given amount to the counter.
-    pub fn add(&mut self, amount: i32) {
-        unsafe { counter_ffi.counter_add(self.ptr, amount as c_int) }
-    }
-}
-
-impl Drop for SafeCounter {
-    fn drop(&mut self) {
-        if !self.ptr.is_null() {
-            unsafe { counter_ffi.counter_free(self.ptr) }
-        }
-    }
-}
-
-pub enum CounterError {
-    AllocationFailed,
-}
-```
-
-### Step 3: Use It Safely
-
-Now users of your library never see the unsafe code:
-
-```ferrum
-import counter.SafeCounter
-
-fn main(): Result[(), CounterError] {
-    let mut c = SafeCounter.new(0)?
-
-    c.increment()
-    c.increment()
-    c.add(10)
-
-    print("Counter value: {}", c.get())  // prints 12
-
-    Ok(())
-}   // c is dropped here, counter_free is called automatically
-```
-
-No `unsafe` in sight. The memory management is automatic. The API is idiomatic Ferrum.
-
----
-
-## Passing Callbacks to C
-
-C libraries often take callback functions. Here's how to handle them:
-
-```c
-// In C
-typedef void (*Callback)(void* user_data, int value);
-void register_callback(Callback cb, void* user_data);
-void trigger_callbacks(void);
-```
-
-```ferrum
-// FFI bindings
-type Callback = extern "C" fn(*mut c_void, c_int)
-
-extern "C" {
-    fn register_callback(cb: Callback, user_data: *mut c_void)  ! Unsafe
-    fn trigger_callbacks()  ! Unsafe
-}
-
-// Using it
+/// Create a new key-value store. Returns null on allocation failure.
 @no_mangle
-extern "C" fn my_callback(user_data: *mut c_void, value: c_int) {
-    // Recover the Ferrum data from the void pointer
-    let data: &mut MyData = unsafe { &mut *(user_data as *mut MyData) }
-    data.handle_value(value as i32)
+@export_c_header
+pub extern "C" fn kvstore_new(): *mut KvStore {
+    let store = Box.new(KvStore { data: HashMap.new() })
+    Box.into_raw(store)
 }
 
-fn setup() {
-    let mut data = MyData.new()
+/// Free a key-value store. Safe to call with null.
+@no_mangle
+@export_c_header
+pub extern "C" fn kvstore_free(store: *mut KvStore) {
+    if !store.is_null() {
+        // Take ownership back and drop it
+        unsafe { drop(Box.from_raw(store)) }
+    }
+}
 
-    unsafe {
-        register_callback(
-            my_callback,
-            &mut data as *mut MyData as *mut c_void,
-        )
+/// Set a key-value pair. Returns 0 on success, -1 on error.
+/// Both key and value must be valid, non-null, UTF-8 C strings.
+@no_mangle
+@export_c_header
+pub extern "C" fn kvstore_set(
+    store: *mut KvStore,
+    key: *const c_char,
+    value: *const c_char,
+): c_int {
+    if store.is_null() || key.is_null() || value.is_null() {
+        return -1
     }
 
-    // IMPORTANT: data must stay alive as long as the callback might be called!
-    // If data is dropped, the callback will receive a dangling pointer.
+    let store = unsafe { &mut *store }
+    let key = unsafe { CStr.from_ptr(key) }
+    let value = unsafe { CStr.from_ptr(value) }
 
-    unsafe { trigger_callbacks() }
+    let Ok(key) = key.to_str() else { return -1 }
+    let Ok(value) = value.to_str() else { return -1 }
+
+    store.data.insert(key.to_string(), value.to_string())
+    0
+}
+
+/// Get a value by key. Returns null if not found or on error.
+/// The returned string is owned by the store; do not free it.
+/// The pointer is valid until the next kvstore_set or kvstore_free.
+@no_mangle
+@export_c_header
+pub extern "C" fn kvstore_get(
+    store: *const KvStore,
+    key: *const c_char,
+): *const c_char {
+    if store.is_null() || key.is_null() {
+        return core.ptr.null()
+    }
+
+    let store = unsafe { &*store }
+    let key = unsafe { CStr.from_ptr(key) }
+
+    let Ok(key) = key.to_str() else { return core.ptr.null() }
+
+    match store.data.get(key) {
+        Some(value) => value.as_ptr() as *const c_char,
+        None => core.ptr.null(),
+    }
 }
 ```
 
-### The Lifetime Problem with Callbacks
+Generated header:
 
-This is one of the most dangerous patterns in FFI. The C library holds a pointer to your data. If your data is dropped while the callback is still registered, the callback gets a dangling pointer.
+```c
+/* mylib.h - Generated by Ferrum */
+#ifndef MYLIB_H
+#define MYLIB_H
 
-Safe solutions:
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-1. **Pin the data** so it can't be moved or dropped while the callback is registered
-2. **Box and leak** if the data needs to live forever
-3. **Reference counting** with Arc if you need shared ownership
-4. **Unregister before drop** - implement Drop to unregister the callback
+typedef struct KvStore KvStore;
+
+KvStore* kvstore_new(void);
+void kvstore_free(KvStore* store);
+int kvstore_set(KvStore* store, const char* key, const char* value);
+const char* kvstore_get(const KvStore* store, const char* key);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* MYLIB_H */
+```
 
 ---
 
-## Common Pitfalls
+## Troubleshooting Common FFI Bugs
 
-### Null Pointers
+### Problem: Segfault on Startup
 
-C APIs often return null to indicate errors. Always check:
+**Symptom:** Program crashes immediately with SIGSEGV before main() runs.
 
+**Likely causes:**
+1. **Library not found.** Check `LD_LIBRARY_PATH` (Linux), `DYLD_LIBRARY_PATH` (macOS), or `PATH` (Windows).
+2. **ABI mismatch.** Library compiled with different compiler or flags.
+3. **Static constructor crashed.** Some C libraries run code at load time.
+
+**Debug steps:**
+```bash
+# Check if library is found
+ldd ./myprogram           # Linux
+otool -L ./myprogram      # macOS
+
+# Run with library debugging
+LD_DEBUG=libs ./myprogram  # Linux - shows library loading
+```
+
+### Problem: Segfault When Calling C Function
+
+**Symptom:** Crash inside C code, often with meaningless backtrace.
+
+**Likely causes:**
+1. **Null pointer passed.** Did you check all pointers for null?
+2. **Dangling pointer.** Was the data freed before the call?
+3. **Wrong struct layout.** Missing `@repr(C)`?
+4. **Wrong calling convention.** Missing `extern "C"`?
+5. **Type size mismatch.** Using `i32` instead of `c_long` on Linux?
+
+**Debug steps:**
 ```ferrum
-let ptr = unsafe { c_function_that_might_fail() }
-if ptr.is_null() {
-    return Err(MyError.NullPointer)
+// Add null checks before every FFI call
+assert(!ptr.is_null(), "ptr is null at line X")
+
+// Print pointer values to verify they're reasonable
+eprintln("ptr = {ptr:?}")
+```
+
+### Problem: Garbage Data Returned from C
+
+**Symptom:** C function returns, but the data makes no sense.
+
+**Likely causes:**
+1. **Endianness mismatch.** Rare on modern systems, but check.
+2. **Padding/alignment.** Missing `@repr(C)` on structs.
+3. **Type size mismatch.** Especially `long` (different on Linux vs Windows).
+4. **String encoding.** Expected UTF-8 but got Latin-1 or garbage.
+
+**Debug steps:**
+```ferrum
+// Print struct size to verify it matches C's sizeof
+println("Ferrum size: {}", size_of::<MyStruct>())
+```
+
+```c
+// In C:
+printf("C size: %zu\n", sizeof(struct MyStruct));
+```
+
+### Problem: Memory Leak
+
+**Symptom:** Memory usage grows over time, program eventually crashes with OOM.
+
+**Likely causes:**
+1. **Forgot to free C-allocated memory.** Every `create/alloc/new` needs a matching `free/destroy/delete`.
+2. **CString dropped too early.** C code stored the pointer, but Ferrum freed the string.
+3. **Circular references through C.** C holds Ferrum pointer, Ferrum holds C pointer.
+
+**Debug steps:**
+```bash
+# Run with memory sanitizer or valgrind
+valgrind --leak-check=full ./myprogram
+
+# Or use AddressSanitizer
+ASAN_OPTIONS=detect_leaks=1 ./myprogram
+```
+
+### Problem: Use-After-Free
+
+**Symptom:** Sometimes works, sometimes crashes with garbage, sometimes corrupts unrelated data.
+
+**Likely cause:** C code or Ferrum code using a pointer after the memory was freed.
+
+**Pattern to avoid:**
+```ferrum
+fn bad() -> *const c_char {
+    let s = CString.new("hello").unwrap()
+    s.as_ptr()  // Returns pointer to s's buffer
+}   // s is dropped, buffer freed
+    // Returned pointer is now dangling!
+```
+
+**Fix:**
+```ferrum
+// Option 1: Keep the CString alive
+fn good(f: impl Fn(*const c_char)) {
+    let s = CString.new("hello").unwrap()
+    f(s.as_ptr())  // Use pointer while s is alive
+}   // s dropped after f returns
+
+// Option 2: Transfer ownership
+fn transfer_ownership() -> *const c_char {
+    let s = CString.new("hello").unwrap()
+    s.into_raw()  // Ferrum gives up ownership, caller must free
 }
 ```
 
-### Dangling Pointers
+### Problem: Data Corruption in Multithreaded Code
 
-The C library might free memory that you still have a pointer to:
+**Symptom:** Occasional wrong results, crashes, or hangs under load.
 
+**Likely cause:** C library isn't thread-safe, called from multiple threads.
+
+**Fix:**
 ```ferrum
-let ptr = unsafe { get_internal_buffer(handle) }
-unsafe { destroy_handle(handle) }  // might free the buffer
-unsafe { *ptr }  // DANGLING POINTER - undefined behavior
-```
-
-Solution: understand the C library's ownership model. Read the docs.
-
-### Memory Ownership Across the Boundary
-
-Who owns memory that crosses the FFI boundary?
-
-**C allocates, Ferrum reads:**
-```ferrum
-let ptr = unsafe { c_allocate() }
-// ... use ptr ...
-unsafe { c_free(ptr) }  // C allocated it, C must free it
-```
-
-**Ferrum allocates, C reads:**
-```ferrum
-let s = CString.new("hello")?
-unsafe { c_function(s.as_ptr()) }
-// s is still owned by Ferrum, will be freed when s is dropped
-// If C stored the pointer, you have a problem when s is dropped!
-```
-
-**Transfer ownership:**
-```ferrum
-let s = CString.new("hello")?
-let ptr = s.into_raw()  // Ferrum gives up ownership
-unsafe { c_function_that_takes_ownership(ptr) }
-// Now C owns it. Do NOT drop s. Do NOT use ptr after this.
-```
-
-### Thread Safety
-
-Most C libraries are not thread-safe. Ferrum can't know this. If you call non-thread-safe C code from multiple threads, you get data races that the compiler can't prevent.
-
-Read the docs. If the C library isn't thread-safe, wrap it in a Mutex:
-
-```ferrum
+// Wrap in Mutex
 type ThreadSafeWrapper {
-    inner: Mutex[UnsafeCLibrary],
+    inner: Mutex[UnsafeHandle],
 }
 
 impl ThreadSafeWrapper {
     fn do_thing(&self) {
-        let guard = self.inner.lock()
+        let guard = self.inner.lock().unwrap()
         unsafe { c_do_thing(guard.ptr) }
     }
 }
-```
 
-### String Encoding
-
-C doesn't know about UTF-8. If you pass invalid UTF-8 to a C library that expects UTF-8, behavior is undefined. If the C library returns bytes that aren't valid UTF-8, `to_str()` will fail.
-
-Always use `to_string_lossy()` if you're not sure:
-
-```ferrum
-let c_str: &CStr = unsafe { CStr.from_ptr(ptr) }
-let s: String = c_str.to_string_lossy().into_owned()  // replaces invalid UTF-8 with U+FFFD
-```
-
----
-
-## Comparing to Python's FFI
-
-| Aspect | Python ctypes/cffi | Ferrum FFI |
-|--------|-------------------|------------|
-| Type declarations | Runtime strings (`"int"`) | Compile-time types (`c_int`) |
-| Type checking | Runtime (if at all) | Compile-time |
-| Wrong types | Silent corruption or crash | Compile error |
-| Null pointer deref | Segfault at runtime | Must check, or UB in unsafe |
-| Memory management | Manual (easy to leak) | RAII through wrappers |
-| Callbacks | Easy but dangerous | Same dangers, more explicit |
-| Performance | Significant overhead | Zero overhead (same as C) |
-| Safety | None | Explicit unsafe boundaries |
-
-### The Python Experience
-
-```python
-from ctypes import *
-
-# You declare the signature... or don't. ctypes doesn't care.
-libc = CDLL("libc.so.6")
-libc.strlen(b"hello")  # works, returns 5
-
-# Forget the argtypes? Python guesses (badly).
-libc.printf(b"Value: %d\n", "not an int")  # crashes or prints garbage
-```
-
-### The Ferrum Experience
-
-```ferrum
-extern "C" fn strlen(s: *const c_char): c_size_t  ! Unsafe
-extern "C" fn printf(fmt: *const c_char, ...): c_int  ! Unsafe
-
-fn main() {
-    unsafe {
-        strlen(c"hello".as_ptr())  // compiles, works
-
-        // This doesn't compile:
-        // printf(c"Value: %d\n".as_ptr(), "not an int")
-        // error: expected c_int, found &str
-    }
+// Or use thread-local storage
+thread_local {
+    static HANDLE: RefCell[Option[UnsafeHandle]] = RefCell.new(None)
 }
 ```
 
-The Ferrum compiler knows the types. It catches mistakes. You still need unsafe for FFI, but the type system is still working.
+### Problem: Different Behavior on Different Platforms
+
+**Symptom:** Works on Linux, crashes on Windows (or vice versa).
+
+**Likely causes:**
+1. **`long` size.** 64 bits on Linux LP64, 32 bits on Windows LLP64.
+2. **Path separators.** `/` vs `\`.
+3. **Calling conventions.** `cdecl` vs `stdcall` on Windows.
+4. **Library names.** `libfoo.so` vs `foo.dll`.
+
+**Fix:**
+```ferrum
+// Use c_long, not i64 or i32
+extern "C" fn takes_long(x: c_long)  ! Unsafe
+
+// Platform-specific linking
+#[cfg(target_os = "windows")]
+@link(name = "foo", kind = "dylib")
+extern "C" { ... }
+
+#[cfg(not(target_os = "windows"))]
+@link(name = "foo")
+extern "C" { ... }
+```
+
+### Problem: Callback Causes Crash or Deadlock
+
+**Symptom:** Crash or hang when C code calls back into Ferrum.
+
+**Likely causes:**
+1. **Callback data was dropped.** The `void* user_data` points to freed memory.
+2. **Reentrancy.** Callback takes a lock that the calling code already holds.
+3. **Panic in callback.** Unwinding across FFI is undefined behavior.
+4. **Thread mismatch.** Callback called from different thread than expected.
+
+**Fix checklist:**
+- [ ] Is the callback data pinned or leaked? (Won't be moved or freed)
+- [ ] Does the callback avoid taking locks the caller might hold?
+- [ ] Does the callback catch panics?
+- [ ] Is it safe to call from any thread? (If not, document it)
 
 ---
 
@@ -887,6 +1648,36 @@ unsafe {
 }
 ```
 
+### Callback Function Types
+
+```ferrum
+// C: typedef void (*callback)(void* data, int value);
+type Callback = extern "C" fn(*mut c_void, c_int)
+
+// C: typedef int (*comparator)(const void*, const void*);
+type Comparator = extern "C" fn(*const c_void, *const c_void): c_int
+```
+
+### Common Error Handling Pattern
+
+```ferrum
+fn call_c_api(): Result[Value, MyError] {
+    let ptr = unsafe { c_create_thing() }
+    if ptr.is_null() {
+        return Err(MyError.AllocationFailed)
+    }
+
+    let result = unsafe { c_do_operation(ptr) }
+    if result < 0 {
+        unsafe { c_free_thing(ptr) }
+        return Err(MyError.OperationFailed(result))
+    }
+
+    // Wrap in RAII type that handles cleanup
+    Ok(SafeWrapper { ptr })
+}
+```
+
 ---
 
 ## Summary
@@ -911,6 +1702,11 @@ The benefit over Python's ctypes:
 - Zero runtime overhead
 
 Write the thin `extern "C"` layer, wrap it in safe Ferrum, and users of your wrapper never need to touch unsafe code. The unsafe boundary is narrow, explicit, and auditable.
+
+**The pattern:**
+1. Raw FFI bindings (unsafe, mirrors C exactly)
+2. Safe wrapper API (idiomatic Ferrum, hides unsafe)
+3. Users never see unsafe
 
 ---
 
