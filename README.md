@@ -32,13 +32,17 @@ Ferrum explores what Rust might look like with region inference, an effect syste
 | Feature | Description |
 |---------|-------------|
 | Ownership + Regions | Move semantics with inferred region annotations (no lifetime syntax) |
-| Effect System | Tracked effects like `! IO + Net` with effect polymorphism |
+| Effect System | Tracked effects like `! IO + Net`, inferred within modules, required at `pub` boundaries |
 | Capabilities | First-class capability tokens for ambient authority control |
 | Design by Contract | `requires`/`ensures`/`invariant` with proof obligations |
 | Proof Functions | `proof fn` blocks discharged by Z3 SMT solver |
 | Binary Layout | `@layout` declarations verified against external headers |
-| Graduated Safety | Five levels: `default` → `unchecked` → `trusted` → `extern` → `unsafe` |
+| Graduated Safety | Four levels: `unchecked` → `trusted` → `extern` → `unsafe` |
 | Extended Numerics | IEEE 754 extended, decimal floats, fixed-point, arbitrary precision |
+| Allocator Defaults | `Heap` is default; custom allocators are opt-in via `given [A: Allocator]` |
+
+**Start here:**
+- `ferrum.md` — Overview and documentation index
 
 **Language Reference** (split for manageability):
 - `ferrum-language-reference.md` — Index and quick reference
