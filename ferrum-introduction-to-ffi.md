@@ -58,7 +58,7 @@ lib.strlen(None)         # segfault
 ### Ferrum: Compile-Time Errors
 
 ```ferrum
-extern "C" fn printf(fmt: *const c_char, ...): c_int  ! Unsafe
+extern(c) fn printf(fmt: *const c_char, ...): c_int  ! Unsafe
 
 // This function declaration tells the compiler:
 // - printf uses C calling convention
@@ -90,25 +90,25 @@ The last row is important: **FFI can't make C code safer than it is.** If the C 
 The basic syntax for declaring a C function you want to call:
 
 ```ferrum
-extern "C" fn function_name(params): return_type  ! Unsafe
+extern(c) fn function_name(params): return_type  ! Unsafe
 ```
 
 ### Simple Functions
 
 ```ferrum
 // <stdlib.h>
-extern "C" fn abs(n: c_int): c_int  ! Unsafe
-extern "C" fn exit(status: c_int): never  ! Unsafe
-extern "C" fn malloc(size: c_size_t): *mut c_void  ! Unsafe
-extern "C" fn free(ptr: *mut c_void)  ! Unsafe
+extern(c) fn abs(n: c_int): c_int  ! Unsafe
+extern(c) fn exit(status: c_int): never  ! Unsafe
+extern(c) fn malloc(size: c_size_t): *mut c_void  ! Unsafe
+extern(c) fn free(ptr: *mut c_void)  ! Unsafe
 
 // <string.h>
-extern "C" fn strlen(s: *const c_char): c_size_t  ! Unsafe
-extern "C" fn memcpy(dst: *mut c_void, src: *const c_void, n: c_size_t): *mut c_void  ! Unsafe
+extern(c) fn strlen(s: *const c_char): c_size_t  ! Unsafe
+extern(c) fn memcpy(dst: *mut c_void, src: *const c_void, n: c_size_t): *mut c_void  ! Unsafe
 
 // <math.h>
-extern "C" fn sqrt(x: f64): f64  ! Unsafe
-extern "C" fn sin(x: f64): f64  ! Unsafe
+extern(c) fn sqrt(x: f64): f64  ! Unsafe
+extern(c) fn sin(x: f64): f64  ! Unsafe
 ```
 
 ### Variadic Functions
@@ -116,9 +116,9 @@ extern "C" fn sin(x: f64): f64  ! Unsafe
 C has variadic functions like `printf`. Ferrum represents these with `...`:
 
 ```ferrum
-extern "C" fn printf(fmt: *const c_char, ...): c_int  ! Unsafe
-extern "C" fn sprintf(buf: *mut c_char, fmt: *const c_char, ...): c_int  ! Unsafe
-extern "C" fn snprintf(buf: *mut c_char, size: c_size_t, fmt: *const c_char, ...): c_int  ! Unsafe
+extern(c) fn printf(fmt: *const c_char, ...): c_int  ! Unsafe
+extern(c) fn sprintf(buf: *mut c_char, fmt: *const c_char, ...): c_int  ! Unsafe
+extern(c) fn snprintf(buf: *mut c_char, size: c_size_t, fmt: *const c_char, ...): c_int  ! Unsafe
 ```
 
 When you call a variadic function, each argument after `...` must be a type that C understands: integers, floats, pointers. Not Ferrum structs, not references, not strings.
@@ -141,7 +141,7 @@ unsafe {
 If you have many functions from the same library, group them:
 
 ```ferrum
-extern "C" {
+extern(c) {
     fn strlen(s: *const c_char): c_size_t  ! Unsafe
     fn strcmp(s1: *const c_char, s2: *const c_char): c_int  ! Unsafe
     fn strcpy(dst: *mut c_char, src: *const c_char): *mut c_char  ! Unsafe
@@ -188,7 +188,7 @@ Because `c_int` carries semantic meaning. When you see `c_int`, you know "this c
 Also, the compiler can warn if you mix them incorrectly:
 
 ```ferrum
-extern "C" fn some_c_function(x: c_int): c_int  ! Unsafe
+extern(c) fn some_c_function(x: c_int): c_int  ! Unsafe
 
 fn ferrum_code() {
     let x: i32 = 42
@@ -202,7 +202,7 @@ fn ferrum_code() {
 If you get the types wrong:
 
 ```ferrum
-extern "C" fn process(n: c_int): c_int  ! Unsafe
+extern(c) fn process(n: c_int): c_int  ! Unsafe
 
 fn main() {
     let big: i64 = 1_000_000_000_000
@@ -394,7 +394,7 @@ let greeting: &CStr = c"Hello, World!"
 Creating `CStr` from a C pointer:
 
 ```ferrum
-extern "C" fn getenv(name: *const c_char): *const c_char  ! Unsafe
+extern(c) fn getenv(name: *const c_char): *const c_char  ! Unsafe
 
 fn get_home_dir(): Option[&CStr] {
     let ptr = unsafe { getenv(c"HOME".as_ptr()) }
@@ -431,7 +431,7 @@ let name = "Alice"
 let c_name = CString.new(name)?  // ? because might contain interior null
 
 // Use it
-extern "C" fn greet(name: *const c_char)  ! Unsafe
+extern(c) fn greet(name: *const c_char)  ! Unsafe
 
 unsafe {
     greet(c_name.as_ptr())  // passes the pointer to C
@@ -498,7 +498,7 @@ fn greet_user() {
 **Mistake 2: Passing &str directly to C**
 
 ```ferrum
-extern "C" fn puts(s: *const c_char): c_int  ! Unsafe
+extern(c) fn puts(s: *const c_char): c_int  ! Unsafe
 
 fn bad() {
     let s = "hello"
@@ -531,8 +531,8 @@ fn also_good(s: &str) {
 **Mistake 3: C frees memory you're still using**
 
 ```ferrum
-extern "C" fn get_message(): *const c_char  ! Unsafe
-extern "C" fn free_message(ptr: *const c_char)  ! Unsafe
+extern(c) fn get_message(): *const c_char  ! Unsafe
+extern(c) fn free_message(ptr: *const c_char)  ! Unsafe
 
 fn use_message() {
     let ptr = unsafe { get_message() }
@@ -615,7 +615,7 @@ type Stat {
     st_ctime: c_long,
 }
 
-extern "C" fn stat(path: *const c_char, buf: *mut Stat): c_int  ! Unsafe
+extern(c) fn stat(path: *const c_char, buf: *mut Stat): c_int  ! Unsafe
 
 fn get_file_size(path: &CStr): Result[i64, IoError] {
     let mut buf: Stat = zeroed()
@@ -640,7 +640,7 @@ type BadPoint {
     y: f64,
 }
 
-extern "C" fn use_point(p: *const BadPoint)  ! Unsafe
+extern(c) fn use_point(p: *const BadPoint)  ! Unsafe
 
 fn main() {
     let p = BadPoint { x: 1.0, y: 2.0 }
@@ -707,7 +707,7 @@ Specify the library to link against:
 
 ```ferrum
 @link(name = "z")          // links -lz (zlib)
-extern "C" {
+extern(c) {
     fn compress(
         dest: *mut u8,
         dest_len: *mut c_ulong,
@@ -747,7 +747,7 @@ extern "C" {
 Every call to an extern function requires unsafe:
 
 ```ferrum
-extern "C" fn abs(n: c_int): c_int  ! Unsafe
+extern(c) fn abs(n: c_int): c_int  ! Unsafe
 
 fn main() {
     let x: c_int = -5
@@ -822,7 +822,7 @@ pub const XXH_OK: c_int = 0
 pub const XXH_ERROR: c_int = 1
 
 @link(name = "xxhash")
-extern "C" {
+extern(c) {
     /// Compute XXH64 hash of a buffer in one call.
     pub fn XXH64(input: *const c_void, length: c_size_t, seed: u64): u64  ! Unsafe
 
@@ -1044,17 +1044,17 @@ The `void* user_data` is a "context pointer" - opaque data that gets passed to t
 
 ```ferrum
 // FFI bindings
-type CallbackFn = extern "C" fn(*mut c_void, c_int)
+type CallbackFn = extern(c) fn(*mut c_void, c_int)
 
-extern "C" {
+extern(c) {
     fn register_callback(cb: CallbackFn, user_data: *mut c_void)  ! Unsafe
     fn trigger_events()  ! Unsafe
     fn unregister_callback(cb: CallbackFn)  ! Unsafe
 }
 
-// Our callback function - must be extern "C" and @no_mangle
+// Our callback function - must be extern(c) and @no_mangle
 @no_mangle
-extern "C" fn my_callback(user_data: *mut c_void, event: c_int) {
+extern(c) fn my_callback(user_data: *mut c_void, event: c_int) {
     // Recover the Ferrum data from the void pointer
     // SAFETY: We registered this pointer, and it must still be valid
     let handler: &mut EventHandler = unsafe {
@@ -1184,10 +1184,10 @@ typedef int (*validator_fn)(void* user_data, const char* input);
 ```
 
 ```ferrum
-type ValidatorFn = extern "C" fn(*mut c_void, *const c_char): c_int
+type ValidatorFn = extern(c) fn(*mut c_void, *const c_char): c_int
 
 @no_mangle
-extern "C" fn validate_callback(user_data: *mut c_void, input: *const c_char): c_int {
+extern(c) fn validate_callback(user_data: *mut c_void, input: *const c_char): c_int {
     let validator: &Validator = unsafe { &*(user_data as *const Validator) }
 
     // Handle null input
@@ -1216,7 +1216,7 @@ extern "C" fn validate_callback(user_data: *mut c_void, input: *const c_char): c
 
 ```ferrum
 @no_mangle
-extern "C" fn safe_callback(user_data: *mut c_void, value: c_int): c_int {
+extern(c) fn safe_callback(user_data: *mut c_void, value: c_int): c_int {
     // Catch any panic and convert to error code
     let result = catch_unwind(|| {
         let handler: &mut Handler = unsafe { &mut *(user_data as *mut Handler) }
@@ -1247,7 +1247,7 @@ Sometimes you need C code to call Ferrum functions. This is common for:
 
 ```ferrum
 @no_mangle
-extern "C" fn my_callback(data: *const c_void, len: c_size_t): c_int {
+extern(c) fn my_callback(data: *const c_void, len: c_size_t): c_int {
     // This function can be called from C
     // ...
     0
@@ -1256,7 +1256,7 @@ extern "C" fn my_callback(data: *const c_void, len: c_size_t): c_int {
 
 `@no_mangle` prevents Ferrum from mangling the function name. Without it, the function might be named something like `_ZN4mylib11my_callback17h5e6f7a8b9c0d1e2fE` in the binary.
 
-`extern "C"` makes the function use C calling convention, so C code knows how to call it.
+`extern(c)` makes the function use C calling convention, so C code knows how to call it.
 
 ### Generating C Headers
 
@@ -1272,11 +1272,11 @@ type MyStruct {
 
 @no_mangle
 @export_c_header
-extern "C" fn my_struct_new(): *mut MyStruct { ... }
+extern(c) fn my_struct_new(): *mut MyStruct { ... }
 
 @no_mangle
 @export_c_header
-extern "C" fn my_struct_free(s: *mut MyStruct) { ... }
+extern(c) fn my_struct_free(s: *mut MyStruct) { ... }
 ```
 
 Running `ferrum build --emit=c-header` generates:
@@ -1313,7 +1313,7 @@ pub type KvStore {
 /// Create a new key-value store. Returns null on allocation failure.
 @no_mangle
 @export_c_header
-pub extern "C" fn kvstore_new(): *mut KvStore {
+pub extern(c) fn kvstore_new(): *mut KvStore {
     let store = Box.new(KvStore { data: HashMap.new() })
     Box.into_raw(store)
 }
@@ -1321,7 +1321,7 @@ pub extern "C" fn kvstore_new(): *mut KvStore {
 /// Free a key-value store. Safe to call with null.
 @no_mangle
 @export_c_header
-pub extern "C" fn kvstore_free(store: *mut KvStore) {
+pub extern(c) fn kvstore_free(store: *mut KvStore) {
     if !store.is_null() {
         // Take ownership back and drop it
         unsafe { drop(Box.from_raw(store)) }
@@ -1332,7 +1332,7 @@ pub extern "C" fn kvstore_free(store: *mut KvStore) {
 /// Both key and value must be valid, non-null, UTF-8 C strings.
 @no_mangle
 @export_c_header
-pub extern "C" fn kvstore_set(
+pub extern(c) fn kvstore_set(
     store: *mut KvStore,
     key: *const c_char,
     value: *const c_char,
@@ -1357,7 +1357,7 @@ pub extern "C" fn kvstore_set(
 /// The pointer is valid until the next kvstore_set or kvstore_free.
 @no_mangle
 @export_c_header
-pub extern "C" fn kvstore_get(
+pub extern(c) fn kvstore_get(
     store: *const KvStore,
     key: *const c_char,
 ): *const c_char {
@@ -1385,7 +1385,7 @@ Generated header:
 #define MYLIB_H
 
 #ifdef __cplusplus
-extern "C" {
+extern(c) {
 #endif
 
 typedef struct KvStore KvStore;
@@ -1433,7 +1433,7 @@ LD_DEBUG=libs ./myprogram  # Linux - shows library loading
 1. **Null pointer passed.** Did you check all pointers for null?
 2. **Dangling pointer.** Was the data freed before the call?
 3. **Wrong struct layout.** Missing `@repr(C)`?
-4. **Wrong calling convention.** Missing `extern "C"`?
+4. **Wrong calling convention.** Missing `extern(c)`?
 5. **Type size mismatch.** Using `i32` instead of `c_long` on Linux?
 
 **Debug steps:**
@@ -1553,16 +1553,16 @@ thread_local {
 **Fix:**
 ```ferrum
 // Use c_long, not i64 or i32
-extern "C" fn takes_long(x: c_long)  ! Unsafe
+extern(c) fn takes_long(x: c_long)  ! Unsafe
 
 // Platform-specific linking
 #[cfg(target_os = "windows")]
 @link(name = "foo", kind = "dylib")
-extern "C" { ... }
+extern(c) { ... }
 
 #[cfg(not(target_os = "windows"))]
 @link(name = "foo")
-extern "C" { ... }
+extern(c) { ... }
 ```
 
 ### Problem: Callback Causes Crash or Deadlock
@@ -1604,10 +1604,10 @@ let owned: CString = CString.new("hello")?   // runtime allocation
 ### Declaring External Functions
 
 ```ferrum
-extern "C" fn name(args): return_type  ! Unsafe
+extern(c) fn name(args): return_type  ! Unsafe
 
 @link(name = "library_name")
-extern "C" {
+extern(c) {
     fn func1(...): ...  ! Unsafe
     fn func2(...): ...  ! Unsafe
 }
@@ -1617,7 +1617,7 @@ extern "C" {
 
 ```ferrum
 @no_mangle
-extern "C" fn callable_from_c(args): return_type {
+extern(c) fn callable_from_c(args): return_type {
     // body
 }
 ```
@@ -1652,10 +1652,10 @@ unsafe {
 
 ```ferrum
 // C: typedef void (*callback)(void* data, int value);
-type Callback = extern "C" fn(*mut c_void, c_int)
+type Callback = extern(c) fn(*mut c_void, c_int)
 
 // C: typedef int (*comparator)(const void*, const void*);
-type Comparator = extern "C" fn(*const c_void, *const c_void): c_int
+type Comparator = extern(c) fn(*const c_void, *const c_void): c_int
 ```
 
 ### Common Error Handling Pattern
@@ -1701,7 +1701,7 @@ The benefit over Python's ctypes:
 - RAII wrappers for automatic cleanup
 - Zero runtime overhead
 
-Write the thin `extern "C"` layer, wrap it in safe Ferrum, and users of your wrapper never need to touch unsafe code. The unsafe boundary is narrow, explicit, and auditable.
+Write the thin `extern(c)` layer, wrap it in safe Ferrum, and users of your wrapper never need to touch unsafe code. The unsafe boundary is narrow, explicit, and auditable.
 
 **The pattern:**
 1. Raw FFI bindings (unsafe, mirrors C exactly)

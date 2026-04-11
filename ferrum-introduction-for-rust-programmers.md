@@ -756,7 +756,7 @@ src/io.fe:203     trusted  "fd is valid and open"
 `extern` marks calls to foreign code. The Ferrum type checker verifies the types on the Ferrum side; the foreign code's behavior is unknown.
 
 ```ferrum
-extern "C" {
+extern(c) {
     fn strlen(s: *const u8): usize
     fn memcpy(dst: *mut u8, src: *const u8, n: usize): *mut u8
     fn malloc(size: usize): *mut u8

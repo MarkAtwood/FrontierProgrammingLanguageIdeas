@@ -446,17 +446,18 @@ Multiple `trusted` annotations are permitted on one function, each naming a dist
 FFI boundary. Ferrum's type checker still checks the types on the Ferrum side of the boundary. The foreign code's behavior is unknown.
 
 ```ferrum
-extern "C" {
+extern(c) {
     fn strlen(s: *const u8): usize  ! Unsafe
     fn memcpy(dst: *mut u8, src: *const u8, n: usize): *mut u8  ! Unsafe
 }
 
-extern "C" fn callback_from_c(data: *const u8, len: usize) {
+extern(c) fn callback_from_c(data: *const u8, len: usize) {
     // This function is called by C code — types are as declared
 }
 ```
 
-`extern "C"` uses C ABI. Other supported ABIs: `"system"`, `"fastcall"`, `"stdcall"`, `"aapcs"`, `"win64"`.
+`extern(c)` declares the C foreign model with default cdecl calling convention.
+Calling convention variants: `extern(c.system)`, `extern(c.fastcall)`, `extern(c.stdcall)`, `extern(c.aapcs)`, `extern(c.win64)`.
 
 ### 3.5 `unsafe`
 

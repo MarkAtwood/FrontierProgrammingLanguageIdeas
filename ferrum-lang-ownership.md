@@ -239,7 +239,7 @@ scope s {
 
 **FFI** — foreign functions are always `! Unsafe + IO` unless declared otherwise:
 ```ferrum
-extern "C" fn malloc(size: usize): *mut u8  ! Unsafe + Alloc[Heap]
+extern(c) fn malloc(size: usize): *mut u8  ! Unsafe + Alloc[Heap]
 ```
 
 **Proof mode** — proof functions may have no runtime effects (see §14):

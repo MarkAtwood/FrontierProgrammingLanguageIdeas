@@ -259,7 +259,7 @@ This makes security review tractable. Instead of auditing 100,000 lines of code,
 The `extern` block declares functions implemented in other languages, typically C. Ferrum type-checks the Ferrum side of the call, but the foreign code's behavior is unknown.
 
 ```ferrum
-extern "C" {
+extern(c) {
     fn strlen(s: *const u8): usize
     fn memcpy(dst: *mut u8, src: *const u8, n: usize): *mut u8
     fn open(path: *const u8, flags: i32): i32
@@ -297,7 +297,7 @@ This looks like a normal function call. Nothing in the syntax indicates you just
 In Ferrum, FFI is visually distinct:
 
 ```ferrum
-extern "C" {
+extern(c) {
     fn compress(dest: *mut u8, dest_len: *mut usize, src: *const u8, src_len: usize): i32
 }
 
@@ -316,7 +316,7 @@ Let's wrap the POSIX `read` system call in a safe Ferrum API.
 
 ```ferrum
 // Low level: extern declaration
-extern "C" {
+extern(c) {
     fn read(fd: i32, buf: *mut u8, count: usize): isize
 }
 
@@ -358,7 +358,7 @@ The safe wrapper:
 ```ferrum
 // Raw FFI declarations - direct mapping to C API
 mod zlib_raw {
-    extern "C" {
+    extern(c) {
         fn compressBound(source_len: usize): usize
         fn compress2(
             dest: *mut u8,
