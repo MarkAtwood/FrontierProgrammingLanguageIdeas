@@ -45,6 +45,7 @@ Ferrum explores what Rust might look like with region inference, an effect syste
 - `ferrum.md` — Overview and documentation index
 
 **Introductions** (for C/Python programmers):
+- `ferrum-introduction-for-programmers.md` — **Start here** — Language basics, syntax, types
 - `ferrum-introduction-to-ownership.md` — Ownership, moving, borrowing
 - `ferrum-introduction-to-option-result.md` — Option, Result, the `?` operator
 - `ferrum-introduction-to-traits.md` — Traits, impl blocks, bounds

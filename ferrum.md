@@ -39,6 +39,7 @@ New to Ferrum? Start here. Each guide explains one concept for programmers who k
 
 | Document | Topic |
 |----------|-------|
+| [ferrum-introduction-for-programmers.md](ferrum-introduction-for-programmers.md) | **Start here** — Language basics, syntax, types, control flow |
 | [ferrum-introduction-to-ownership.md](ferrum-introduction-to-ownership.md) | Ownership, moving, borrowing — no garbage collector, no manual free |
 | [ferrum-introduction-to-option-result.md](ferrum-introduction-to-option-result.md) | Option and Result — no null pointers, no exceptions |
 | [ferrum-introduction-to-traits.md](ferrum-introduction-to-traits.md) | Traits — polymorphism without inheritance |
