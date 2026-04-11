@@ -239,6 +239,164 @@ commits to something wrong.
 
 ---
 
+## Is This Another Too-Big Language?
+
+The hardest question is not technical. It is psychological.
+
+C++ veterans have a specific trauma: the language grew features for thirty
+years, and now nobody can hold the whole thing in their head. Every codebase
+uses a different subset. Every team has a style guide that bans half the
+language. The mental model required to read arbitrary C++ is larger than the
+mental model required to write it, because you might encounter any of the
+features you personally avoid.
+
+Rust veterans have a different trauma: the language is smaller than C++, but
+the learning curve is front-loaded. You fight the borrow checker for weeks
+before you can write useful code. The type system is powerful but demands
+engagement immediately. There is no "just write some code and learn as you go"
+phase.
+
+Both groups look at a new systems language and ask: **will this happen again?**
+
+The answer depends on whether the language is designed for progressive
+disclosure or for uniformity.
+
+### The uniformity trap
+
+A language designed for uniformity says: every feature is equally important,
+learn them all, they interact in beautiful ways. Haskell is like this. The
+type system is elegant and consistent. You cannot use half of it — the half
+you skip is load-bearing for the half you want.
+
+C++ fell into uniformity accidentally. Every feature was added because someone
+needed it. The result is a language where you cannot safely ignore anything,
+because anything might appear in code you need to read.
+
+### Progressive disclosure by design
+
+Ferrum is designed for progressive disclosure. The features exist in layers,
+and you can be productive in an inner layer without knowing the outer layers
+exist.
+
+**Layer 0: The working set**
+
+```ferrum
+fn process(items: &[Item]): Vec[Result] {
+    let mut results = Vec.new()
+    for item in items {
+        results.push(transform(item))
+    }
+    results
+}
+
+pub fn main() ! IO {
+    let data = fs.read("input.txt")?
+    let output = process(&parse(&data))
+    fs.write("output.txt", &serialize(&output))?
+}
+```
+
+No lifetime annotations. No effect annotations on private functions. No
+allocator specifications. No region variables. No capability tokens. No
+contracts. No proofs.
+
+This is not a simplified teaching subset. This is production code. The
+compiler infers everything that is not written:
+
+- `process` is pure (no `!` annotation, compiler verifies)
+- `main` has `! IO` because it is `pub` and performs IO
+- All allocations use `Heap` (the default)
+- Lifetimes are inferred from the borrowing structure
+- No contracts means no runtime checks beyond what the code implies
+
+A programmer can write useful systems code in this subset indefinitely. Many
+will never need to leave it.
+
+**Layer 1: Effects at boundaries**
+
+When you write a public API, you annotate its effects:
+
+```ferrum
+pub fn fetch_config(path: &str): Result[Config] ! IO
+pub fn send_request(req: &Request): Result[Response] ! Net
+```
+
+This is not a new concept to learn — it is making explicit what was already
+true. The compiler tells you which effects to annotate. You are not learning
+effect theory. You are adding labels the compiler already computed.
+
+**Layer 2: Custom allocators**
+
+When you need arena allocation or a memory pool:
+
+```ferrum
+fn parse_document(src: &str): Document  given [A: Allocator] {
+    // All allocations in this function use the ambient allocator
+    ...
+}
+
+let arena = Arena.new(1.mb())
+with arena {
+    let doc = parse_document(&source)  // uses arena
+}  // arena freed, all allocations gone
+```
+
+You encounter this when *you* need it — when you are optimizing memory
+allocation patterns, not when you are learning the language.
+
+**Layer 3: Contracts and invariants**
+
+When you need to express properties the type system cannot capture:
+
+```ferrum
+fn binary_search(haystack: &[T], needle: &T): Option[usize]
+    requires haystack.is_sorted()
+    ensures match result {
+        Some(i) => haystack[i] == *needle,
+        None => !haystack.contains(needle),
+    }
+```
+
+You encounter this when *you* are writing code that needs formal specification.
+Libraries use contracts. Application code often does not.
+
+**Layer 4: Proofs**
+
+When you need machine-checked guarantees:
+
+```ferrum
+proof fn sort_preserves_length[T](xs: &[T], ys: &[T])
+    requires ys == xs.sorted()
+    ensures xs.len() == ys.len()
+{ ... }
+```
+
+Most programmers never write proofs. They benefit from proofs in the standard
+library and in security-critical dependencies. The proof layer exists for
+library authors and for the 0.1% of code that is truly critical.
+
+### The key difference
+
+In C++, you cannot predict which features you will encounter in code you read.
+In Rust, you must engage with lifetimes immediately.
+
+In Ferrum, **you encounter features when you need them, not when the language
+forces you**. The compiler handles the inner layers automatically. You move
+outward when your specific problem requires it — and for most problems, it
+does not.
+
+The question "can I hold this language in my head" has a specific answer:
+
+- **The working set:** Yes. It is smaller than Go.
+- **The full language:** No, and you do not need to. The layers you do not use
+  do not appear in code you write, and they appear in code you read only when
+  that code is doing something that genuinely requires them.
+
+The language is large. The working set is small. The path from working set to
+advanced features is driven by your needs, not by the language's demands.
+
+---
+
 ## The 99% Design Principle
 
 Given all of the above: Ferrum does not need to be perfect. It needs to be
