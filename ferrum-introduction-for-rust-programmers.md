@@ -35,7 +35,7 @@ Key differences visible here:
 - `:` not `->` for return types
 - `! IO` declares effects (Ferrum tracks IO in the type system)
 - No semicolons (optional, usually omitted)
-- `println()` not `println!()` (it's a function, not a macro)
+- `println()` not `println!()` (compiler intrinsic, not a macro)
 
 Now let's go deeper.
 
@@ -149,18 +149,37 @@ fn returns_unit() {
 }
 ```
 
-### Macros Are Just Functions
+### No User-Defined Macros
 
-Rust's `println!`, `vec!`, `format!` are macros because Rust's type system can't express variadic functions cleanly. Ferrum handles this differently:
+Rust's `println!`, `vec!`, `format!` are macros. In Ferrum, these are **compiler intrinsics**:
 
 ```ferrum
-// These are functions, not macros
+// Compiler intrinsics, not macros
 println("Hello, {}!", name)
 let v = vec(1, 2, 3, 4, 5)
 let s = format("Value: {}", x)
 ```
 
-Ferrum still has macros for compile-time code generation, but you use them less often because more things are expressible as regular functions.
+**Ferrum has no user-defined macros.** No `macro_rules!`, no proc macros, no compile-time code execution.
+
+**Why?** Two reasons:
+
+1. **Security.** Rust proc macros execute arbitrary code at compile time. When you `cargo build` a project with dependencies, you're running code from the internet on your machine. This is a supply chain attack vector. Ferrum doesn't have this problem — building untrusted code can't execute arbitrary code.
+
+2. **Simplicity.** Macros are notoriously hard to debug, produce confusing error messages, and make code harder to read. In Ferrum, code is what it looks like — no hidden expansions.
+
+**What Ferrum provides instead:**
+
+| Need | Ferrum solution |
+|------|-----------------|
+| `println`, `format`, `vec` | Compiler intrinsics (not extensible) |
+| `@derive(Debug, Clone)` | Compiler built-in for fixed trait set |
+| DSLs (`html!`, `sql!`) | Use strings + runtime parsing, or external codegen |
+| Boilerplate reduction | Write the code, or use external tools |
+
+**Derivable traits are fixed by the compiler:** `Debug`, `Clone`, `Copy`, `Eq`, `PartialEq`, `Ord`, `PartialOrd`, `Hash`, `Default`.
+
+Want custom serialization? Write the impl. Want code generation? Use an external tool that runs *before* the compiler, not *inside* it.
 
 ---
 
@@ -1463,7 +1482,7 @@ When porting Rust to Ferrum:
    - Document postconditions with `ensures`
    - Add `invariant` to types with internal invariants
 
-6. **Review macros** — many can become regular functions
+6. **Remove macro usage** — `println!`/`vec!`/`format!` become intrinsics `println`/`vec`/`format`; custom macros need external codegen or rewriting as regular code
 
 ---
 
