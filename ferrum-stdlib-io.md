@@ -333,85 +333,95 @@ fn to_hex_upper(data: &[u8]): String
 
 ---
 
-## 7. text — Text IO and Encoding
+## 7. text — Encoding Transforms
 
-### 7.1 Encoding Types
+There are no special "text readers." You read bytes, then transform.
 
-There is no "default encoding." Every text operation specifies its encoding.
+### 7.1 The Model
+
+```
+bytes  ──transform──>  String (UTF-8)
+String ──transform──>  bytes
+```
+
+`&str` and `String` are always UTF-8. Other encodings exist only as byte arrays.
+To work with text in another encoding: read bytes, transform to UTF-8, work with it,
+transform back to bytes, write bytes.
+
+### 7.2 UTF-8 (the common case)
 
 ```ferrum
-// The encoding trait
-trait Encoding {
-    type Error: Error
-    fn name(&self): &str
-
-    fn decode(&self, bytes: &[u8]): Result[String, Self.Error]
-    fn encode(&self, s: &str): Result[Vec[u8], Self.Error]
-
-    // Streaming versions for large inputs
-    fn decoder(&self): Box[dyn Decoder]
-    fn encoder(&self): Box[dyn Encoder]
-}
-
-// Built-in encodings (not all — just the stdlib ones)
-struct Utf8      // the default — &str is always UTF-8
-struct Utf16Le
-struct Utf16Be
-struct Latin1    // ISO-8859-1 — byte value = Unicode codepoint
-struct Ascii     // strict ASCII — non-ASCII bytes are errors
-
-// Windows codepages and other legacy encodings are in a separate crate
-// (encoding_rs is the reference implementation to wrap)
-
-impl Utf8 {
+mod text.utf8 {
+    // Validation — zero-copy when valid
     fn validate(bytes: &[u8]): Result[&str, Utf8Error]
-    fn validate_lossy(bytes: &[u8]): &str  // replaces invalid with U+FFFD
+    fn validate_lossy(bytes: &[u8]): Cow[str]  // replaces invalid with U+FFFD
+
+    // Owning conversion
+    fn from_bytes(bytes: Vec[u8]): Result[String, FromUtf8Error]
+    unsafe fn from_bytes_unchecked(bytes: Vec[u8]): String
+
+    // The other direction is free
+    // str.as_bytes(): &[u8]
+    // String.into_bytes(): Vec[u8]
 }
+
+// Example: read a file, validate as UTF-8
+let bytes = fs.read("data.txt")?
+let text = text.utf8.validate(&bytes)?
 ```
 
-### 7.2 Text Readers and Writers
+### 7.3 Other Encodings
 
-This is where bytes become strings. You choose when this happens.
+Each encoding is a module with `decode` and `encode` functions.
+These are pure transforms on byte arrays — no IO, no readers.
 
 ```ferrum
-// Wraps a byte reader, decodes on the fly
-// The encoding is explicit — there is no default.
-type TextReader[R: Read, E: Encoding]  given [A: Allocator]
-
-impl[R: Read, E: Encoding] TextReader[R, E] {
-    fn new(inner: R, encoding: E): Self
-    fn read_char(&mut self): Result[Option[char], TextError] ! IO
-    fn read_line(&mut self): Result[Option[String], TextError] ! IO  // None at EOF
-    fn read_to_string(&mut self): Result[String, TextError] ! IO
-    fn lines(&mut self): TextLines[Self]  // iterator of Result[String, TextError]
+mod text.latin1 {
+    fn decode(bytes: &[u8]): String           // infallible — every byte is valid
+    fn encode(s: &str): Result[Vec[u8], EncodeError]  // fails if char > 255
 }
 
-// Wraps a byte writer, encodes on the fly
-type TextWriter[W: Write, E: Encoding]
-
-impl[W: Write, E: Encoding] TextWriter[W, E] {
-    fn new(inner: W, encoding: E): Self
-    fn write_str(&mut self, s: &str): Result[(), TextError] ! IO
-    fn write_char(&mut self, c: char): Result[(), TextError] ! IO
-    fn writeln(&mut self, s: &str): Result[(), TextError] ! IO
-    fn flush(&mut self): Result[(), IoError] ! IO
+mod text.ascii {
+    fn decode(bytes: &[u8]): Result[String, DecodeError]  // fails if byte > 127
+    fn encode(s: &str): Result[Vec[u8], EncodeError]      // fails if char > 127
 }
 
-// Example: reading a UTF-8 file line by line
-let file = File.open("data.txt")?
-let reader = TextReader.new(BufReader.new(file), Utf8)
-for line in reader.lines() {
-    let line = line?    // TextError if invalid UTF-8
-    println!("{}", line)
+mod text.utf16 {
+    fn decode_le(bytes: &[u8]): Result[String, DecodeError]
+    fn decode_be(bytes: &[u8]): Result[String, DecodeError]
+    fn encode_le(s: &str): Vec[u8]
+    fn encode_be(s: &str): Vec[u8]
 }
 
-// Example: reading a Latin-1 file
-let file = File.open("legacy.txt")?
-let reader = TextReader.new(BufReader.new(file), Latin1)
-let content = reader.read_to_string()?
+// Legacy encodings in separate crates:
+// text.shift_jis, text.euc_jp, text.gbk, text.big5,
+// text.windows1252, text.iso8859_*, text.koi8_r, text.ebcdic, ...
 ```
 
-### 7.3 Line Ending Handling
+### 7.4 Streaming Transforms
+
+For large files, transform in chunks:
+
+```ferrum
+mod text.latin1 {
+    type Decoder { fn decode_chunk(&mut self, bytes: &[u8], output: &mut String) }
+    type Encoder { fn encode_chunk(&mut self, s: &str, output: &mut Vec[u8]): Result[(), EncodeError] }
+}
+
+// Example: convert a large Latin-1 file to UTF-8
+let mut decoder = text.latin1.Decoder.new()
+let mut output = String.new()
+let mut buf = [0u8; 8192]
+loop {
+    match file.read(&mut buf)? {
+        ReadResult.Data(n) => decoder.decode_chunk(&buf[..n], &mut output),
+        ReadResult.Eof => break,
+        ReadResult.Err(e) => return Err(e),
+    }
+}
+```
+
+### 7.5 Line Ending Handling
 
 Line endings are explicit, not implicit.
 
@@ -423,16 +433,15 @@ enum LineEnding {
     Native, // platform default (Lf on Unix/WASM, CrLf on Windows)
 }
 
-// BufRead.lines() always strips the ending.
-// If you need the ending preserved, use read_until(b'\n').
-// If you need CRLF normalization, use a NormalizingReader.
-
-type NormalizingReader[R: Read] {
-    // Normalizes all line endings to Lf on read
+// Working with line endings after you have a String:
+mod text.lines {
+    fn normalize(s: &str): String           // convert all endings to \n
+    fn split(s: &str): impl Iterator[&str]  // split on any line ending
+    fn convert(s: &str, to: LineEnding): String
 }
 ```
 
-### 7.4 Formatting
+### 7.6 Formatting
 
 No `printf`. No format-string vulnerabilities. Format strings are compile-time constructs.
 
