@@ -497,6 +497,130 @@ The data model (types, effects, borrow state, contracts) is language-specific, b
 
 ---
 
+## Prior Art
+
+SemanticQuery did not emerge from a vacuum. The idea that the compiler's internal semantic model is a valuable asset for tools — not just a step on the way to a binary — has been explored repeatedly. Each prior attempt contributed something; each stopped short of what SemanticQuery defines.
+
+---
+
+### ASIS — Ada Semantic Interface Specification (ISO/IEC 15291:1999)
+
+The original. ASIS is a standardized API, mandated by the Ada Reference Manual, for tools to query the semantic information an Ada compiler produces. It was defined in the late 1990s and implemented by GNAT and other Ada compilers.
+
+ASIS gives tool authors access to: declarations and their kinds, expression types, call graphs, package hierarchies, overloading resolution, task and protected type structures. It was used for static analyzers, metrics tools, documentation generators, and refactoring tools. The key insight ASIS formalized: **the compiler has already done the hard semantic work; tools should not redo it from scratch.**
+
+What ASIS lacked:
+- **Read-only.** ASIS is a query interface over a compiled artifact. You cannot inject hypotheticals.
+- **Post-compilation.** ASIS queries run after compilation completes, not incrementally as code changes.
+- **No verification state.** ASIS exposes Ada's type system, not formal verification concepts. No contract status, no borrow state (Ada lacks ownership), no SMT encoding.
+- **Ada-specific.** ASIS is not designed for adoption by other language ecosystems.
+
+SemanticQuery is the spiritual successor to ASIS: a standardized semantic query interface, but for the modern ecosystem — incremental, LSP-native, verification-aware, and language-agnostic in protocol shape.
+
+---
+
+### Libadalang (AdaCore, ~2017)
+
+The modern replacement for ASIS. Where ASIS defined a protocol between tools and compilers, Libadalang is a **library**: you link it and call its API in-process. It provides incremental parsing, name resolution, and semantic queries over Ada source code, without requiring a full compilation.
+
+Libadalang is more accessible than ASIS (better documentation, Python bindings, faster iteration) and handles incomplete or syntactically invalid code gracefully — important for IDE use.
+
+What Libadalang adds over ASIS: incremental operation, tolerance for partial programs, a usable Python/Ada/C API.
+
+What it still lacks: the library model doesn't compose across language boundaries, no counterfactual queries, no verification state. Libadalang shows that the *right architecture* for a semantic API may be a server (SemanticQuery's model) rather than a linked library — libraries require language-specific bindings; a protocol works for any client.
+
+---
+
+### Roslyn — .NET Compiler Platform (Microsoft, 2014)
+
+Roslyn reframed the C# and VB compilers as **libraries** — "compiler as a service." The compiler exposes two API layers: a syntax API (immutable syntax trees, full fidelity, round-trippable) and a semantic API (`SemanticModel`) that answers questions about compiled symbols, types, and data flow.
+
+Roslyn's `SemanticModel` is the closest prior art to SemanticQuery's Point Query:
+- `GetTypeInfo(node)` — type of an expression
+- `GetSymbolInfo(node)` — resolved symbol for a name
+- `GetDeclaredSymbol(node)` — symbol declared at a location
+- `AnalyzeDataFlow(statements)` — definitely-assigned, definitely-unassigned, read/written variables across a block
+- `AnalyzeControlFlow(statements)` — reachability, exit points
+
+`AnalyzeDataFlow` in particular is a direct ancestor of SemanticQuery's Point Query borrow state field.
+
+Roslyn also enabled the Roslyn Analyzer ecosystem: third-party diagnostic analyzers that run inside the compiler and emit diagnostics through the same channel as built-in errors. This is the precedent for SemanticQuery's monitor operation.
+
+What Roslyn lacks: **read-only** (no counterfactual queries), no formal verification state (C# has no ownership or effect system), no SMT export. Roslyn is also a library, not a protocol — cross-language tool portability requires reimplementing against each compiler's API separately.
+
+Roslyn's success proved that the market exists: tool authors will use a well-designed compiler semantic API heavily. LSP itself was partly inspired by the insight that Roslyn-style semantic information should be accessible to any editor over a wire protocol, not just Visual Studio.
+
+---
+
+### rust-analyzer — LSP Extension Methods
+
+rust-analyzer implements LSP and adds a set of `rust-analyzer/`-namespaced custom requests that expose Rust compiler internals to tools and developers:
+
+- `rust-analyzer/viewHir` — the High-level IR of a function
+- `rust-analyzer/viewMir` — the Mid-level IR (MIR) with borrow annotations
+- `rust-analyzer/syntaxTree` — the raw syntax tree
+- `rust-analyzer/expandMacro` — macro expansion result
+- `rust-analyzer/interpretFunction` — interpret a `const` function in the compiler
+
+`rust-analyzer/viewMir` is particularly close in spirit to SemanticQuery's Point Query: it surfaces borrow checker state, lifetime annotations, and the compiler's lowered representation of the function.
+
+The pattern rust-analyzer establishes — LSP as the transport, custom namespace for extensions, incremental and live — is exactly the architecture SemanticQuery adopts. SemanticQuery generalizes this pattern: instead of introspection tools for compiler developers (`viewMir`, `syntaxTree`), it defines a semantic query API for tools and agents (`pointQuery`, `counterfactualQuery`).
+
+What rust-analyzer's extensions lack: they are introspection tools, not a structured API. `viewMir` returns a human-readable string, not a structured JSON object a program can reason about. There are no counterfactual queries, no SMT export, no test scaffolding.
+
+---
+
+### Dafny Language Server
+
+Dafny is a verification-aware language with an LSP server that exposes verification state to editors. This is the most direct precedent for SemanticQuery's contract-related operations.
+
+The Dafny language server reports:
+- Per-method verification status (verified, failed, unknown, timed out)
+- Counterexamples with concrete values when verification fails
+- Ghost variable states and specification annotations
+- Incremental re-verification as code changes
+
+This is close to SemanticQuery's `active_contracts` field in Point Query and the verdict structure in Counterfactual Query. Dafny proves the use case: developers and tools want to know the verification state of code, incrementally, over LSP.
+
+What Dafny's language server lacks: no counterfactual query (you cannot ask "if this invariant held, would verification succeed?"), no SMT-LIB export of verification conditions, Dafny-specific data model not designed for adoption by other languages.
+
+---
+
+### SPARK / GNATprove (AdaCore)
+
+SPARK is a formally verifiable subset of Ada. GNATprove is the verification tool: it runs flow analysis and proof (via Why3 and Z3) on SPARK code and reports which subprograms are proved, which have unproved checks, and why.
+
+GNATprove's output includes:
+- Proof status per subprogram (proved / unproved / flow error)
+- The specific check that is unproved (e.g., "array index out of bounds at line 42")
+- Flow analysis results (uninitialized variables, data dependencies)
+- The underlying verification condition (VC) in Why3's logic, accessible via `--proof-dir`
+
+The `--proof-dir` output is the most direct precedent for SemanticQuery's `smtExport` operation: structured access to the compiler's internal verification conditions for external tool consumption.
+
+GNATprove's limitation as a model: it is a batch tool, not a server; its output format is GNATprove-specific rather than a standardized protocol; it is tied to the Ada/SPARK ecosystem.
+
+---
+
+### What SemanticQuery Adds
+
+Each predecessor contributed a piece. The synthesis:
+
+| Feature | ASIS | Libadalang | Roslyn | rust-analyzer | Dafny LSP | SPARK | SemanticQuery |
+|---|---|---|---|---|---|---|---|
+| Standardized protocol | ✓ | — | — | — | — | — | ✓ |
+| LSP-native | — | — | — | ✓ | ✓ | — | ✓ |
+| Incremental / live | — | ✓ | ✓ | ✓ | ✓ | — | ✓ |
+| Structured semantic state | ✓ | ✓ | ✓ | partial | partial | partial | ✓ |
+| Verification state (contracts, borrows, effects) | — | — | — | partial | ✓ | ✓ | ✓ |
+| Counterfactual queries | — | — | — | — | — | — | ✓ |
+| SMT-LIB export | — | — | — | — | — | partial | ✓ |
+| Language-agnostic protocol | — | — | — | — | — | — | ✓ |
+
+The counterfactual query is the genuinely new operation. The rest is synthesis and standardization of ideas that existed separately. That is how protocols usually work.
+
+---
+
 ## Versioning
 
 SemanticQuery follows the same versioning model as LSP: the `initialize` handshake negotiates a version. Breaking changes require a version bump. Additive changes (new optional fields, new `include` flags) do not.
