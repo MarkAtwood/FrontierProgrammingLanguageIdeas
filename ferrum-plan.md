@@ -110,29 +110,31 @@ evolved from explicit to inferred — and Ferrum formalizes the cycle.
 
 ---
 
-## The Compiler API Vision
+## SemanticQuery
 
 The compiler is not a batch processor. It is a live reasoning engine that
-agentic coders can query, instrument, and inject hypotheses into — without
+tools can query, instrument, and inject hypotheses into — without
 modifying the source.
 
-**Query:** Ask the compiler what it knows at any program point — type,
+SemanticQuery is a protocol (specified in `ferrum-semanticquery.md`) that
+exposes four operations:
+
+**Point Query:** Ask the compiler what it knows at any program point — type,
 effects, regions, invariants, active contracts, borrow checker state.
 
-**Hypothesize:** Inject a proposed invariant and ask whether it closes a
-verification gap — without writing it into the source.
+**Counterfactual Query:** Inject a proposed invariant and ask whether it
+closes a verification gap — without writing it into the source.
 
-**Trap:** Place semantically-aware monitors in the binary — conditions
-expressed in Ferrum's type language that the compiler weaves into the
-binary correctly.
+**Monitor:** Place semantically-aware traps in the binary — conditions
+expressed in Ferrum's type language that the compiler weaves in correctly.
 
-**Instrument:** Generate test scaffolding from what the compiler already
+**Scaffolding:** Generate test scaffolding from what the compiler already
 knows — every `requires` clause is a test precondition, every `ensures`
 clause is a test oracle.
 
-This API turns verification from a yes/no gate into a conversation.
-An agent that can have that conversation can close most of the 1% without
-human involvement — leaving only the cases that genuinely require judgment.
+SemanticQuery is specified as LSP extension methods and can also be spoken
+standalone. The SMT-LIB export operation exposes the compiler's verification
+conditions for use with external solvers. See `ferrum-semanticquery.md`.
 
 Your execution loop is the standard Beads agent cycle. At the start of every
 session run `bd ready --json`. Claim one task. Implement it to its acceptance

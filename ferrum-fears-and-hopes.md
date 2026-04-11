@@ -218,23 +218,25 @@ annotations. Zero unnecessary annotations.
 
 ---
 
-### The Compiler API for Agentic Coders
+### SemanticQuery
 
 The compiler is not a batch processor. It is a live reasoning engine that
-agentic coders can query, instrument, and inject hypotheses into.
+tools and agents can query, instrument, and inject hypotheses into.
 
-**Query.** Ask the compiler what it knows at any program point. Type, effects,
+SemanticQuery (specified in `ferrum-semanticquery.md`) exposes four operations:
+
+**Point Query.** Ask the compiler what it knows at any program point. Type, effects,
 regions, invariants, active contracts, borrow checker state.
 
-**Hypothesize.** Inject a proposed invariant and ask whether it closes a
+**Counterfactual Query.** Inject a proposed invariant and ask whether it closes a
 verification gap — without writing it into the source. "If I assert that this
 pointer is non-null here, does the rest of the function become verifiable?"
 
-**Trap.** Place semantically-aware monitors in the binary. Conditions expressed
+**Monitor.** Place semantically-aware traps in the binary. Conditions expressed
 in Ferrum's type language that the compiler weaves into the binary correctly
 because it understands the type system.
 
-**Instrument.** Generate test scaffolding from what the compiler already knows.
+**Scaffolding.** Generate test scaffolding from what the compiler already knows.
 Every `requires` clause is a test precondition. Every `ensures` clause is a
 test oracle.
 
