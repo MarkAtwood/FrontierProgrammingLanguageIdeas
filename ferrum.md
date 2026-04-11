@@ -27,7 +27,7 @@ fn main() ! IO {
 }
 ```
 
-No semicolons. No header files. Generics use `[T]` not `<T>`. Paths use `.` not `::`. Effects like `! IO` are explicit in the signature.
+No semicolons. No header files. Generics use `[T]` not `<T>`. Paths use `.` not `::`. Effects like `! IO` appear at `pub` boundaries.
 
 ---
 

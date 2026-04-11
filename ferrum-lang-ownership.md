@@ -166,15 +166,15 @@ Effects describe what a function does beyond computing a return value. Effects a
 Effects appear after the return type, separated by `!`:
 
 ```ferrum
-fn read_file(path: &str): Result[String] ! IO
-fn connect(addr: Addr): Result[Socket]  ! Net
-fn spawn_task(f: fn()): Task            ! Sync + Alloc[Heap]
-fn pure_fn(x: i32): i32                // no ! means pure — compiler enforced
+pub fn read_file(path: &str): Result[String] ! IO
+pub fn connect(addr: Addr): Result[Socket]  ! Net
+pub fn spawn_task(f: fn()): Task            ! Sync + Alloc[Heap]
+pub fn pure_fn(x: i32): i32               // no ! means pure — compiler enforced
 ```
 
 Multiple effects use `+`:
 ```ferrum
-fn fetch_and_log(url: &str): Result[String] ! IO + Net
+pub fn fetch_and_log(url: &str): Result[String] ! IO + Net
 ```
 
 ### 2.3 Effect Inference
