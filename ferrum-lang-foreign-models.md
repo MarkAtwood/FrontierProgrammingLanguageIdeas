@@ -67,6 +67,9 @@ extern(c) fn ferrum_callback(data: *const u8, len: usize) {
 | `extern(c.aapcs)` | ARM Procedure Call Standard |
 | `extern(c.aapcs_vfp)` | ARM hard-float ABI |
 | `extern(c.sysv64)` | x86-64 System V ABI (Linux, macOS) |
+| `extern(c.nvptx)` | NVIDIA PTX kernel calling convention (CUDA) |
+| `extern(c.amdgpu)` | AMD GPU calling convention (ROCm/HIP) |
+| `extern(c.spirv)` | SPIR-V kernel/shader calling convention (Vulkan, OpenCL) |
 
 ```ferrum
 // Windows API uses system convention (stdcall on 32-bit, cdecl on 64-bit)
@@ -82,6 +85,11 @@ extern(c.system) fn CreateFileW(
 
 // ARM bare metal
 extern(c.aapcs) fn hardware_interrupt_handler() ! Unsafe
+
+// GPU kernels — these are entry points dispatched by the GPU driver
+extern(c.nvptx) fn vector_add(a: *const f32, b: *const f32, c: *mut f32, n: u32) ! Unsafe
+extern(c.amdgpu) fn matrix_mul(a: *const f32, b: *const f32, c: *mut f32, n: u32) ! Unsafe
+extern(c.spirv) fn blur_kernel(src: *const u32, dst: *mut u32, w: u32, h: u32) ! Unsafe
 ```
 
 **C model properties:**
@@ -128,6 +136,7 @@ impl Runnable for MyTask {
 | `extern(jvm.static)` | Static method (invokestatic) |
 | `extern(jvm.interface)` | Interface method (invokeinterface) |
 | `extern(jvm.special)` | Constructor or super call (invokespecial) |
+| `extern(jvm.android)` | Android ART — ART-managed heap, DEX bytecode dispatch |
 
 ```ferrum
 extern(jvm.static) "java/lang/System" {
@@ -224,6 +233,281 @@ extern(objc) "NSArray" {
 
 ---
 
+### `swift` — The Swift Foreign Model
+
+The Swift runtime. Used on Apple platforms (macOS, iOS, tvOS, watchOS) when calling Swift libraries or exposing Ferrum to Swift consumers.
+
+```ferrum
+extern(swift) "Foundation.Data" {
+    fn init(bytes: *const u8, count: usize): Self
+    fn withUnsafeBytes[R](self: &Self, body: fn(*const u8, usize): R): R
+    fn count(self: &Self): usize
+}
+
+extern(swift) "MyApp.AudioEngine" {
+    fn shared(): &Self   // Swift class property — synthesized getter
+    fn start(self: &mut Self) ! IO
+    fn stop(self: &mut Self) ! IO
+}
+```
+
+**Swift model properties:**
+- Object model: ARC (automatic reference counting, same as Objective-C ARC but distinct runtime)
+- Dispatch: direct for `final` / protocol witness table dispatch for protocol methods
+- Exceptions: Swift `throws` → `Result[T, SwiftError]` at the boundary
+- Generics: reified (Swift specializes generics; Ferrum sees the concrete instantiation at the boundary)
+- Name mangling: Swift ABI mangling (demangled via `swift-demangle`; Ferrum uses the stable `@_silgen_name` interface)
+
+**Calling convention variants:**
+
+| Variant | Meaning |
+|---------|---------|
+| `extern(swift)` | Standard Swift calling convention |
+| `extern(swift.async)` | Swift concurrency (async/await) — boundary marshals to/from Ferrum async |
+| `extern(swift.objc)` | `@objc`-bridged Swift — dispatches through Obj-C runtime |
+
+```ferrum
+// Swift async function bridged to Ferrum
+extern(swift.async) "NetworkClient" {
+    fn fetchData(url: &SwiftString): Result[SwiftData, SwiftError]
+}
+```
+
+---
+
+### `lua` — The Lua Foreign Model
+
+The Lua VM. Used when embedding Lua in a Ferrum application or writing Ferrum functions callable from Lua.
+
+```ferrum
+// Opening a Lua state and calling into it
+extern(lua) {
+    fn luaL_newstate(): *mut LuaState  ! Unsafe
+    fn luaL_openlibs(L: *mut LuaState)  ! Unsafe
+    fn luaL_dostring(L: *mut LuaState, code: *const c_char): lua_int  ! Unsafe
+    fn lua_getglobal(L: *mut LuaState, name: *const c_char)  ! Unsafe
+    fn lua_pcall(L: *mut LuaState, nargs: lua_int, nresults: lua_int, msgh: lua_int): lua_int  ! Unsafe
+    fn lua_close(L: *mut LuaState)  ! Unsafe
+}
+
+// Exporting a Ferrum function as a Lua C function
+extern(lua) fn lua_myfunction(L: *mut LuaState): lua_int ! Unsafe {
+    // read args from Lua stack, push results
+    1  // number of return values
+}
+```
+
+**Lua model properties:**
+- Object model: GC-managed (Lua GC; Ferrum values passed by copy or as lightuserdata)
+- Dispatch: C function pointer via `lua_CFunction` typedef
+- Exceptions: Lua `error()` / `pcall` → `Result[T, LuaError]`; `lua_pcall` is the boundary
+- Generics: none (Lua is dynamically typed; values are `lua_Value` at the boundary)
+- Name mangling: none (C ABI; Lua sees C function pointers)
+
+**Notes:** The Lua model is thin over the C model. `extern(lua)` asserts that the C functions follow Lua's stack-based calling protocol, enabling higher-level tooling to generate Lua bindings automatically.
+
+---
+
+### `python` — The Python Foreign Model
+
+The CPython C API. Used when embedding Python in a Ferrum application or writing Ferrum extension modules loadable by Python.
+
+```ferrum
+// Embedding Python
+extern(python) {
+    fn Py_Initialize()  ! Unsafe
+    fn Py_Finalize()  ! Unsafe
+    fn PyRun_SimpleString(code: *const c_char): c_int  ! Unsafe
+    fn PyErr_Occurred(): *mut PyObject  ! Unsafe
+    fn PyErr_Fetch(ptype: *mut *mut PyObject, pvalue: *mut *mut PyObject, ptraceback: *mut *mut PyObject)  ! Unsafe
+}
+
+// Building a Python extension module
+extern(python) fn PyInit_mymodule(): *mut PyObject ! Unsafe {
+    // return a PyModuleDef initialized module object
+}
+
+// Calling a Python function from Ferrum
+extern(python) {
+    fn PyObject_CallFunctionObjArgs(callable: *mut PyObject, ...): *mut PyObject  ! Unsafe
+    fn PyLong_AsLongLong(obj: *mut PyObject): i64  ! Unsafe
+    fn Py_DecRef(obj: *mut PyObject)  ! Unsafe
+}
+```
+
+**Python model properties:**
+- Object model: reference-counted + cycle collector (GC); all objects are `*mut PyObject`
+- Dispatch: C function pointers in `PyMethodDef` tables; `PyObject_Call` for dynamic dispatch
+- Exceptions: Python exception state (`PyErr_*` family) → `Result[T, PyException]`; NULL return signals exception set
+- Generics: none (Python is dynamically typed at the boundary)
+- Name mangling: C ABI; Python discovers functions via `PyMethodDef` tables
+
+**Calling convention variants:**
+
+| Variant | Meaning |
+|---------|---------|
+| `extern(python)` | CPython C API — direct `PyObject*` protocol |
+| `extern(python.limited)` | CPython stable ABI (`Py_LIMITED_API`) — compatible across minor versions |
+
+---
+
+### `napi` — The Node.js Native API Foreign Model
+
+Node.js N-API (Node-API). Used when writing native Node.js addons in Ferrum that are ABI-stable across Node.js versions.
+
+```ferrum
+// Defining a native addon entry point
+extern(napi) fn napi_register_module_v1(env: napi_env, exports: napi_value): napi_value ! Unsafe {
+    // attach methods to exports object
+    exports
+}
+
+// Wrapping a Ferrum function for export to JavaScript
+extern(napi) {
+    fn napi_create_function(
+        env: napi_env,
+        name: *const c_char,
+        name_len: usize,
+        cb: napi_callback,
+        data: *mut c_void,
+        result: *mut napi_value,
+    ): napi_status  ! Unsafe
+
+    fn napi_set_named_property(
+        env: napi_env,
+        object: napi_value,
+        name: *const c_char,
+        value: napi_value,
+    ): napi_status  ! Unsafe
+}
+```
+
+**N-API model properties:**
+- Object model: V8 GC-managed (values are opaque `napi_value` handles; Ferrum holds handles, not raw pointers)
+- Dispatch: C callback function pointers (`napi_callback` typedef)
+- Exceptions: N-API status codes → `Result[T, NapiError]`; exceptions are set via `napi_throw_*` family
+- Generics: none (JavaScript is dynamically typed)
+- Name mangling: none (C ABI; Node discovers the module via a known symbol)
+
+**Note:** N-API is deliberately ABI-stable: a Ferrum addon compiled against Node 18 runs on Node 22 without recompilation.
+
+---
+
+### `beam` — The BEAM Foreign Model
+
+The Erlang VM (BEAM). Used when writing Ferrum code callable from Erlang or Elixir via NIFs (Native Implemented Functions). The model is inverted relative to most others: BEAM calls Ferrum, not the other way around.
+
+```ferrum
+// Declaring NIF implementations — BEAM calls these
+extern(beam) fn add(env: *mut ErlNifEnv, argc: c_int, argv: *const ErlNifTerm): ErlNifTerm ! Unsafe {
+    // unpack args, compute, return term
+}
+
+// Module init — called once at load
+extern(beam) fn load(env: *mut ErlNifEnv, priv_data: *mut *mut c_void, load_info: ErlNifTerm): c_int ! Unsafe {
+    0  // success
+}
+
+// NIF table — exported via ERL_NIF_INIT macro equivalent
+extern(beam) {
+    fn nif_add(env: *mut ErlNifEnv, argc: c_int, argv: *const ErlNifTerm): ErlNifTerm  ! Unsafe
+    fn nif_stats(env: *mut ErlNifEnv, argc: c_int, argv: *const ErlNifTerm): ErlNifTerm  ! Unsafe
+}
+```
+
+**BEAM model properties:**
+- Object model: BEAM GC (terms are `ErlNifTerm`, an opaque integer; no raw pointer into BEAM heap)
+- Dispatch: BEAM calls C function pointers from the NIF table
+- Exceptions: NIF errors raised via `enif_make_badarg` / `enif_raise_exception` → Erlang exception
+- Generics: none (BEAM types are dynamic; Ferrum sees opaque terms)
+- Name mangling: C ABI; BEAM discovers NIFs via `ERL_NIF_INIT` entry point
+
+**Calling convention variants:**
+
+| Variant | Meaning |
+|---------|---------|
+| `extern(beam)` | Standard synchronous NIF |
+| `extern(beam.dirty_cpu)` | Dirty NIF — long CPU-bound work (runs on dirty CPU scheduler) |
+| `extern(beam.dirty_io)` | Dirty NIF — long I/O-bound work (runs on dirty I/O scheduler) |
+
+**Warning:** NIFs that block the BEAM scheduler stall the VM. Use `extern(beam.dirty_cpu)` or `extern(beam.dirty_io)` for any operation that may take more than ~1 ms.
+
+---
+
+### `dart` — The Dart Foreign Model
+
+The Dart VM FFI. Used when writing native extensions for Flutter or standalone Dart applications.
+
+```ferrum
+// Calling a Ferrum function from Dart via dart:ffi
+// On the Ferrum side, export with C ABI — Dart FFI crosses the C boundary
+extern(dart) fn compute_fft(input: *const f64, output: *mut f64, n: usize) ! Unsafe {
+    // Dart calls this as a NativeFunction<Void Function(Pointer<Double>, Pointer<Double>, Uint64)>
+}
+
+// Dart native extensions (older API): Ferrum registers a resolver
+extern(dart) fn ResolveName(
+    name: *const c_char,
+    args: c_int,
+    auto_setup_scope: *mut u8,
+): *mut c_void  ! Unsafe
+
+// Dart FFI Callbacks — Dart passing a function pointer back to Ferrum
+extern(dart) fn dart_callback(result: f64) ! Unsafe {
+    // called by Dart runtime via NativeCallable
+}
+```
+
+**Dart model properties:**
+- Object model: Dart VM GC (opaque `Dart_Handle`; do not retain beyond FFI boundary without `Dart_NewPersistentHandle`)
+- Dispatch: C ABI function pointers (Dart FFI resolves by symbol name from the shared library)
+- Exceptions: Dart exceptions do not propagate into native code; errors are return values or out-params
+- Generics: none at the FFI boundary (Dart FFI uses concrete `NativeFunction` types)
+- Name mangling: none (Dart FFI loads by C symbol name)
+
+**Note:** `extern(dart)` is a thin assertion over `extern(c)`. Its value is tooling: the compiler can generate Dart FFI binding stubs (`.dart` files) automatically from `extern(dart)` declarations.
+
+---
+
+### `graalvm` — The GraalVM Polyglot Foreign Model
+
+GraalVM's Truffle/Polyglot API. Used when Ferrum runs on GraalVM (via Espresso JVM or native-image) and interacts with other GraalVM languages (JavaScript, Python, Ruby, R) at runtime without crossing a C boundary.
+
+```ferrum
+// Evaluating another language inline
+extern(graalvm) {
+    fn polyglot_eval(language_id: *const c_char, source: *const c_char): PolyglotValue  ! IO
+    fn polyglot_get_member(obj: PolyglotValue, key: *const c_char): PolyglotValue
+    fn polyglot_execute(callable: PolyglotValue, args: &[PolyglotValue]): PolyglotValue  ! IO
+    fn polyglot_as_i64(val: PolyglotValue): i64
+    fn polyglot_as_string(val: PolyglotValue): GraalString
+}
+
+// Example: call a JavaScript function from Ferrum on GraalVM
+fn call_js_sort(data: &[f64]): Vec[f64] ! IO {
+    let sort_fn = polyglot_eval("js", "Array.prototype.sort")
+    // ... marshal and call
+}
+```
+
+**GraalVM model properties:**
+- Object model: GraalVM host heap — `PolyglotValue` is a reference into the polyglot context; lifetime is context-scoped
+- Dispatch: Truffle interop messages (READ, EXECUTE, INVOKE, etc.) — resolved at Truffle partial-evaluation time
+- Exceptions: guest language exceptions → `Result[T, PolyglotException]`
+- Generics: none (polyglot values are dynamically typed; Ferrum coerces via `polyglot_as_*`)
+- Name mangling: none (interop by Truffle message protocol, not symbol names)
+
+**Calling convention variants:**
+
+| Variant | Meaning |
+|---------|---------|
+| `extern(graalvm)` | Standard Truffle polyglot interop |
+| `extern(graalvm.native_image)` | GraalVM native-image — AOT context, no dynamic language eval |
+
+**Note:** `extern(graalvm)` is only valid when Ferrum targets the GraalVM JVM backend. On LLVM or standalone JVM targets, the compiler rejects it.
+
+---
+
 ## Registering a Custom Model
 
 For ecosystems not covered by the built-in models, a custom model can be declared in a library:
@@ -282,7 +566,7 @@ Each model specifies how Ferrum types map to foreign types at the boundary.
 `extern "C"` was always secretly a model: C calling convention, C name mangling, C type mapping, no exceptions. Making the model explicit means:
 
 - The compiler knows what crosses each boundary and how
-- New ecosystems (Swift, Python, Lua) register their models without compiler changes
+- New ecosystems (Swift, Python, Lua, BEAM, Dart, GraalVM) register their models without compiler changes
 - Calling convention is a variant of the model, not a parallel concept
 - Type mapping is part of the model spec, not implicit tribal knowledge
 - The dot notation (`c.stdcall`) makes hierarchy explicit: ecosystem first, variant second
