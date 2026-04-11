@@ -80,7 +80,7 @@ Every design decision in this library is tested against this list.
 │  io · fs · net · http · sys · process · env · async · time           │
 ├──────────────────────────────────────────────────────────────────────┤
 │  platform shims (see ferrum-stdlib-platform.md)                       │
-│  linux · bsd · darwin · windows · wasi · zephyr                       │
+│  linux · bsd · darwin · windows · fuchsia · ohos · wasi · zephyr      │
 ├──────────────────────────────────────────────────────────────────────┤
 │  alloc  (requires an allocator, no OS)                                │
 │  collections · string · fmt · sync · math · linalg · crypto          │

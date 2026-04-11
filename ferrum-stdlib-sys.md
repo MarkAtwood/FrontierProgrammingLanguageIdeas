@@ -18,6 +18,8 @@ std.sys.linux         // Linux-specific (opt-in) — see platform spec
 std.sys.bsd           // BSD-specific (opt-in) — see platform spec
 std.sys.darwin        // macOS-specific (opt-in) — see platform spec
 std.sys.windows       // Windows-specific (opt-in)
+std.sys.fuchsia       // Fuchsia-specific (opt-in) — see platform spec
+std.sys.ohos          // OpenHarmony-specific (opt-in) — see platform spec
 std.sys.wasi          // WASI Preview 2 (opt-in) — see platform spec
 std.sys.zephyr        // Zephyr RTOS (opt-in) — see platform spec
 ```
@@ -75,6 +77,8 @@ The following platform modules are fully specified in [ferrum-stdlib-platform.md
 | `sys.linux` | Linux 5.4+ | io_uring, epoll, landlock, seccomp, pidfd, namespaces |
 | `sys.bsd` | FreeBSD/OpenBSD/NetBSD | kqueue, Capsicum, pledge/unveil |
 | `sys.darwin` | macOS/iOS | kqueue, Grand Central Dispatch, XPC, sandbox |
+| `sys.fuchsia` | Fuchsia | Zircon kernel, FIDL, capabilities, namespaces, components |
+| `sys.ohos` | OpenHarmony 4.0+ | HDF drivers, distributed soft bus, ability framework |
 | `sys.wasi` | WASI Preview 2 | Component model, capability-based filesystem, HTTP |
 | `sys.zephyr` | Zephyr RTOS | Kernel primitives, GPIO, I2C, SPI, UART, Bluetooth |
 

@@ -41,7 +41,7 @@ Previous approaches and their failures:
 │  Implemented by each platform. Testable via mock implementations.   │
 ├─────────────────────────────────────────────────────────────────────┤
 │  Layer 2: sys.{platform} — Platform-specific, safe wrappers         │
-│  (sys.posix, sys.linux, sys.bsd, sys.windows, sys.wasi, sys.zephyr)│
+│  (sys.posix, sys.linux, sys.bsd, sys.windows, sys.fuchsia, sys.wasi)│
 │  Safe Ferrum types over raw syscalls. Platform-specific features.   │
 ├─────────────────────────────────────────────────────────────────────┤
 │  Layer 1: sys.{platform}.ffi — Raw bindings, unsafe                 │
@@ -72,6 +72,8 @@ Previous approaches and their failures:
 @cfg(target_os = "freebsd")
 @cfg(target_os = "openbsd")
 @cfg(target_os = "netbsd")
+@cfg(target_os = "fuchsia")
+@cfg(target_os = "ohos")        // OpenHarmony
 @cfg(target_os = "wasi")
 @cfg(target_os = "zephyr")
 @cfg(target_os = "none")        // bare metal
@@ -546,6 +548,28 @@ sys/
 │       ├── ntdll.fe
 │       ├── ws2_32.fe
 │       └── advapi32.fe
+├── fuchsia/
+│   ├── mod.fe           # Fuchsia (Zircon kernel)
+│   ├── zx.fe            # Zircon syscalls
+│   ├── handle.fe        # Kernel object handles
+│   ├── channel.fe       # IPC channels
+│   ├── vmo.fe           # Virtual Memory Objects
+│   ├── port.fe          # Async I/O ports
+│   ├── fidl.fe          # FIDL protocol bindings
+│   ├── component.fe     # Component framework
+│   ├── namespace.fe     # Capability namespaces
+│   └── ffi/
+│       └── zircon.fe
+├── ohos/
+│   ├── mod.fe           # OpenHarmony
+│   ├── ability.fe       # Ability framework
+│   ├── softbus.fe       # Distributed soft bus
+│   ├── hdf.fe           # Hardware Driver Foundation
+│   ├── hilog.fe         # HiLog logging
+│   ├── hitrace.fe       # HiTrace distributed tracing
+│   ├── ipc.fe           # IPC/RPC framework
+│   └── ffi/
+│       └── napi.fe      # N-API bindings
 ├── wasi/
 │   ├── mod.fe           # WASI Preview 2+
 │   ├── filesystem.fe
@@ -1346,7 +1370,479 @@ pub mod cli {
 }
 ```
 
-### 4.7 Zephyr RTOS Implementation
+### 4.7 Fuchsia Implementation
+
+Google's capability-based operating system built on the Zircon microkernel.
+
+```ferrum
+// sys/fuchsia/mod.fe
+
+/// Fuchsia platform — capability-based OS on Zircon microkernel.
+/// Minimum supported: Fuchsia F15+
+pub type FuchsiaPlatform {
+    version: FuchsiaVersion,
+}
+
+impl Platform for FuchsiaPlatform {
+    type FileSystem = FuchsiaFileSystem    // fdio-based
+    type Network = FuchsiaNetwork          // fdio sockets
+    type Process = FuchsiaProcess          // Zircon processes
+    type Memory = FuchsiaMemory            // VMOs
+    type Time = FuchsiaTime                // Zircon clocks
+    type Entropy = FuchsiaEntropy          // cprng
+    type Threading = FuchsiaThreading      // Zircon threads
+
+    fn name(&self) : &str { "fuchsia" }
+    fn version(&self) : OsVersion { /* ... */ }
+    fn capabilities(&self) : CapabilitySet { /* namespace-based */ }
+}
+
+/// Zircon kernel objects and handles
+pub mod zx {
+    /// A handle to a Zircon kernel object.
+    /// Handles are capabilities — they grant specific rights to objects.
+    pub type Handle(u32)
+
+    impl Handle {
+        pub const INVALID: Self = Handle(0)
+        pub fn is_valid(&self) : bool { self.0 != 0 }
+        pub fn close(self) : Result[(), ZxStatus] ! IO
+        pub fn duplicate(&self, rights: Rights) : Result[Self, ZxStatus] ! IO
+        pub fn replace(self, rights: Rights) : Result[Self, ZxStatus] ! IO
+        pub fn get_info[T: ObjectInfo](&self) : Result[T, ZxStatus] ! IO
+    }
+
+    /// Zircon status codes
+    pub type ZxStatus(i32)
+
+    impl ZxStatus {
+        pub const OK: Self = ZxStatus(0)
+        pub const ERR_INTERNAL: Self = ZxStatus(-1)
+        pub const ERR_NOT_SUPPORTED: Self = ZxStatus(-2)
+        pub const ERR_NO_RESOURCES: Self = ZxStatus(-3)
+        pub const ERR_NO_MEMORY: Self = ZxStatus(-4)
+        pub const ERR_BAD_HANDLE: Self = ZxStatus(-11)
+        pub const ERR_ACCESS_DENIED: Self = ZxStatus(-30)
+        pub const ERR_TIMED_OUT: Self = ZxStatus(-21)
+        pub const ERR_PEER_CLOSED: Self = ZxStatus(-24)
+        // ... many more
+    }
+
+    /// Rights that can be held on a handle
+    bitflags pub type Rights: u32 {
+        const DUPLICATE  = 1 << 0
+        const TRANSFER   = 1 << 1
+        const READ       = 1 << 2
+        const WRITE      = 1 << 3
+        const EXECUTE    = 1 << 4
+        const MAP        = 1 << 5
+        const GET_PROPERTY = 1 << 6
+        const SET_PROPERTY = 1 << 7
+        const SIGNAL     = 1 << 12
+        const WAIT       = 1 << 13
+        // ...
+    }
+
+    /// Wait on object signals
+    pub fn object_wait_one(
+        handle: &Handle,
+        signals: Signals,
+        deadline: Time,
+    ) : Result[Signals, ZxStatus] ! IO
+
+    pub fn object_wait_many(
+        items: &mut [WaitItem],
+        deadline: Time,
+    ) : Result[(), ZxStatus] ! IO
+
+    bitflags pub type Signals: u32 {
+        const READABLE      = 1 << 0
+        const WRITABLE      = 1 << 1
+        const PEER_CLOSED   = 1 << 2
+        const USER_0        = 1 << 24
+        const USER_1        = 1 << 25
+        // ...
+    }
+
+    pub type Time(i64)  // nanoseconds since boot
+
+    impl Time {
+        pub const INFINITE: Self = Time(i64.MAX)
+        pub fn after(duration: Duration) : Self
+    }
+}
+
+/// Channels — bidirectional IPC
+pub mod channel {
+    pub type Channel { handle: zx.Handle }
+
+    impl Channel {
+        pub fn create() : Result[(Self, Self), ZxStatus] ! IO
+
+        pub fn write(&self, bytes: &[u8], handles: &mut [zx.Handle])
+            : Result[(), ZxStatus] ! IO
+
+        pub fn read(&self, bytes: &mut [u8], handles: &mut [zx.Handle])
+            : Result[(usize, usize), ZxStatus] ! IO
+
+        pub fn call(
+            &self,
+            deadline: zx.Time,
+            bytes: &[u8],
+            handles: &mut [zx.Handle],
+            reply_bytes: &mut [u8],
+            reply_handles: &mut [zx.Handle],
+        ) : Result[(usize, usize), ZxStatus] ! IO
+    }
+}
+
+/// Virtual Memory Objects
+pub mod vmo {
+    pub type Vmo { handle: zx.Handle }
+
+    impl Vmo {
+        pub fn create(size: u64) : Result[Self, ZxStatus] ! IO
+        pub fn create_contiguous(bti: &Bti, size: usize) : Result[Self, ZxStatus] ! IO
+
+        pub fn read(&self, offset: u64, buf: &mut [u8]) : Result[(), ZxStatus] ! IO
+        pub fn write(&self, offset: u64, data: &[u8]) : Result[(), ZxStatus] ! IO
+
+        pub fn get_size(&self) : Result[u64, ZxStatus] ! IO
+        pub fn set_size(&self, size: u64) : Result[(), ZxStatus] ! IO
+
+        pub fn create_child(&self, options: VmoChildOptions, offset: u64, size: u64)
+            : Result[Self, ZxStatus] ! IO
+    }
+
+    bitflags pub type VmoChildOptions: u32 {
+        const SNAPSHOT         = 1 << 0
+        const SNAPSHOT_AT_LEAST_ON_WRITE = 1 << 4
+        const RESIZABLE        = 1 << 2
+        const SLICE            = 1 << 3
+        const NO_WRITE         = 1 << 5
+    }
+}
+
+/// Ports — async event aggregation
+pub mod port {
+    pub type Port { handle: zx.Handle }
+
+    impl Port {
+        pub fn create() : Result[Self, ZxStatus] ! IO
+
+        pub fn queue(&self, packet: &Packet) : Result[(), ZxStatus] ! IO
+
+        pub fn wait(&self, deadline: zx.Time) : Result[Packet, ZxStatus] ! IO
+
+        pub fn cancel(&self, source: &zx.Handle, key: u64) : Result[(), ZxStatus] ! IO
+    }
+
+    pub type Packet {
+        key: u64,
+        type_: PacketType,
+        status: ZxStatus,
+        // union of signal/guest/interrupt/page_request data
+    }
+}
+
+/// FIDL — Fuchsia Interface Definition Language bindings
+pub mod fidl {
+    /// Marker trait for FIDL protocols
+    pub trait Protocol {
+        const NAME: &str
+    }
+
+    /// Client end of a FIDL channel
+    pub type ClientEnd[P: Protocol] { channel: channel.Channel }
+
+    /// Server end of a FIDL channel
+    pub type ServerEnd[P: Protocol] { channel: channel.Channel }
+
+    impl[P: Protocol] ClientEnd[P] {
+        pub fn into_channel(self) : channel.Channel
+    }
+
+    impl[P: Protocol] ServerEnd[P] {
+        pub fn into_channel(self) : channel.Channel
+    }
+
+    /// Connect to a protocol in the component's namespace
+    pub fn connect_to_protocol[P: Protocol]() : Result[ClientEnd[P], FidlError] ! IO
+
+    /// Example FIDL protocol usage:
+    /// ```ferrum
+    /// // Generated from FIDL definition
+    /// mod fuchsia_io {
+    ///     pub trait Directory: Protocol {
+    ///         fn open(&self, flags: OpenFlags, path: &str) -> Result[NodeProxy, Status]
+    ///         fn read_dirents(&self, max_bytes: u64) -> Result[Vec[u8], Status]
+    ///     }
+    /// }
+    /// ```
+}
+
+/// Component framework
+pub mod component {
+    pub type Namespace { /* capability namespace */ }
+
+    impl Namespace {
+        /// Get the component's incoming namespace
+        pub fn take_incoming() : Self
+
+        /// Open a capability from the namespace
+        pub fn open[P: fidl.Protocol](&self, path: &str)
+            : Result[fidl.ClientEnd[P], ComponentError] ! IO
+    }
+
+    /// Expose capabilities to other components
+    pub type OutgoingDir { /* ... */ }
+
+    impl OutgoingDir {
+        pub fn new() : Self
+        pub fn add_protocol[P: fidl.Protocol](&mut self, server: impl Fn() -> fidl.ServerEnd[P])
+        pub fn serve(self, channel: channel.Channel) : Result[(), ComponentError] ! IO
+    }
+}
+
+/// Process management
+pub mod process {
+    pub type Process { handle: zx.Handle }
+    pub type Job { handle: zx.Handle }
+    pub type Thread { handle: zx.Handle }
+
+    impl Process {
+        pub fn self_() : Self ! IO
+        pub fn create(job: &Job, name: &str) : Result[Self, ZxStatus] ! IO
+        pub fn start(&self, entry: usize, stack: usize, arg1: zx.Handle, arg2: usize)
+            : Result[(), ZxStatus] ! IO
+        pub fn kill(&self) : Result[(), ZxStatus] ! IO
+        pub fn wait(&self) : Result[i64, ZxStatus] ! IO  // return code
+    }
+
+    impl Job {
+        pub fn default() : Self ! IO  // current job
+        pub fn create(parent: &Job) : Result[Self, ZxStatus] ! IO
+        pub fn kill(&self) : Result[(), ZxStatus] ! IO
+        pub fn set_policy(&self, policy: &[JobPolicy]) : Result[(), ZxStatus] ! IO
+    }
+}
+
+/// File I/O via fdio
+pub mod fdio {
+    /// fdio provides POSIX-like file operations over Fuchsia protocols
+    pub fn open(path: &str, flags: OpenFlags) : Result[Fd, ZxStatus] ! IO
+    pub fn openat(dirfd: Fd, path: &str, flags: OpenFlags) : Result[Fd, ZxStatus] ! IO
+
+    /// Get the underlying Zircon handle for a file descriptor
+    pub fn fd_to_handle(fd: Fd) : Result[zx.Handle, ZxStatus] ! IO
+
+    /// Create a file descriptor from a handle
+    pub fn handle_to_fd(handle: zx.Handle, flags: i32) : Result[Fd, ZxStatus] ! IO
+}
+```
+
+### 4.8 OpenHarmony Implementation
+
+Huawei's open-source distributed operating system.
+
+```ferrum
+// sys/ohos/mod.fe
+
+/// OpenHarmony platform — distributed OS for IoT and mobile.
+/// Minimum supported: OpenHarmony 4.0+
+pub type OhosPlatform {
+    version: OhosVersion,
+    device_type: DeviceType,
+}
+
+pub enum DeviceType {
+    Phone,
+    Tablet,
+    Wearable,
+    SmartTV,
+    Car,
+    IoT,
+}
+
+impl Platform for OhosPlatform {
+    type FileSystem = OhosFileSystem
+    type Network = OhosNetwork
+    type Process = OhosProcess
+    type Memory = OhosMemory
+    type Time = OhosTime
+    type Entropy = OhosEntropy
+    type Threading = OhosThreading
+
+    fn name(&self) : &str { "ohos" }
+    fn version(&self) : OsVersion { /* ... */ }
+    fn capabilities(&self) : CapabilitySet { /* permission-based */ }
+}
+
+/// Ability framework — application components
+pub mod ability {
+    /// Base trait for all ability types
+    pub trait Ability {
+        fn on_start(&mut self)
+        fn on_stop(&mut self)
+        fn on_foreground(&mut self)
+        fn on_background(&mut self)
+    }
+
+    /// UI Ability — has a window
+    pub trait UIAbility: Ability {
+        fn on_window_stage_create(&mut self, stage: WindowStage)
+        fn on_window_stage_destroy(&mut self)
+    }
+
+    /// Service Ability — background service
+    pub trait ServiceAbility: Ability {
+        fn on_connect(&mut self, want: &Want) : Option[RemoteObject]
+        fn on_disconnect(&mut self, want: &Want)
+    }
+
+    /// Want — intent to start abilities
+    pub type Want {
+        bundle_name: Option[String],
+        ability_name: Option[String],
+        device_id: Option[String],
+        parameters: HashMap[String, WantParam],
+    }
+
+    /// Start an ability
+    pub fn start_ability(want: &Want) : Result[(), AbilityError] ! IO
+
+    /// Start ability for result
+    pub fn start_ability_for_result(want: &Want)
+        : Result[AbilityResult, AbilityError] ! IO + Async
+}
+
+/// Distributed soft bus — cross-device communication
+pub mod softbus {
+    /// Discover nearby devices
+    pub fn start_discovery(info: &PublishInfo)
+        : Result[Receiver[DeviceInfo], SoftBusError] ! Net
+
+    pub fn stop_discovery() : Result[(), SoftBusError] ! Net
+
+    /// Device information
+    pub type DeviceInfo {
+        device_id: String,
+        device_name: String,
+        device_type: DeviceType,
+        network_id: String,
+    }
+
+    /// Create a session for data transfer
+    pub type Session { /* ... */ }
+
+    impl Session {
+        pub fn open(peer_device_id: &str, group_id: &str)
+            : Result[Self, SoftBusError] ! Net
+
+        pub fn send(&self, data: &[u8]) : Result[(), SoftBusError] ! Net
+        pub fn receive(&self) : Result[Vec[u8], SoftBusError] ! Net + Async
+
+        pub fn close(self) : Result[(), SoftBusError] ! Net
+    }
+
+    /// Distributed data management
+    pub mod data {
+        pub type DistributedKvStore { /* ... */ }
+
+        impl DistributedKvStore {
+            pub fn open(store_id: &str, options: &KvStoreOptions)
+                : Result[Self, DataError] ! IO
+
+            pub fn put(&self, key: &str, value: &[u8]) : Result[(), DataError] ! IO
+            pub fn get(&self, key: &str) : Result[Option[Vec[u8]], DataError] ! IO
+            pub fn delete(&self, key: &str) : Result[(), DataError] ! IO
+
+            /// Sync data to other devices
+            pub fn sync(&self, device_ids: &[&str]) : Result[(), DataError] ! Net
+        }
+    }
+}
+
+/// Hardware Driver Foundation
+pub mod hdf {
+    pub type DeviceService { /* ... */ }
+
+    /// Get a device service by name
+    pub fn get_service(service_name: &str) : Result[DeviceService, HdfError] ! IO
+
+    /// Device manager
+    pub type DeviceManager { /* ... */ }
+
+    impl DeviceManager {
+        pub fn list_devices() : Result[Vec[DeviceInfo], HdfError] ! IO
+        pub fn bind_device(device_id: &str) : Result[DeviceService, HdfError] ! IO
+    }
+}
+
+/// HiLog — logging framework
+pub mod hilog {
+    pub enum LogLevel {
+        Debug,
+        Info,
+        Warn,
+        Error,
+        Fatal,
+    }
+
+    pub fn log(level: LogLevel, domain: u32, tag: &str, msg: &str) ! IO
+
+    // Convenience macros map to these
+    pub fn debug(domain: u32, tag: &str, msg: &str) ! IO
+    pub fn info(domain: u32, tag: &str, msg: &str) ! IO
+    pub fn warn(domain: u32, tag: &str, msg: &str) ! IO
+    pub fn error(domain: u32, tag: &str, msg: &str) ! IO
+}
+
+/// HiTrace — distributed tracing
+pub mod hitrace {
+    pub type TraceId {
+        chain_id: u64,
+        span_id: u64,
+        parent_span_id: u64,
+    }
+
+    pub fn begin(name: &str) : TraceId
+    pub fn end(id: TraceId)
+    pub fn async_begin(name: &str, task_id: i32) : TraceId
+    pub fn async_end(id: TraceId, task_id: i32)
+
+    /// Cross-device trace propagation
+    pub fn get_current_trace() : Option[TraceId]
+    pub fn set_current_trace(id: TraceId)
+}
+
+/// IPC/RPC framework
+pub mod ipc {
+    pub type RemoteObject { /* ... */ }
+    pub type MessageParcel { /* ... */ }
+
+    impl MessageParcel {
+        pub fn new() : Self
+        pub fn write_int(&mut self, val: i32) : Result[(), IpcError]
+        pub fn write_string(&mut self, val: &str) : Result[(), IpcError]
+        pub fn write_buffer(&mut self, buf: &[u8]) : Result[(), IpcError]
+        pub fn read_int(&mut self) : Result[i32, IpcError]
+        pub fn read_string(&mut self) : Result[String, IpcError]
+        pub fn read_buffer(&mut self, len: usize) : Result[Vec[u8], IpcError]
+    }
+
+    impl RemoteObject {
+        pub fn send_request(
+            &self,
+            code: u32,
+            data: &MessageParcel,
+            reply: &mut MessageParcel,
+        ) : Result[(), IpcError] ! IO
+    }
+}
+```
+
+### 4.9 Zephyr RTOS Implementation
 
 For embedded systems.
 
@@ -1846,6 +2342,8 @@ fn test_file_read() {
 | Windows | Tier 1 | 10 1809 | IOCP, registry, services, virtual terminal |
 | FreeBSD | Tier 2 | 13.0 | kqueue, Capsicum, jails |
 | OpenBSD | Tier 2 | 7.0 | kqueue, pledge, unveil |
+| Fuchsia | Tier 2 | F15 | Zircon kernel, FIDL, capabilities, components |
+| OpenHarmony | Tier 2 | 4.0 | Distributed soft bus, ability framework, HDF |
 | WASI | Tier 2 | Preview 2 | Component model, capabilities |
 | Zephyr | Tier 3 | 3.5 | Real-time, GPIO, I2C, SPI, BLE |
 | Bare metal | Tier 3 | N/A | No OS, direct hardware |
