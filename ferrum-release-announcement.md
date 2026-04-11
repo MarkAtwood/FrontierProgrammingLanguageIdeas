@@ -1,3 +1,7 @@
+> **Aspirational document.** Ferrum does not yet exist as a working implementation. This release announcement is a design artifact — written to make the intended architecture and goals concrete, not to describe shipped software.
+
+---
+
 # Ferrum 0.1: A Systems Language That Checks Its Work
 
 We are releasing the first working implementation of Ferrum — a systems programming language with ownership semantics, algebraic effect tracking, and first-class contracts. It runs faster than CPython on representative benchmarks, and every safety violation is caught before your program executes.

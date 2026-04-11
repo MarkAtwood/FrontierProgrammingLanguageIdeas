@@ -1,3 +1,7 @@
+> **Aspirational document.** Ferrum does not yet exist as a working implementation. This paper is a design artifact — written in the style of a completed research paper to make the intended architecture, claims, and evaluation methodology precise, not to report actual experimental results.
+
+---
+
 # Ferrum: Progressive Load-Time Verification for a Systems Language with Ownership, Algebraic Effects, and First-Class Contracts
 
 **Abstract**
