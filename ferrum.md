@@ -44,9 +44,15 @@ New to Ferrum? Start here. Each guide explains one concept for programmers who k
 | [ferrum-introduction-to-traits.md](ferrum-introduction-to-traits.md) | Traits — polymorphism without inheritance |
 | [ferrum-introduction-to-enums.md](ferrum-introduction-to-enums.md) | Enums with data, pattern matching — no more instanceof chains |
 | [ferrum-introduction-to-generics.md](ferrum-introduction-to-generics.md) | Generics — type-safe containers without void* |
+| [ferrum-introduction-to-iterators.md](ferrum-introduction-to-iterators.md) | Iterators and closures — lazy, chainable, zero-cost |
+| [ferrum-introduction-to-strings.md](ferrum-introduction-to-strings.md) | Strings vs bytes — UTF-8 always, encoding explicit |
+| [ferrum-introduction-to-smart-pointers.md](ferrum-introduction-to-smart-pointers.md) | Box, Rc, Arc — heap allocation without GC |
+| [ferrum-introduction-to-modules.md](ferrum-introduction-to-modules.md) | Modules and packages — no header files, real namespaces |
 | [ferrum-introduction-to-effects.md](ferrum-introduction-to-effects.md) | Effects — tracking IO, Net, Async in the type system |
 | [ferrum-introduction-to-proofs.md](ferrum-introduction-to-proofs.md) | Contracts and proofs — catching bugs testing can't find |
 | [ferrum-introduction-to-async.md](ferrum-introduction-to-async.md) | Async and concurrency — structured, not colored |
+| [ferrum-introduction-to-ffi.md](ferrum-introduction-to-ffi.md) | FFI — calling C, exposing Ferrum to C |
+| [ferrum-introduction-to-unsafe.md](ferrum-introduction-to-unsafe.md) | Safety levels — unchecked, trusted, extern, unsafe |
 
 ### Language Reference
 

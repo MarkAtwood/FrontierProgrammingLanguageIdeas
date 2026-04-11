@@ -50,9 +50,15 @@ Ferrum explores what Rust might look like with region inference, an effect syste
 - `ferrum-introduction-to-traits.md` — Traits, impl blocks, bounds
 - `ferrum-introduction-to-enums.md` — Enums with data, pattern matching
 - `ferrum-introduction-to-generics.md` — Generic types and functions
+- `ferrum-introduction-to-iterators.md` — Iterators, closures, lazy evaluation
+- `ferrum-introduction-to-strings.md` — Strings vs bytes, UTF-8, encoding
+- `ferrum-introduction-to-smart-pointers.md` — Box, Rc, Arc, Weak
+- `ferrum-introduction-to-modules.md` — Modules, packages, dependencies
 - `ferrum-introduction-to-effects.md` — Effect system basics
 - `ferrum-introduction-to-proofs.md` — Contracts and verification
 - `ferrum-introduction-to-async.md` — Async, futures, structured concurrency
+- `ferrum-introduction-to-ffi.md` — FFI, calling C, exposing to C
+- `ferrum-introduction-to-unsafe.md` — Safety levels, when to use unsafe
 
 **Language Reference** (split for manageability):
 - `ferrum-language-reference.md` — Index and quick reference
