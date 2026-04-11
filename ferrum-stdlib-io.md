@@ -576,9 +576,9 @@ type Metadata {
     fn is_file(&self): bool
     fn is_symlink(&self): bool
     fn permissions(&self): Permissions
-    fn modified(&self): Result[SystemTime, IoError]
-    fn accessed(&self): Result[SystemTime, IoError]
-    fn created(&self): Result[SystemTime, IoError]
+    fn modified(&self): Result[Timestamp, IoError]
+    fn accessed(&self): Result[Timestamp, IoError]
+    fn created(&self): Result[Timestamp, IoError]
 }
 
 // Directory iterator

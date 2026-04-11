@@ -258,67 +258,192 @@ impl Instant {
 // Ops: Instant - Instant (Duration), Instant + Duration, Instant - Duration
 ```
 
-### 20.3 SystemTime (Wall Clock)
+### 20.3 Timestamp (Fundamental Time)
 
 ```ferrum
-// SystemTime — wall clock, can go backwards (NTP, user changes, leap seconds)
-// NOT for measuring elapsed time — use Instant for that
-// Stored as nanoseconds since Unix epoch (Jan 1, 1970 UTC)
-// 64-bit nanoseconds = valid until year 2554. No Y2K38.
+// Timestamp — a point in time, calendar-agnostic
+// Stored as nanoseconds since J2000.0 (2000-01-01T12:00:00 TT)
+// This is an astronomical epoch, independent of any calendar system.
+// 64-bit signed nanoseconds = ±292 years from epoch = valid 1708–2292.
+// For dates outside this range, use Timestamp128.
 
-type SystemTime {
-    nanos_since_epoch: i64,  // signed: supports pre-epoch times
+type Timestamp {
+    nanos_since_j2000: i64,
 }
 
-impl SystemTime {
-    const UNIX_EPOCH: Self = SystemTime { nanos_since_epoch: 0 }
+impl Timestamp {
+    /// J2000.0 epoch (Julian Date 2451545.0)
+    const J2000: Self = Timestamp { nanos_since_j2000: 0 }
+
+    /// Unix epoch expressed as a Timestamp
+    const UNIX_EPOCH: Self = Timestamp::from_jdn(2440587.5)
 
     fn now(): Self ! IO
-    fn duration_since(&self, earlier: Self): Result[Duration, SystemTimeError]
+
+    // Arithmetic
+    fn duration_since(&self, earlier: Self): Duration
     fn checked_add(&self, d: Duration): Option[Self]
     fn checked_sub(&self, d: Duration): Option[Self]
-    fn elapsed(&self): Result[Duration, SystemTimeError] ! IO
-    fn unix_timestamp(&self): i64      // seconds since epoch
-    fn unix_timestamp_nanos(&self): i128  // nanoseconds since epoch
+    fn elapsed(&self): Duration ! IO
+
+    // Julian Day Number — the universal astronomical time scale
+    // JDN 0.0 = noon on January 1, 4713 BCE (Julian proleptic calendar)
+    fn to_jdn(&self): f64
+    fn from_jdn(jdn: f64): Self
+
+    // Unix timestamp (for interop)
+    fn to_unix(&self): i64           // seconds since Unix epoch
+    fn to_unix_nanos(&self): i128    // nanoseconds since Unix epoch
+    fn from_unix(secs: i64): Self
+    fn from_unix_nanos(nanos: i128): Self
+
+    // TAI offset (leap seconds)
+    fn tai_offset(&self): Duration   // difference from TAI at this instant
+}
+
+// For historical dates or far future
+type Timestamp128 {
+    nanos_since_j2000: i128,  // ±10^22 years
 }
 ```
 
-### 20.4 Calendar Time
+**Why J2000.0 and JDN?**
 
-Calendar operations are in `time.calendar`. This separation is intentional: most code needs only `Duration` and `Instant`; calendar arithmetic is complex and rarely needed.
+Julian Day Number is the only time scale that:
+- Is used by astronomers, historians, and calendar researchers worldwide
+- Has no embedded calendar system (it is just a day count)
+- Provides a universal reference for converting between any calendar
+- Is continuous (no leap seconds, no daylight saving, no missing days)
+
+Any calendar system can be implemented by converting to/from JDN.
+
+### 20.4 Calendar Systems
+
+Calendars are **not baked into the standard library**. The `time.calendar` module provides a trait for calendar implementations; specific calendars are separate modules.
 
 ```ferrum
-// DateTime — a moment in time expressed as a calendar date+time in a timezone
-type DateTime[Tz: Timezone]  given [A: Allocator]
+// The calendar trait — implemented by each calendar system
+trait Calendar {
+    type Date: CalendarDate
+    type DateTime: CalendarDateTime
 
-impl[Tz: Timezone] DateTime[Tz] {
-    fn from_system_time(t: SystemTime, tz: Tz): Self
-    fn to_system_time(&self): SystemTime
-    fn year(&self): i32
-    fn month(&self): u8 where value in 1..=12
-    fn day(&self): u8 where value in 1..=31
-    fn hour(&self): u8 where value < 24
-    fn minute(&self): u8 where value < 60
-    fn second(&self): u8 where value < 61   // 60 for leap seconds
-    fn nanosecond(&self): u32
-    fn weekday(&self): Weekday
-    fn day_of_year(&self): u16 where value in 1..=366
-    fn is_leap_year(&self): bool
-    fn timezone(&self): &Tz
-    fn to_utc(&self): DateTime[Utc]
-    fn to_timezone[Tz2: Timezone](&self, tz: Tz2): DateTime[Tz2]
-    fn format(&self, fmt: &str): String   // strftime-compatible
-    fn parse(s: &str, fmt: &str): Result[Self, ParseError]
+    /// Convert a timestamp to this calendar's date representation
+    fn date_from_timestamp(t: Timestamp, tz: &dyn Timezone): Self.Date
+
+    /// Convert this calendar's date to a timestamp
+    fn timestamp_from_date(d: &Self.Date, tz: &dyn Timezone): Timestamp
+
+    /// Calendar name for display/serialization
+    fn name(&self): &str
 }
 
-// Timezones
-struct Utc
-struct Local   // system local timezone
-type FixedOffset { hours: i8, minutes: i8 }   // e.g., UTC+5:30
-// Full IANA timezone database is in a separate crate
+trait CalendarDate {
+    /// Julian Day Number at midnight of this date
+    fn to_jdn(&self): f64
 
-enum Weekday { Mon, Tue, Wed, Thu, Fri, Sat, Sun }
+    /// Create from Julian Day Number
+    fn from_jdn(jdn: f64): Self
+
+    /// Format according to this calendar's conventions
+    fn format(&self, fmt: &str): String
+}
+
+trait CalendarDateTime: CalendarDate {
+    fn hour(&self): u8
+    fn minute(&self): u8
+    fn second(&self): u8
+    fn nanosecond(&self): u32
+}
+
+// Timezone trait — offset from UTC at a given instant
+trait Timezone {
+    fn offset_at(&self, t: Timestamp): Duration
+    fn name(&self): &str
+}
+
+// Built-in timezones (these ARE in std, they're not calendar-specific)
+struct Utc           // UTC, no offset
+struct Tai           // International Atomic Time
+struct Local         // System local timezone
+type FixedOffset { seconds: i32 }  // Fixed UTC offset
 ```
+
+### 20.5 Calendar Modules
+
+Each calendar is a separate module. The standard library provides Gregorian as the most common; others are available as packages.
+
+```ferrum
+// std.time.calendar.gregorian — the most common, but not privileged
+mod gregorian {
+    type Date {
+        year: i32,      // astronomical year (0 = 1 BCE, -1 = 2 BCE)
+        month: u8,      // 1–12
+        day: u8,        // 1–31
+    }
+
+    type DateTime {
+        date: Date,
+        hour: u8,       // 0–23
+        minute: u8,     // 0–59
+        second: u8,     // 0–60 (60 for leap second)
+        nanosecond: u32,
+        timezone: &dyn Timezone,
+    }
+
+    impl Calendar for Gregorian { ... }
+
+    // Convenience for the common case
+    fn now(): DateTime ! IO {
+        DateTime.from_timestamp(Timestamp.now(), &Local)
+    }
+
+    enum Weekday { Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday }
+    enum Month { January, February, ..., December }
+}
+
+// Other calendars — separate packages, same trait
+// time.calendar.islamic     — Hijri calendar
+// time.calendar.hebrew      — Jewish calendar
+// time.calendar.chinese     — Chinese lunisolar calendar
+// time.calendar.japanese    — Japanese imperial calendar
+// time.calendar.persian     — Solar Hijri calendar
+// time.calendar.julian      — Julian calendar (proleptic)
+// time.calendar.coptic      — Coptic calendar
+// time.calendar.ethiopic    — Ethiopian calendar
+// time.calendar.buddhist    — Buddhist calendar
+// time.calendar.indian      — Indian national calendar
+```
+
+### 20.6 Converting Between Calendars
+
+All calendars convert through JDN, making inter-calendar conversion trivial:
+
+```ferrum
+import time.calendar.gregorian.{Date as GregorianDate}
+import time.calendar.hebrew.{Date as HebrewDate}
+import time.calendar.islamic.{Date as HijriDate}
+
+// Any date → JDN → any other date
+let greg = GregorianDate { year: 2024, month: 12, day: 25 }
+let jdn = greg.to_jdn()
+
+let hebrew = HebrewDate.from_jdn(jdn)   // 23 Kislev 5785
+let hijri = HijriDate.from_jdn(jdn)     // 23 Jumada al-Thani 1446
+
+// Or via Timestamp for full datetime with timezone
+let ts = Timestamp.from_jdn(jdn)
+let hebrew_dt = hebrew.DateTime.from_timestamp(ts, &Utc)
+```
+
+**Why this design?**
+
+1. **No cultural imperialism.** The Gregorian calendar is not privileged in the type system. A Hebrew date is as first-class as a Gregorian date.
+
+2. **Correctness.** Calendar arithmetic is notoriously complex (leap years, leap months, variable-length months, intercalation rules). Each calendar module implements its own rules correctly.
+
+3. **Interoperability.** JDN is the universal interchange format. Any calendar that can convert to/from JDN can interoperate with any other.
+
+4. **Minimal core.** The standard library provides `Timestamp`, `Duration`, `Instant`, the `Calendar` trait, and Gregorian (because it's the most common for computing). Everything else is packages.
 
 ---
 
@@ -1313,7 +1438,7 @@ impl Log for StderrLogger {
     }
 
     fn log(&self, record: &Record) {
-        let now = SystemTime.now()
+        let now = Timestamp.now()
         eprintln!(
             "[{} {} {}] {}",
             now.format("%Y-%m-%d %H:%M:%S"),

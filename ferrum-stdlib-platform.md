@@ -262,9 +262,9 @@ trait FileMetadata {
     fn file_type(&self) : FileType
     fn len(&self) : u64
     fn permissions(&self) : Permissions
-    fn modified(&self) : Result[SystemTime, IoError]
-    fn accessed(&self) : Result[SystemTime, IoError]
-    fn created(&self) : Result[SystemTime, IoError]   // Not available on all platforms
+    fn modified(&self) : Result[Timestamp, IoError]
+    fn accessed(&self) : Result[Timestamp, IoError]
+    fn created(&self) : Result[Timestamp, IoError]   // Not available on all platforms
     fn is_file(&self) : bool
     fn is_dir(&self) : bool
     fn is_symlink(&self) : bool
@@ -414,7 +414,7 @@ trait TimePlatform: Send + Sync {
     fn monotonic_now(&self) : Instant
 
     /// Wall clock — can jump (NTP, manual adjustment).
-    fn system_now(&self) : SystemTime
+    fn timestamp_now(&self) : Timestamp
 
     /// Sleep the current thread.
     fn sleep(&self, dur: Duration) ! IO
@@ -2307,7 +2307,7 @@ pub type MockPlatform {
 impl MockPlatform {
     pub fn new() -> Self
     pub fn with_file(mut self, path: &str, content: &[u8]) -> Self
-    pub fn with_time(mut self, now: SystemTime) -> Self
+    pub fn with_time(mut self, now: Timestamp) -> Self
     pub fn advance_time(&self, duration: Duration)
     pub fn inject_error(&self, on: MockOperation, error: IoError)
 }

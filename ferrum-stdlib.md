@@ -41,7 +41,7 @@ Every design decision in this library is tested against this list.
 | Text/binary mode confusion on Windows | `FILE*` conflates both | Separate `TextReader`/`BinaryReader` types |
 | `printf` format strings are untrusted | Strings as format specs | Format is a compile-time construct, never a runtime string |
 | `malloc` returns uninitialized memory | Performance shortcut | `alloc` returns zeroed by default; `alloc_uninit` is explicit `unsafe` |
-| `time_t` is 32-bit on some platforms | Premature optimization | `Instant` and `SystemTime` use 64-bit nanoseconds always |
+| `time_t` is 32-bit on some platforms | Premature optimization | `Instant` and `Timestamp` use 64-bit nanoseconds always |
 | `signal` handlers can do almost nothing safely | Async-signal-safety | Signals convert to channel messages; no raw signal handlers |
 | Locale-dependent `ctype.h` | Global mutable state | All locale operations are explicit and parameterized |
 | `read` conflates EOF and 0-byte read | Overloaded return value | `ReadResult` is a proper enum |
@@ -63,7 +63,7 @@ Every design decision in this library is tested against this list.
 
 **Encoding is explicit.** Text is always `&str` (UTF-8) or an explicitly-typed alternative. There is no "system encoding." There is no "default charset." The type tells you what you have.
 
-**Time is unambiguous.** Every time type specifies whether it is monotonic, wall-clock, or UTC. Durations are always nanoseconds internally, displayed in human units.
+**Time is calendar-agnostic.** The core time types (`Timestamp`, `Instant`, `Duration`) have no embedded calendar. Calendars are separate modules that convert through Julian Day Number. Gregorian is common, not privileged.
 
 **Async and sync are unified.** Blocking and non-blocking IO share the same trait hierarchy. A function that works on a `Read` works on both a blocking file and a non-blocking socket buffer. The difference is in the concrete type, not the trait.
 

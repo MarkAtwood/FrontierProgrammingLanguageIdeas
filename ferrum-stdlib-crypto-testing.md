@@ -237,7 +237,7 @@ This appendix maps every C/POSIX mistake to the Ferrum solution, for compiler an
 | `printf` format string as runtime string | Format string injection | Format strings are compile-time literals | `fmt` |
 | `malloc` returns uninitialized memory | Uninitialized reads | Allocator returns zeroed by default; uninit is `unsafe` | `alloc` |
 | `memcpy` UB on overlapping regions | Silent memory corruption | `copy` vs `copy_overlapping` are separate functions | `core.ptr` |
-| `time_t` 32-bit on some platforms (Y2K38) | Year 2038 overflow | `SystemTime` uses `i64` nanoseconds always | `time` |
+| `time_t` 32-bit on some platforms (Y2K38) | Year 2038 overflow | `Timestamp` uses `i64` nanoseconds always | `time` |
 | Raw signal handlers (almost nothing is async-signal-safe) | Deadlocks, data corruption | Signals convert to channel messages; no raw handlers | `sys.posix` |
 | Locale-dependent `ctype.h` | Encoding bugs, non-reproducible behavior | All locale operations are explicit and parameterized | `text` |
 | No ownership semantics on returned pointers | Memory leaks, double-free | All returned heap values are owned | Language |
@@ -258,7 +258,7 @@ This appendix maps every C/POSIX mistake to the Ferrum solution, for compiler an
 | `SIGPIPE` crashes program on broken pipe | Surprised programs | `SIGPIPE` default-ignored; broken pipe returns `IoError::BrokenPipe` | `sys.posix` |
 | `fork` in multi-threaded programs is unsafe | Deadlocks | `fork` is in `sys.posix`, `! Unsafe + IO`; documented hazards | `sys.posix` |
 | Implicit `int` return type for `main` | Portability | `main(): ()` or `main(): ExitCode`; no implicit numeric return | Language |
-| `clock()` measures CPU time, not wall time, platform-dependently | Wrong measurements | `Instant` (monotonic), `SystemTime` (wall), clearly separate | `time` |
+| `clock()` measures CPU time, not wall time, platform-dependently | Wrong measurements | `Instant` (monotonic), `Timestamp` (wall), clearly separate | `time` |
 
 ---
 
