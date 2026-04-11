@@ -33,6 +33,21 @@ No semicolons. No header files. Generics use `[T]` not `<T>`. Paths use `.` not 
 
 ## Documentation
 
+### Introductions
+
+New to Ferrum? Start here. Each guide explains one concept for programmers who know C and Python:
+
+| Document | Topic |
+|----------|-------|
+| [ferrum-introduction-to-ownership.md](ferrum-introduction-to-ownership.md) | Ownership, moving, borrowing — no garbage collector, no manual free |
+| [ferrum-introduction-to-option-result.md](ferrum-introduction-to-option-result.md) | Option and Result — no null pointers, no exceptions |
+| [ferrum-introduction-to-traits.md](ferrum-introduction-to-traits.md) | Traits — polymorphism without inheritance |
+| [ferrum-introduction-to-enums.md](ferrum-introduction-to-enums.md) | Enums with data, pattern matching — no more instanceof chains |
+| [ferrum-introduction-to-generics.md](ferrum-introduction-to-generics.md) | Generics — type-safe containers without void* |
+| [ferrum-introduction-to-effects.md](ferrum-introduction-to-effects.md) | Effects — tracking IO, Net, Async in the type system |
+| [ferrum-introduction-to-proofs.md](ferrum-introduction-to-proofs.md) | Contracts and proofs — catching bugs testing can't find |
+| [ferrum-introduction-to-async.md](ferrum-introduction-to-async.md) | Async and concurrency — structured, not colored |
+
 ### Language Reference
 
 The complete language specification:

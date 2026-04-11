@@ -44,6 +44,16 @@ Ferrum explores what Rust might look like with region inference, an effect syste
 **Start here:**
 - `ferrum.md` — Overview and documentation index
 
+**Introductions** (for C/Python programmers):
+- `ferrum-introduction-to-ownership.md` — Ownership, moving, borrowing
+- `ferrum-introduction-to-option-result.md` — Option, Result, the `?` operator
+- `ferrum-introduction-to-traits.md` — Traits, impl blocks, bounds
+- `ferrum-introduction-to-enums.md` — Enums with data, pattern matching
+- `ferrum-introduction-to-generics.md` — Generic types and functions
+- `ferrum-introduction-to-effects.md` — Effect system basics
+- `ferrum-introduction-to-proofs.md` — Contracts and verification
+- `ferrum-introduction-to-async.md` — Async, futures, structured concurrency
+
 **Language Reference** (split for manageability):
 - `ferrum-language-reference.md` — Index and quick reference
 - `ferrum-lang-core.md` — Design philosophy, lexical structure, keywords
