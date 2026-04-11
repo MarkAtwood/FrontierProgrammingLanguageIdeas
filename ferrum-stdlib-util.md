@@ -55,18 +55,19 @@ impl DebugStruct {
 }
 ```
 
-### 19.3 Format Macros
+### 19.3 Format Intrinsics
 
 ```ferrum
-fmt!("...")         : String          // format to owned String
-print!("...")       : ()  ! IO        // to stdout, no newline
-println!("...")     : ()  ! IO        // to stdout, with newline
-eprint!("...")      : ()  ! IO        // to stderr, no newline
-eprintln!("...")    : ()  ! IO        // to stderr, with newline
-write!(w, "...")    : Result[(), IoError] ! IO   // to any Write
-writeln!(w, "...")  : Result[(), IoError] ! IO
+format("...")       : String          // format to owned String
+print("...")        : ()  ! IO        // to stdout, no newline
+println("...")      : ()  ! IO        // to stdout, with newline
+eprint("...")       : ()  ! IO        // to stderr, no newline
+eprintln("...")     : ()  ! IO        // to stderr, with newline
+write(w, "...")     : Result[(), IoError] ! IO   // to any Write
+writeln(w, "...")   : Result[(), IoError] ! IO
 
-// All macros: format string is a compile-time string literal.
+// These are compiler intrinsics, not user-definable.
+// Format string must be a string literal.
 // Argument count and types are verified at compile time.
 // No runtime format string parsing. No format string injection.
 ```
@@ -680,26 +681,17 @@ fn count[T, const N: usize](buf: &Protected[BoundedBuffer[T, N]]): usize ! Sync 
 // ✓ Deadlock-free within a single protected object
 ```
 
-### 21.2 select! — Multi-Way Synchronization
+### 21.2 select — Multi-Way Synchronization
 
 Wait on multiple synchronization points and proceed with the first that becomes ready.
 
 ```ferrum
-/// Select the first ready alternative.
-macro select! {
-    // Syntax:
-    // select! {
-    //     recv(channel) -> msg => { ... }
-    //     send(channel, value) => { ... }
-    //     entry(protected, barrier) -> result => { ... }
-    //     timeout!(duration) => { ... }
-    //     default => { ... }  // non-blocking
-    // }
-}
+// select is a compiler intrinsic with special syntax.
+// It cannot be user-defined.
 
 // Example: receive from either channel
 fn either(ch1: &Receiver[i32], ch2: &Receiver[String]): Either[i32, String] ! Sync {
-    select! {
+    select {
         recv(ch1) -> n => Either.Left(n),
         recv(ch2) -> s => Either.Right(s),
     }
@@ -707,15 +699,15 @@ fn either(ch1: &Receiver[i32], ch2: &Receiver[String]): Either[i32, String] ! Sy
 
 // Example: send with timeout
 fn send_timeout(ch: &Sender[Data], data: Data, dur: Duration): bool ! Sync {
-    select! {
+    select {
         send(ch, data) => true,
-        timeout!(dur) => false,
+        timeout(dur) => false,
     }
 }
 
 // Example: non-blocking try
 fn try_recv(ch: &Receiver[i32]): Option[i32] ! Sync {
-    select! {
+    select {
         recv(ch) -> n => Some(n),
         default => None,
     }
@@ -727,7 +719,7 @@ fn process_commands(
     data_ch: &Receiver[Data],
     accepting_data: bool,
 ) ! Sync {
-    select! {
+    select {
         recv(cmd_ch) -> cmd => handle_command(cmd),
 
         // Guard: only accept data if flag is true
@@ -743,7 +735,7 @@ fn producer_consumer(
     input: &Protected[InputBuffer],
     output: &Protected[OutputBuffer],
 ) ! Sync {
-    select! {
+    select {
         // Wait for input to be non-empty
         entry(input, |b| !b.is_empty()) -> item => {
             let processed = process(item)
@@ -1111,11 +1103,11 @@ impl BacktraceSymbol {
 impl Display for Backtrace {
     fn fmt(&self, f: &mut Formatter): Result[(), FmtError] {
         match self.inner {
-            BacktraceInner.Unsupported => write!(f, "unsupported backtrace"),
-            BacktraceInner.Disabled => write!(f, "disabled backtrace"),
+            BacktraceInner.Unsupported => write(f, "unsupported backtrace"),
+            BacktraceInner.Disabled => write(f, "disabled backtrace"),
             BacktraceInner.Captured(ref frames) => {
                 for (i, frame) in frames.iter().enumerate() {
-                    writeln!(f, "{:4}: {:?}", i, frame)?
+                    writeln(f, "{:4}: {:?}", i, frame)?
                 }
                 Ok(())
             }
@@ -1162,10 +1154,10 @@ fn main() ! IO {
     match run() {
         Ok(()) => (),
         Err(e) => {
-            eprintln!("Error: {}", e)
+            eprintln("Error: {}", e)
             if let Some(bt) = e.backtrace() {
                 if bt.status() == BacktraceStatus.Captured {
-                    eprintln!("\nBacktrace:\n{}", bt)
+                    eprintln("\nBacktrace:\n{}", bt)
                 }
             }
         }
@@ -1292,7 +1284,7 @@ type SetLoggerError {}
 
 impl Display for SetLoggerError {
     fn fmt(&self, f: &mut Formatter): Result[(), FmtError] {
-        write!(f, "logger already set")
+        write(f, "logger already set")
     }
 }
 
@@ -1307,68 +1299,40 @@ impl Log for NopLogger {
 }
 static NOP_LOGGER: NopLogger = NopLogger {}
 
-// Logging macros
-macro error!($($arg:tt)*) {
-    log!(Level.Error, $($arg)*)
-}
+// Logging intrinsics — these are compiler intrinsics that capture source location
+// They look like functions but the compiler inserts file/line/module automatically
 
-macro warn!($($arg:tt)*) {
-    log!(Level.Warn, $($arg)*)
-}
+fn error(msg: &str) ! IO      // log at error level
+fn warn(msg: &str) ! IO       // log at warn level
+fn info(msg: &str) ! IO       // log at info level
+fn debug(msg: &str) ! IO      // log at debug level
+fn trace(msg: &str) ! IO      // log at trace level
 
-macro info!($($arg:tt)*) {
-    log!(Level.Info, $($arg)*)
-}
+fn log(level: Level, msg: &str) ! IO   // log at specified level
 
-macro debug!($($arg:tt)*) {
-    log!(Level.Debug, $($arg)*)
-}
+// These intrinsics:
+// - Capture source location (file, line, module) at the call site
+// - Check the log level before formatting (no cost if level is disabled)
+// - Cannot be user-defined (compiler knows about them)
 
-macro trace!($($arg:tt)*) {
-    log!(Level.Trace, $($arg)*)
-}
-
-macro log!($level:expr, $($arg:tt)*) {
-    if $level as u8 <= max_level() as u8 {
-        let logger = logger()
-        let target = module_path!()
-        if logger.enabled($level, target) {
-            logger.log(&Record {
-                level: $level,
-                target,
-                message: format!($($arg)*),
-                file: Some(file!()),
-                line: Some(line!()),
-                module_path: Some(module_path!()),
-                key_values: Vec.new(),
-            })
-        }
+// Example usage:
+fn process_request(req: &Request) ! IO {
+    debug(format("Processing request: {}", req.id))
+    // ...
+    if error_condition {
+        error(format("Failed to process request {}: {}", req.id, err))
     }
 }
 
-// Structured logging
-macro info_kv!($msg:expr, $($key:ident = $value:expr),* $(,)?) {
-    log_kv!(Level.Info, $msg, $($key = $value),*)
-}
+// Structured logging — use a builder pattern
+fn log_kv(level: Level, msg: &str, pairs: &[(String, String)]) ! IO
 
-macro log_kv!($level:expr, $msg:expr, $($key:ident = $value:expr),* $(,)?) {
-    if $level as u8 <= max_level() as u8 {
-        let logger = logger()
-        let target = module_path!()
-        if logger.enabled($level, target) {
-            logger.log(&Record {
-                level: $level,
-                target,
-                message: $msg.to_string(),
-                file: Some(file!()),
-                line: Some(line!()),
-                module_path: Some(module_path!()),
-                key_values: vec![
-                    $((stringify!($key).to_string(), $value.to_string())),*
-                ],
-            })
-        }
-    }
+// Example:
+fn handle_connection(conn: &Connection) ! IO {
+    log_kv(Level.Info, "Connection established", &[
+        ("conn_id".to_string(), conn.id.to_string()),
+        ("peer_addr".to_string(), conn.peer_addr.to_string()),
+    ])
 }
 
 // Standard key names — use these for consistency across the entire stack
@@ -1444,7 +1408,7 @@ impl Log for StderrLogger {
 
     fn log(&self, record: &Record) {
         let now = Timestamp.now()
-        eprintln!(
+        eprintln(
             "[{} {} {}] {}",
             now.format("%Y-%m-%d %H:%M:%S"),
             record.level().as_str(),

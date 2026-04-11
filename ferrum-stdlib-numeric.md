@@ -446,7 +446,7 @@ fn financial_calculation() ! IO {
 
         // Round to cents for display
         let rounded = total.round_to_scale(2)
-        println!("Total: ${}", rounded)
+        println("Total: ${}", rounded)
     }
 }
 
@@ -471,7 +471,7 @@ fn test_exact() {
         let b = BigDecimal.parse("0.2").unwrap()
         let c = BigDecimal.parse("0.3").unwrap()
 
-        assert_eq!(a.add(&b).unwrap(), c)  // true! (unlike 0.1f64 + 0.2f64)
+        assert_eq(a.add(&b).unwrap(), c)  // true! (unlike 0.1f64 + 0.2f64)
     }
 }
 ```
@@ -592,14 +592,14 @@ fn harmonic_series(n: u32): Rational  given [A: Allocator] {
 
 // H_100 exactly
 let h100 = harmonic_series(100)
-println!("H_100 = {}", h100)  // exact fraction
+println("H_100 = {}", h100)  // exact fraction
 
 // Convert to decimal with arbitrary precision
 let decimal = h100.to_f64()  // approximate
 
 // Best rational approximation of pi
 let pi_approx = Rational.from_f64_approx(f64.PI, 1000)
-println!("{}", pi_approx)  // "355/113" (Milü)
+println("{}", pi_approx)  // "355/113" (Milü)
 
 // Limit denominator for display
 let third = Rational.new(1, 3).unwrap()
@@ -722,14 +722,14 @@ let sum = z1 + z2                   // 4 + 6i
 let product = z1 * z2               // (3*1 - 4*2) + (3*2 + 4*1)i = -5 + 10i
 let quotient = z1 / z2              // (3+4i)/(1+2i)
 
-println!("z1 = {}", z1)             // "3+4i"
-println!("|z1| = {}", z1.norm())    // 5.0
-println!("arg(z1) = {}", z1.arg())  // ~0.927 radians
+println("z1 = {}", z1)             // "3+4i"
+println("|z1| = {}", z1.norm())    // 5.0
+println("arg(z1) = {}", z1.arg())  // ~0.927 radians
 
 // Euler's identity: e^(iπ) + 1 = 0
 let i_pi = Complex64.from_imag(f64.PI)
 let result = i_pi.exp() + Complex64.one()
-assert!(result.norm() < 1e-15)  // approximately zero
+assert(result.norm() < 1e-15)  // approximately zero
 
 // Roots of unity
 fn nth_roots_of_unity(n: u32): Vec[Complex64] {

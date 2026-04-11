@@ -128,9 +128,9 @@ To do something with a `Message`, you use `match`:
 ```ferrum
 fn print_message(m: Message) {
     match m {
-        Message.Text(text) => println!("Text: {text}"),
-        Message.Image { width, height, url } => println!("Image: {width}x{height} at {url}"),
-        Message.File { name, size } => println!("File: {name} ({size} bytes)"),
+        Message.Text(text) => println("Text: {text}"),
+        Message.Image { width, height, url } => println("Image: {width}x{height} at {url}"),
+        Message.File { name, size } => println("File: {name} ({size} bytes)"),
     }
 }
 ```
@@ -159,8 +159,8 @@ Here's where Ferrum really shines. What happens if you forget a case?
 ```ferrum
 fn print_message(m: Message) {
     match m {
-        Message.Text(text) => println!("Text: {text}"),
-        Message.Image { width, height, url } => println!("Image: {width}x{height} at {url}"),
+        Message.Text(text) => println("Text: {text}"),
+        Message.Image { width, height, url } => println("Image: {width}x{height} at {url}"),
         // oops, forgot File
     }
 }
@@ -315,18 +315,18 @@ fn handle_response(resp: ApiResponse) {
     match resp {
         ApiResponse.Success { data, cached } => {
             if cached {
-                println!("(from cache)")
+                println("(from cache)")
             }
             display_user(data)
         }
         ApiResponse.NotFound { resource_id } => {
-            println!("Resource not found: {resource_id}")
+            println("Resource not found: {resource_id}")
         }
         ApiResponse.RateLimited { retry_after_secs } => {
-            println!("Too many requests. Try again in {retry_after_secs} seconds.")
+            println("Too many requests. Try again in {retry_after_secs} seconds.")
         }
         ApiResponse.ServerError { message, code } => {
-            println!("Server error {code}: {message}")
+            println("Server error {code}: {message}")
             report_to_monitoring(code, message)
         }
     }
@@ -457,7 +457,7 @@ You can add an `else` for everything else:
 if let ApiResponse.Success { data, .. } = response {
     process(data)
 } else {
-    println!("Request failed")
+    println("Request failed")
 }
 ```
 
@@ -526,8 +526,8 @@ fn find_user(id: u64): Option[User]
 
 fn greet(id: u64) {
     match find_user(id) {
-        Some(user) => println!("Hello, {}", user.name),
-        None => println!("User not found"),
+        Some(user) => println("Hello, {}", user.name),
+        None => println("User not found"),
     }
 }
 ```
@@ -537,7 +537,7 @@ What happens if you forget to handle `None`?
 ```ferrum
 fn greet(id: u64) {
     match find_user(id) {
-        Some(user) => println!("Hello, {}", user.name),
+        Some(user) => println("Hello, {}", user.name),
         // forgot None
     }
 }
@@ -561,7 +561,7 @@ The compiler forces you to decide what to do when there's no value. You can't fo
 
 ```ferrum
 if let Some(user) = find_user(id) {
-    println!("Hello, {}", user.name)
+    println("Hello, {}", user.name)
 }
 // If None, nothing happens - and that's clearly intentional
 ```
@@ -620,7 +620,7 @@ fn process_config() {
         Ok(contents) => {
             // process contents
         }
-        Err(e) => println!("Error reading config: {e}"),
+        Err(e) => println("Error reading config: {e}"),
     }
 }
 ```

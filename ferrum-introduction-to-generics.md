@@ -968,11 +968,11 @@ fn draw_all[T: Draw](shapes: &[T]) ! IO {
 }
 
 // Must use all the same type:
-let circles: Vec[Circle] = vec![Circle { radius: 1.0 }, Circle { radius: 2.0 }];
+let circles: Vec[Circle] = vec[Circle { radius: 1.0 }, Circle { radius: 2.0 }];
 draw_all(&circles);  // OK
 
 // Can't mix types:
-let mixed = vec![Circle { radius: 1.0 }, Rectangle { width: 2.0, height: 3.0 }];
+let mixed = vec[Circle { radius: 1.0 }, Rectangle { width: 2.0, height: 3.0 }];
 // ERROR: expected Circle, found Rectangle
 ```
 
@@ -988,7 +988,7 @@ fn draw_all_dynamic(shapes: &[&dyn Draw]) ! IO {
 // Can mix types:
 let circle = Circle { radius: 1.0 };
 let rect = Rectangle { width: 2.0, height: 3.0 };
-let shapes: Vec[&dyn Draw] = vec![&circle, &rect];
+let shapes: Vec[&dyn Draw] = vec[&circle, &rect];
 draw_all_dynamic(&shapes);  // OK - draws both
 ```
 

@@ -223,19 +223,19 @@ let s = String.from("hello")
 let f = move || print(s)   // s is moved into the closure
 ```
 
-### 1.8 `select!` Macro
+### 1.8 `select` Expression
 
-For concurrent channel operations:
+For concurrent channel operations. This is a compiler intrinsic with special syntax, not a user-definable construct:
 
 ```ferrum
-let result = select! {
+let result = select {
     ch1 -> msg  => process(msg),
     ch2 -> msg  => fallback(msg),
-    timeout!(1s) => Err(TimeoutError),
+    timeout(1s) => Err(TimeoutError),
 }
 ```
 
-`select!` blocks until one branch is ready, then evaluates that branch. All branches must have the same type. `timeout!` creates a timer that fires after the specified duration.
+`select` blocks until one branch is ready, then evaluates that branch. All branches must have the same type. `timeout(duration)` creates a timer that fires after the specified duration.
 
 ---
 
@@ -464,17 +464,23 @@ Overloadable operators and their traits:
 | unary `-` | `Neg` |
 | `..` `..=` | (not overloadable) |
 
-### 3.5 `const` Functions
+### 3.5 Constants
 
 ```ferrum
-const fn fibonacci(n: u32): u32 {
-    if n <= 1 { n } else { fibonacci(n - 1) + fibonacci(n - 2) }
-}
-
-const FIB_10: u32 = fibonacci(10)  // evaluated at compile time
+const PI: f64 = 3.14159265358979
+const BITS: usize = 64
+const BYTES: usize = BITS / 8           // constant expression
+const MAX: u64 = (1 << 63) - 1          // constant expression
+const TABLE: [u8; 4] = [0, 1, 2, 3]     // constant array
 ```
 
-`const fn` is a subset of Ferrum: no heap allocation, no I/O, no effects, no raw pointers. The compiler evaluates `const fn` calls with constant arguments at compile time.
+Constants must be initialized with constant expressions. A constant expression is:
+- A literal
+- A reference to another constant
+- Arithmetic, bitwise, or comparison operators on constant expressions
+- Array literals where all elements are constant expressions
+
+**No user code executes at compile time.** The compiler evaluates constant expressions internally using its own evaluator. There is no `const fn` — if you need computed values, compute them at runtime or use an external build tool.
 
 ---
 

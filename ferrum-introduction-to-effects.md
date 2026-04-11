@@ -82,7 +82,7 @@ If you try to call an IO function from a pure function, the compiler stops you:
 
 ```ferrum
 fn add(x: i32, y: i32): i32 {
-    println!("adding...")  // ERROR: cannot perform IO in pure function
+    println("adding...")  // ERROR: cannot perform IO in pure function
     x + y
 }
 ```
@@ -105,7 +105,7 @@ fn helper(x: i32): i32 {
 
 // Private function that does IO — compiler infers ! IO
 fn log_and_compute(x: i32): i32 {
-    println!("computing...")  // compiler sees this
+    println("computing...")  // compiler sees this
     helper(x)
 }
 

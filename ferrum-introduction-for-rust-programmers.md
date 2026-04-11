@@ -1388,7 +1388,7 @@ fn process_uploads(
     for file in input_fs.list("*")? {
         let data = input_fs.read(&file)?
         let processed = transform(data)
-        output_fs.write(&format!("/processed/{}", file), &processed)?
+        output_fs.write(&format("/processed/{}", file), &processed)?
         log.info("Processed {}", file)
     }
 }

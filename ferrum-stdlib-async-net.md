@@ -182,7 +182,7 @@ type Interval {
 }
 
 // Select over multiple futures
-// (select! macro or explicit select combinator)
+// (select expression or explicit select combinator)
 fn select2[A, B](
     f1: impl Future[Output=A],
     f2: impl Future[Output=B],

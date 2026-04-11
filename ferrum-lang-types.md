@@ -273,18 +273,14 @@ let y: Rational = Rational.new(1, 3) + Rational.new(1, 3)  // exactly 2/3
 let z: Complex[f64] = Complex.new(3.0, 4.0)  // 3 + 4i
 ```
 
-#### 1.2.6 Compile-Time Numeric Types
+#### 1.2.6 Constant Numeric Literals
 
-At compile time, all numeric literals have unlimited precision. The type
-`comptime_int` represents an integer of arbitrary size during compilation,
-and `comptime_float` represents a floating-point number with arbitrary precision.
+Unsuffixed numeric literals in constant expressions have arbitrary precision until assigned to a concrete type. The compiler represents these internally with unlimited precision during constant folding.
 
 ```ferrum
-const FACTORIAL_50: comptime_int = 30414093201713378043612608166064768844377641568960512000000000000
-const PI_100: comptime_float = 3.14159265358979323846264338327950288419716939937510...
-
-// comptime values participate in constant folding with no overflow
-const BIG: comptime_int = 1 << 1000   // no problem at comptime
+// Large constants work without overflow during constant evaluation
+const FACTORIAL_50: u256 = 30414093201713378043612608166064768844377641568960512000000000000
+const BIG_SHIFT: u128 = 1 << 100   // computed by compiler, checked to fit
 
 // When assigned to a runtime type, the value is checked to fit
 const X: u64 = FACTORIAL_50           // error: value too large for u64
@@ -293,32 +289,22 @@ const Y: u64 = 1 << 63                // ok: fits in u64
 
 **Key properties:**
 
-- `comptime_int` and `comptime_float` exist only at compile time. They cannot
-  be stored in runtime variables or passed to runtime functions.
-- All integer literals in constant expressions are `comptime_int` until coerced.
-- Division and remainder at comptime are exact for `comptime_int` (truncating)
-  and arbitrary-precision for `comptime_float`.
-- When a comptime value is assigned to a concrete type, the compiler checks
+- Constant expressions are evaluated by the compiler during compilation.
+- All arithmetic in constant expressions uses arbitrary precision internally.
+- When the final value is assigned to a concrete type, the compiler checks
   that it fits. Overflow is a compile error, not runtime behavior.
+- This is standard constant folding — the compiler evaluates `1 + 2` and stores `3`.
+  No user code executes during compilation.
 
 ```ferrum
-// Compile-time computation with unlimited precision
-const fn compute_constant(): u128 {
-    let huge: comptime_int = 2 ** 200
-    let scaled = huge / (2 ** 72)
-    scaled as u128  // checked to fit at comptime
-}
-
-// Generic code works with comptime numerics
-const fn power[const N: comptime_int](base: comptime_int): comptime_int {
-    if N == 0 { 1 }
-    else { base * power[N - 1](base) }
-}
+// Constants can reference other constants
+const BITS: usize = 64
+const BYTES: usize = BITS / 8        // compiler evaluates: 8
+const MAX_VALUE: u64 = (1 << BITS) - 1  // compiler evaluates: 18446744073709551615
 ```
 
-`comptime_float` retains enough precision to round correctly to any target
-float type. The exact internal representation is implementation-defined but
-must be at least 256 bits of mantissa.
+The compiler's constant evaluator handles basic arithmetic, bit operations, and
+comparisons. It does not execute arbitrary user-defined functions.
 
 #### 1.2.7 Numeric Trait Hierarchy
 

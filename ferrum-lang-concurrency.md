@@ -116,19 +116,19 @@ for msg in rx {
 // Iterates until all senders are dropped and channel is empty
 ```
 
-### 1.4 `select!`
+### 1.4 `select`
 
 ```ferrum
-let result = select! {
+let result = select {
     rx1 -> msg       => handle_a(msg),
     rx2 -> msg       => handle_b(msg),
     tx  <- outgoing  => (),                    // send when ready
-    timeout!(500ms)  => Err(Timeout),
+    timeout(500ms)   => Err(Timeout),
     default          => continue_without_block, // non-blocking select
 }
 ```
 
-`select!` is an expression macro. All branches must yield the same type. Branches are evaluated in random order to avoid starvation. `default` makes the select non-blocking.
+`select` is a compiler intrinsic with special syntax. All branches must yield the same type. Branches are evaluated in random order to avoid starvation. `default` makes the select non-blocking.
 
 ### 1.5 Synchronization Primitives
 

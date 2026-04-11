@@ -93,7 +93,7 @@ unchecked   unsafe      usize       where       with
 
 - **Symbols for logic:** `&&`, `||`, `!`, `^^` instead of `and`, `or`, `not`, `xor`
 - **Builtin types:** Numeric types (`i32`, `f64`, etc.) are builtin type identifiers, not keywords
-- **Macros:** `select!`, `timeout!` instead of keywords
+- **Intrinsics:** `select`, `timeout` are compiler intrinsics, not keywords
 - **Attributes:** `@borrow_safe` instead of `assert_borrow_safe`
 
 ### 2.5.1 Builtin Type Identifiers
@@ -115,7 +115,6 @@ d32   d64   d128
 
 // Other
 bool  byte  char  never
-comptime_int  comptime_float
 ```
 
 ### 2.5.2 Operators

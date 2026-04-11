@@ -495,7 +495,7 @@ Python doesn't crash, but you get wrong results. The iterator gets confused when
 **In Ferrum, the compiler prevents this:**
 
 ```ferrum
-let mut items = vec![1, 2, 3, 4, 5]
+let mut items = vec[1, 2, 3, 4, 5]
 for item in &items {           // shared borrow of items
     if item % 2 == 0 {
         items.remove(item)     // ERROR: can't mutate items while iterating
@@ -565,7 +565,7 @@ fn create_user(first_name: String, last_name: String): User {
 
 // Borrows the user, doesn't consume it
 fn format_name(user: &User): String {
-    format!("{} {}", user.first_name, user.last_name)
+    format("{} {}", user.first_name, user.last_name)
 }
 
 // Exclusively borrows the user to modify it

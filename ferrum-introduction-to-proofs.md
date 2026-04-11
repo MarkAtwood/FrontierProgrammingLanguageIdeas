@@ -294,7 +294,7 @@ fn process(data: &[u8])
 }
 
 // At the call site:
-process(&input);  // compiler inserts: assert!(input.len() >= 4)
+process(&input);  // compiler inserts: assert(input.len() >= 4)
 ```
 
 You can control this:

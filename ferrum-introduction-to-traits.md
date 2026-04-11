@@ -235,7 +235,7 @@ Now you can write a function that works with any type that has an area:
 
 ```ferrum
 fn print_area[T: HasArea](shape: &T) ! IO {
-    println!("Area: {}", shape.area());
+    println("Area: {}", shape.area());
 }
 
 // These all work
@@ -294,7 +294,7 @@ In Ferrum, you just write an `impl` block:
 
 impl ToJson for datetime.DateTime {
     fn to_json(self: &Self): String {
-        format!("\"{}\"", self.to_iso8601())
+        format("\"{}\"", self.to_iso8601())
     }
 }
 
@@ -338,7 +338,7 @@ This is the killer feature. The compiler knows:
 fn print_sorted[T: Ord + Display](items: &mut [T]) ! IO {
     sort(items);
     for item in items {
-        println!("{}", item);
+        println("{}", item);
     }
 }
 ```
@@ -386,7 +386,7 @@ impl ToJson for i32 {
 
 impl ToJson for String {
     fn to_json(self: &Self): String {
-        format!("\"{}\"", self.escape_json())
+        format("\"{}\"", self.escape_json())
     }
 }
 
@@ -405,7 +405,7 @@ impl[T: ToJson] ToJson for Vec[T] {
         let items: Vec[String] = self.iter()
             .map(|item| item.to_json())
             .collect();
-        format!("[{}]", items.join(", "))
+        format("[{}]", items.join(", "))
     }
 }
 ```
@@ -423,7 +423,7 @@ type User {
 
 impl ToJson for User {
     fn to_json(self: &Self): String {
-        format!(
+        format(
             "{{\"id\": {}, \"name\": {}, \"active\": {}}}",
             self.id.to_json(),
             self.name.to_json(),
@@ -437,11 +437,11 @@ Now you can serialize users:
 
 ```ferrum
 let user = User { id: 42, name: "Alice".to_string(), active: true };
-println!("{}", user.to_json());
+println("{}", user.to_json());
 // {"id": 42, "name": "Alice", "active": true}
 
-let users = vec![user, another_user];
-println!("{}", users.to_json());
+let users = vec[user, another_user];
+println("{}", users.to_json());
 // [{"id": 42, "name": "Alice", "active": true}, {"id": 43, "name": "Bob", "active": false}]
 ```
 
@@ -456,7 +456,7 @@ type Post {
 
 impl ToJson for Post {
     fn to_json(self: &Self): String {
-        format!(
+        format(
             "{{\"id\": {}, \"author\": {}, \"metadata\": {}}}",
             self.id.to_json(),
             self.author.to_json(),
@@ -495,7 +495,7 @@ Traits in Ferrum give you a choice that Python never offers: do you want the com
 
 ```ferrum
 fn log_value[T: Display](value: &T) ! IO {
-    println!("Value: {}", value);
+    println("Value: {}", value);
 }
 
 log_value(&42);        // Compiler generates log_value specialized for i32
@@ -524,7 +524,7 @@ Sometimes you need to work with different types that you don't know until runtim
 
 ```ferrum
 fn log_value(value: &dyn Display) ! IO {
-    println!("Value: {}", value);
+    println("Value: {}", value);
 }
 ```
 
@@ -534,7 +534,7 @@ The `dyn Display` means "a reference to something that implements Display, but I
 
 ```ferrum
 // A GUI with different kinds of widgets
-let widgets: Vec[Box[dyn Widget]] = vec![
+let widgets: Vec[Box[dyn Widget]] = vec[
     Box.new(Button { label: "OK".to_string() }),
     Box.new(TextBox { content: "".to_string() }),
     Box.new(Checkbox { checked: false }),
@@ -632,7 +632,7 @@ trait Printable {
 
 impl Printable for MyThing {
     fn print(self: &Self) ! IO {
-        println!("MyThing");
+        println("MyThing");
     }
 }
 
@@ -829,7 +829,7 @@ You can teach old types new tricks:
 // i32 comes from the standard library, but you can add your trait to it
 impl MyAppLogger for i32 {
     fn log(self: &Self, message: &str) ! IO {
-        println!("[level={}] {}", self, message);
+        println("[level={}] {}", self, message);
     }
 }
 
@@ -940,13 +940,13 @@ error: trait bound not satisfied
 ```ferrum
 impl Display for MyType {
     fn fmt(self: &Self, f: &mut Formatter): Result[()] {
-        write!(f, "version 1")
+        write(f, "version 1")
     }
 }
 
 impl Display for MyType {  // Duplicate!
     fn fmt(self: &Self, f: &mut Formatter): Result[()] {
-        write!(f, "version 2")
+        write(f, "version 2")
     }
 }
 ```

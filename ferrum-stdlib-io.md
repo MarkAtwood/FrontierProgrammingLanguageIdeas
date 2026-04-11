@@ -443,17 +443,14 @@ mod text.lines {
 
 ### 7.6 Formatting
 
-No `printf`. No format-string vulnerabilities. Format strings are compile-time constructs.
+No `printf`. No format-string vulnerabilities. Format strings are checked at compile time.
 
 ```ferrum
-// Format a value to a string
-fn format(args: Arguments): String   // used by format!() macro
-
-// fmt! macro — compile-time format string
-let s = fmt!("{name} is {age} years old", name = person.name, age = person.age)
-let s = fmt!("{:>10}", value)          // right-align, width 10
-let s = fmt!("{:#010x}", value)        // hex, 10 wide, leading zeros, 0x prefix
-let s = fmt!("{:.3}", 3.14159)         // 3 decimal places
+// format is a compiler intrinsic — the format string must be a literal
+let s = format("{name} is {age} years old", name = person.name, age = person.age)
+let s = format("{:>10}", value)          // right-align, width 10
+let s = format("{:#010x}", value)        // hex, 10 wide, leading zeros, 0x prefix
+let s = format("{:.3}", 3.14159)         // 3 decimal places
 
 // Format spec syntax:
 // {:}          — use Display trait

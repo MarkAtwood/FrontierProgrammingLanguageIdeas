@@ -162,7 +162,7 @@ For binary data or text in unknown/non-UTF-8 encodings, use byte slices.
 
 ```ferrum
 let bytes: &[u8] = b"raw bytes"       // byte string literal
-let data: Vec[u8] = vec![0x48, 0x65, 0x6c, 0x6c, 0x6f]
+let data: Vec[u8] = vec[0x48, 0x65, 0x6c, 0x6c, 0x6f]
 
 // No encoding assumption. Just bytes.
 let jpeg_header: &[u8] = &[0xFF, 0xD8, 0xFF]
@@ -271,10 +271,10 @@ fn build_response(status: u16, body: &str): Vec[u8] {
     let mut response = Vec.new()
 
     // Status line and headers must be ASCII
-    write!(&mut response, "HTTP/1.1 {status} OK\r\n")
-    write!(&mut response, "Content-Type: text/html; charset=utf-8\r\n")
-    write!(&mut response, "Content-Length: {body.len()}\r\n")
-    write!(&mut response, "\r\n")
+    write(&mut response, "HTTP/1.1 {status} OK\r\n")
+    write(&mut response, "Content-Type: text/html; charset=utf-8\r\n")
+    write(&mut response, "Content-Length: {body.len()}\r\n")
+    write(&mut response, "\r\n")
 
     // Body is UTF-8 text, append as bytes
     response.extend(body.as_bytes())
@@ -285,10 +285,10 @@ fn build_response(status: u16, body: &str): Vec[u8] {
 fn build_binary_response(data: &[u8]): Vec[u8] {
     let mut response = Vec.new()
 
-    write!(&mut response, "HTTP/1.1 200 OK\r\n")
-    write!(&mut response, "Content-Type: application/octet-stream\r\n")
-    write!(&mut response, "Content-Length: {data.len()}\r\n")
-    write!(&mut response, "\r\n")
+    write(&mut response, "HTTP/1.1 200 OK\r\n")
+    write(&mut response, "Content-Type: application/octet-stream\r\n")
+    write(&mut response, "Content-Length: {data.len()}\r\n")
+    write(&mut response, "\r\n")
 
     // Binary body - just append the bytes
     response.extend(data)
@@ -981,8 +981,8 @@ fn build_report(items: &[Item]): String {
     out.push_str("======\n\n")
 
     for (i, item) in items.iter().enumerate() {
-        // Use write! macro for formatting
-        write!(&mut out, "{i}: {item.name} - ${item.price:.2}\n")
+        // Use write macro for formatting
+        write(&mut out, "{i}: {item.name} - ${item.price:.2}\n")
     }
 
     out
@@ -996,10 +996,10 @@ fn json_response(data: &str): Vec[u8] {
     let mut response = Vec.new()
 
     // Headers (ASCII)
-    write!(&mut response, "HTTP/1.1 200 OK\r\n")
-    write!(&mut response, "Content-Type: application/json; charset=utf-8\r\n")
-    write!(&mut response, "Content-Length: {data.len()}\r\n")
-    write!(&mut response, "\r\n")
+    write(&mut response, "HTTP/1.1 200 OK\r\n")
+    write(&mut response, "Content-Type: application/json; charset=utf-8\r\n")
+    write(&mut response, "Content-Length: {data.len()}\r\n")
+    write(&mut response, "\r\n")
 
     // Body (UTF-8)
     response.extend(data.as_bytes())
@@ -1008,13 +1008,13 @@ fn json_response(data: &str): Vec[u8] {
 }
 
 fn error_response(status: u16, message: &str): Vec[u8] {
-    let body = format!("{{\"error\": \"{message}\"}}")
+    let body = format("{{\"error\": \"{message}\"}}")
 
     let mut response = Vec.new()
-    write!(&mut response, "HTTP/1.1 {status} Error\r\n")
-    write!(&mut response, "Content-Type: application/json\r\n")
-    write!(&mut response, "Content-Length: {body.len()}\r\n")
-    write!(&mut response, "\r\n")
+    write(&mut response, "HTTP/1.1 {status} Error\r\n")
+    write(&mut response, "Content-Type: application/json\r\n")
+    write(&mut response, "Content-Length: {body.len()}\r\n")
+    write(&mut response, "\r\n")
     response.extend(body.as_bytes())
 
     response

@@ -22,7 +22,7 @@ This document has been split into multiple files for manageability:
 - [ferrum-stdlib-platform.md](ferrum-stdlib-platform.md) — Platform abstraction meta-spec (POSIX, Linux, BSD, Windows, WASI, Zephyr)
 - [ferrum-stdlib-math.md](ferrum-stdlib-math.md) — `math`, `linalg`, `simd` — Mathematics, linear algebra, ElementaryFloat trait, and vectorization
 - [ferrum-stdlib-numeric.md](ferrum-stdlib-numeric.md) — `alloc.bigint`, `alloc.bigdecimal`, `alloc.rational`, `core.complex` — Arbitrary precision numerics
-- [ferrum-stdlib-util.md](ferrum-stdlib-util.md) — `fmt`, `time`, `sync`, `process`, `env`, `backtrace`, `log` — Formatting, time (with PeriodicTimer), synchronization (Protected objects, select!, real-time, Ravenscar), logging, and utilities
+- [ferrum-stdlib-util.md](ferrum-stdlib-util.md) — `fmt`, `time`, `sync`, `process`, `env`, `backtrace`, `log` — Formatting, time (with PeriodicTimer), synchronization (Protected objects, select, real-time, Ravenscar), logging, and utilities
 - [ferrum-stdlib-crypto-testing.md](ferrum-stdlib-crypto-testing.md) — `crypto`, `testing` — Cryptographic primitives, test framework, and C mistakes reference
 
 ---
@@ -125,7 +125,7 @@ Error
 io.Read io.Write io.Seek
 fmt.Display fmt.Debug
 
-// Macros
+// Intrinsics (compiler built-ins)
 assert assert_eq assert_ne
 panic unreachable todo unimplemented
 dbg print println eprint eprintln

@@ -143,7 +143,7 @@ fn find_user(id: u64) -> Option[User] {
 
 fn greet_user(id: u64) {
     let user = find_user(id);
-    println!("Hello, {}", user.name);  // Won't compile!
+    println("Hello, {}", user.name);  // Won't compile!
 }
 ```
 
@@ -153,15 +153,15 @@ When you try to compile this, Ferrum stops you:
 error[E0609]: no field `name` on type `Option[User]`
   --> src/main.fe:8:28
    |
-8  |     println!("Hello, {}", user.name);
+8  |     println("Hello, {}", user.name);
    |                            ^^^^ unknown field
    |
    = note: `user` is an `Option[User]`, not a `User`
    = help: use pattern matching to extract the inner value:
    |
    |     match user {
-   |         Some(u) => println!("Hello, {}", u.name),
-   |         None => println!("User not found"),
+   |         Some(u) => println("Hello, {}", u.name),
+   |         None => println("User not found"),
    |     }
 ```
 
@@ -170,8 +170,8 @@ The compiler knows `user` is an `Option[User]`, not a `User`. An `Option[User]` 
 ```ferrum
 fn greet_user(id: u64) {
     match find_user(id) {
-        Some(user) => println!("Hello, {}", user.name),
-        None => println!("User not found"),
+        Some(user) => println("Hello, {}", user.name),
+        None => println("User not found"),
     }
 }
 ```
@@ -193,12 +193,12 @@ printf("%s\n", user->name);  // Hope user isn't NULL!
 **Ferrum — won't compile until you handle None:**
 ```ferrum
 let user = find_user(id);  // user is Option[User]
-println!("{}", user.name);  // Compile error: Option[User] has no field 'name'
+println("{}", user.name);  // Compile error: Option[User] has no field 'name'
 
 // This compiles:
 match find_user(id) {
-    Some(user) => println!("{}", user.name),
-    None => println!("Not found"),
+    Some(user) => println("{}", user.name),
+    None => println("Not found"),
 }
 ```
 
@@ -297,13 +297,13 @@ fn init() {
     match read_config("app.conf") {
         Ok(cfg) => use_config(&cfg),
         Err(ConfigError::FileNotFound(path)) => {
-            eprintln!("Config file not found: {}", path);
+            eprintln("Config file not found: {}", path);
         }
         Err(ConfigError::PermissionDenied(path)) => {
-            eprintln!("Can't read config file: {}", path);
+            eprintln("Can't read config file: {}", path);
         }
         Err(ConfigError::ParseError { line, message }) => {
-            eprintln!("Config syntax error at line {}: {}", line, message);
+            eprintln("Config syntax error at line {}: {}", line, message);
         }
     }
 }
@@ -457,7 +457,7 @@ fn main() -> Result[(), ConfigError] {
 fn main() {
     match read_config("app.conf") {
         Ok(cfg) => use_config(&cfg),
-        Err(e) => eprintln!("Failed to load config: {:?}", e),
+        Err(e) => eprintln("Failed to load config: {:?}", e),
     }
 }
 ```
@@ -486,7 +486,7 @@ The `match` expression looks at a value and runs different code depending on wha
 ```ferrum
 fn describe(opt: Option[i32]) -> String {
     match opt {
-        Some(n) => format!("got a number: {}", n),
+        Some(n) => format("got a number: {}", n),
         None => "got nothing".to_string(),
     }
 }
@@ -497,7 +497,7 @@ The compiler **requires** that you handle every case. If you forget one:
 ```ferrum
 fn describe(opt: Option[i32]) -> String {
     match opt {
-        Some(n) => format!("got {}", n),
+        Some(n) => format("got {}", n),
         // Forgot None!
     }
 }
@@ -523,8 +523,8 @@ Sometimes you want to match based on the value inside:
 ```ferrum
 fn describe_number(opt: Option[i32]) -> String {
     match opt {
-        Some(n) if n > 0 => format!("positive: {}", n),
-        Some(n) if n < 0 => format!("negative: {}", n),
+        Some(n) if n > 0 => format("positive: {}", n),
+        Some(n) if n < 0 => format("negative: {}", n),
         Some(0) => "zero".to_string(),
         None => "nothing".to_string(),
     }
@@ -542,13 +542,13 @@ fn handle_result(result: Result[Data, ConfigError]) {
     match result {
         Ok(data) => process(data),
         Err(ConfigError::FileNotFound(path)) => {
-            eprintln!("File not found: {}", path);
+            eprintln("File not found: {}", path);
         }
         Err(ConfigError::PermissionDenied(path)) => {
-            eprintln!("Permission denied: {}", path);
+            eprintln("Permission denied: {}", path);
         }
         Err(ConfigError::ParseError { line, message }) => {
-            eprintln!("Parse error at line {}: {}", line, message);
+            eprintln("Parse error at line {}: {}", line, message);
         }
     }
 }
@@ -561,12 +561,12 @@ When you only care about one case, `if let` is more concise than a full `match`:
 ```ferrum
 // Only do something if the user exists
 if let Some(user) = find_user(id) {
-    println!("Found user: {}", user.name);
+    println("Found user: {}", user.name);
 }
 
 // Only log if there was an error
 if let Err(e) = write_file(path, data) {
-    eprintln!("Write failed: {}", e);
+    eprintln("Write failed: {}", e);
 }
 ```
 
@@ -574,7 +574,7 @@ This is equivalent to:
 
 ```ferrum
 match find_user(id) {
-    Some(user) => println!("Found user: {}", user.name),
+    Some(user) => println("Found user: {}", user.name),
     None => {}  // do nothing
 }
 ```

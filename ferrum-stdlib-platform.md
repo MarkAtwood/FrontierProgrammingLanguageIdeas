@@ -2329,7 +2329,7 @@ fn test_file_read() {
 
     using platform {
         let content = std.fs.read_text("/test.txt")?
-        assert_eq!(content, "hello")
+        assert_eq(content, "hello")
     }
 }
 ```

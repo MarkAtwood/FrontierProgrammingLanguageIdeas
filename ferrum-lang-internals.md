@@ -254,7 +254,7 @@ expr            ::= lit
                   | "for" pattern "in" expr block
                   | "match" expr "{" arm+ "}"
                   | "with" expr "as" ident "{" block "}"
-                  | macro_invocation
+                  | "select" "{" select_arm+ "}"   // intrinsic
                   | "return" [expr]
                   | "break" [lifetime] [expr]
                   | "continue" [lifetime]
@@ -273,9 +273,11 @@ expr            ::= lit
 
 arm             ::= pattern ["if" expr] "=>" expr [","]
 
-macro_invocation ::= ident "!" "(" token_trees ")"
-                   | ident "!" "[" token_trees "]"
-                   | ident "!" "{" token_trees "}"
+select_arm      ::= select_pattern "=>" expr [","]
+select_pattern  ::= ident "->" ident              // recv(channel) -> msg
+                  | ident "<-" expr               // send(channel, value)
+                  | "timeout" "(" expr ")"        // timeout(duration)
+                  | "default"                     // non-blocking fallback
 
 pattern         ::= "_"
                   | lit

@@ -616,7 +616,7 @@ fn escape_html(input: &str): Cow[str] {
 // 3. Message formatting
 fn format_error(code: u32, details: Option[&str]): Cow[str] {
     match details {
-        Some(d) => Cow.Owned(format!("Error {}: {}", code, d)),
+        Some(d) => Cow.Owned(format("Error {}: {}", code, d)),
         None => Cow.Borrowed(ERROR_MESSAGES[code]),
     }
 }

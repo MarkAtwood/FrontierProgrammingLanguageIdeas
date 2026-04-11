@@ -816,7 +816,7 @@ fn sum(items: &[i32]): i32 {
 }
 
 let arr = [1, 2, 3]
-let vec = vec![4, 5, 6]
+let vec = vec[4, 5, 6]
 
 sum(&arr)         // works with array
 sum(&vec)         // works with Vec
@@ -868,7 +868,7 @@ fn main() {
 These rules prevent bugs:
 
 ```ferrum
-let mut data = vec![1, 2, 3]
+let mut data = vec[1, 2, 3]
 
 let first = &data[0]     // borrow data
 data.push(4)             // ERROR: can't modify while borrowed
@@ -1040,14 +1040,14 @@ eprint("error, no newline")
 eprintln("error with newline")
 
 // Debug print (shows file:line and value)
-dbg!(some_value)
+dbg(some_value)
 ```
 
-`dbg!` is especially useful during development:
+`dbg` is especially useful during development:
 
 ```ferrum
 let x = 5
-let y = dbg!(x * 2)    // prints [src/main.fe:3] x * 2 = 10, returns 10
+let y = dbg(x * 2)    // prints [src/main.fe:3] x * 2 = 10, returns 10
 ```
 
 **Format placeholders:**
@@ -1070,17 +1070,17 @@ println("{:#?}", point)    // Pretty-printed across multiple lines
 ## Assertions
 
 ```ferrum
-assert!(x > 0)                          // panics if false
-assert!(x > 0, "x must be positive")    // with message
-assert_eq!(a, b)                        // panics if a != b
-assert_ne!(a, b)                        // panics if a == b
+assert(x > 0)                          // panics if false
+assert(x > 0, "x must be positive")    // with message
+assert_eq(a, b)                        // panics if a != b
+assert_ne(a, b)                        // panics if a == b
 ```
 
-Assertions always run (unlike C's `assert` which can be disabled with `NDEBUG`). For release-only checks, use `debug_assert!`.
+Assertions always run (unlike C's `assert` which can be disabled with `NDEBUG`). For release-only checks, use `debug_assert`.
 
 ```ferrum
-assert!(valid)              // always runs
-debug_assert!(valid)        // only in debug builds
+assert(valid)              // always runs
+debug_assert(valid)        // only in debug builds
 ```
 
 ---

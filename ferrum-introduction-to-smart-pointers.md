@@ -247,7 +247,7 @@ fn shape_from_user_input(input: &str): Box[dyn Drawable] {
 }
 
 fn main() {
-    let shapes: Vec[Box[dyn Drawable]] = vec![
+    let shapes: Vec[Box[dyn Drawable]] = vec[
         Box.new(Circle { radius: 1.0 }),
         Box.new(Square { side: 2.0 }),
     ];
@@ -391,7 +391,7 @@ fn build_graph(): Vec[Rc[GraphNode[i32]]] {
     // C -> B (creates a cycle B <-> C, see Weak section for how to handle)
     node_c.neighbors.borrow_mut().push(node_b.clone());
 
-    vec![node_a, node_b, node_c]
+    vec[node_a, node_b, node_c]
 }
 ```
 
@@ -819,7 +819,7 @@ If you have mostly reads and few writes, `RwLock` is more efficient than `Mutex`
 import sync.{Arc, RwLock}
 
 fn mostly_reads() {
-    let data = Arc.new(RwLock.new(vec![1, 2, 3, 4, 5]));
+    let data = Arc.new(RwLock.new(vec[1, 2, 3, 4, 5]));
 
     scope s {
         // Many readers can proceed simultaneously
@@ -889,7 +889,7 @@ type Node {
 **The problem:**
 ```ferrum
 fn bad() {
-    let cell = RefCell.new(vec![1, 2, 3]);
+    let cell = RefCell.new(vec[1, 2, 3]);
 
     let borrowed = cell.borrow();  // Borrowed here...
 
@@ -904,7 +904,7 @@ fn bad() {
 **The fix:** Limit borrow scope:
 ```ferrum
 fn good() {
-    let cell = RefCell.new(vec![1, 2, 3]);
+    let cell = RefCell.new(vec[1, 2, 3]);
 
     {
         let borrowed = cell.borrow();
@@ -918,7 +918,7 @@ fn good() {
 Or use block expressions:
 ```ferrum
 fn also_good() {
-    let cell = RefCell.new(vec![1, 2, 3]);
+    let cell = RefCell.new(vec[1, 2, 3]);
 
     let first = { cell.borrow()[0] };  // Borrow ends at }
 

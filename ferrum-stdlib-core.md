@@ -691,7 +691,7 @@ impl[const N: usize] Display for BoundedString[N] {
 
 impl[const N: usize] Debug for BoundedString[N] {
     fn fmt(&self, f: &mut Formatter): Result[(), FmtError] {
-        write!(f, "BoundedString<{}>({:?})", N, self.as_str())
+        write(f, "BoundedString<{}>({:?})", N, self.as_str())
     }
 }
 
@@ -735,7 +735,7 @@ type SmallString = BoundedString[256]
 // Usage examples:
 // fn format_sensor_reading(sensor_id: u8, value: f32): BoundedString[32] {
 //     let mut s = BoundedString.new()
-//     write!(&mut s, "S{:02}: {:.2}", sensor_id, value).ok()
+//     write(&mut s, "S{:02}: {:.2}", sensor_id, value).ok()
 //     s
 // }
 ```
@@ -1182,20 +1182,19 @@ impl !Unpin for PhantomPinned
 fn pin[T](value: T): Pin[Box[T]]  given [A: Allocator]
     // Boxes the value and pins it
 
-// Pin projection macro (conceptual — would be a proc macro)
-// @derive(PinProject)
-// type MyFuture {
-//     @pin           // this field is structurally pinned
-//     inner: InnerFuture,
-//     not_pinned: u32, // this field is not pinned
-// }
+// Pin projection — use @pin attribute on struct fields
+@derive(PinProject)
+type MyFuture {
+    @pin              // this field is structurally pinned
+    inner: InnerFuture,
+    not_pinned: u32,  // this field is not pinned
+}
 
-// Stack pinning (in a block)
-// pin_mut!(value);
-// Rebinds `value` to Pin<&mut T> for the rest of the scope
-macro pin_mut($value:ident) {
-    // Implementation: shadows $value with a pinned reference
-    // Uses a guard type to prevent the original from being used
+// Stack pinning — use `let pinned` binding
+fn example() {
+    let mut value = MyFuture.new()
+    let pinned = Pin.new(&mut value)  // pinned: Pin[&mut MyFuture]
+    // value cannot be used directly after this
 }
 ```
 
@@ -1205,13 +1204,13 @@ macro pin_mut($value:ident) {
 // Without Pin, this async block could break:
 
 async fn example() {
-    let data = vec![1, 2, 3]
+    let data = vec[1, 2, 3]
     let reference = &data[0]   // self-reference!
 
     some_async_op().await      // suspend point
 
     // If the future were moved here, `reference` would dangle
-    println!("{}", reference)
+    println("{}", reference)
 }
 
 // The compiler generates a state machine struct like:
@@ -1292,7 +1291,7 @@ impl SimpleError {
 
 impl Display for SimpleError {
     fn fmt(&self, f: &mut Formatter): Result[(), FmtError] {
-        write!(f, "{}", self.message)
+        write(f, "{}", self.message)
     }
 }
 
@@ -1480,9 +1479,9 @@ impl Debug for NonZeroU32
 impl Display for NonZeroU32
 
 // Size optimization proof
-const_assert!(size_of[Option[NonZeroU32]]() == size_of[u32]())
-const_assert!(size_of[Option[NonZeroU64]]() == size_of[u64]())
-const_assert!(size_of[Option[Option[NonZeroU32]]]() == size_of[u32]())  // nested!
+const_assert(size_of[Option[NonZeroU32]]() == size_of[u32]())
+const_assert(size_of[Option[NonZeroU64]]() == size_of[u64]())
+const_assert(size_of[Option[Option[NonZeroU32]]]() == size_of[u32]())  // nested!
 ```
 
 ### 3.14.1 Niche Optimization Examples

@@ -540,7 +540,7 @@ fn use_message() {
 
     unsafe { free_message(ptr) }  // C frees the memory
 
-    println!("{}", msg.to_str().unwrap())  // DANGLING POINTER
+    println("{}", msg.to_str().unwrap())  // DANGLING POINTER
 }
 ```
 

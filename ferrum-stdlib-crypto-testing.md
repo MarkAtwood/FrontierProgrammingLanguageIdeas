@@ -162,7 +162,7 @@ Tests are first-class. No external harness required.
 // Unit tests
 @test
 fn test_add() {
-    assert_eq!(2 + 2, 4)
+    assert_eq(2 + 2, 4)
 }
 
 // Expected panic
@@ -175,7 +175,7 @@ fn test_div_zero() {
 @test
 fn test_file_read(): Result[(), IoError] ! IO {
     let content = fs.read_text("test_data/sample.txt")?
-    assert!(content.contains("expected"))
+    assert(content.contains("expected"))
     Ok(())
 }
 
@@ -186,7 +186,7 @@ fn test_file_read(): Result[(), IoError] ! IO {
     (-1, "negative one"),
 )
 fn test_name_of(input: i32, expected: &str) {
-    assert_eq!(name_of(input), expected)
+    assert_eq(name_of(input), expected)
 }
 
 // Property-based tests (uses contracts for generators)
@@ -195,22 +195,22 @@ fn test_sort_idempotent(mut v: Vec[i32]) {
     v.sort()
     let sorted = v.clone()
     v.sort()
-    assert_eq!(v, sorted)
+    assert_eq(v, sorted)
 }
 
 // Benchmark
 @bench
 fn bench_hash(b: &mut Bencher) {
-    let data = vec![0u8; 1024]
+    let data = vec[0u8; 1024]
     b.iter(|| Sha256.update(&data))
 }
 
 // Test utilities
-fn assert_eq![T: Debug + PartialEq](left: T, right: T)
-fn assert_ne![T: Debug + PartialEq](left: T, right: T)
-fn assert!(cond: bool)
-fn assert_matches!(expr, pattern)
-fn assert_approx_eq!(a: f64, b: f64, epsilon: f64)  // for floats
+fn assert_eq[T: Debug + PartialEq](left: T, right: T)
+fn assert_ne[T: Debug + PartialEq](left: T, right: T)
+fn assert(cond: bool)
+fn assert_matches(expr, pattern)
+fn assert_approx_eq(a: f64, b: f64, epsilon: f64)  // for floats
 
 // Mocking (trait-based, no macro magic)
 // Test doubles are just types that implement the trait under test.

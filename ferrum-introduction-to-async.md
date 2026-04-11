@@ -280,7 +280,7 @@ fn main() ! IO + Async {
 
     runtime.block_on(async {
         let response = fetch("https://example.com").await?
-        println!("{}", response.text().await?)
+        println("{}", response.text().await?)
         Ok(())
     })
 }
@@ -563,7 +563,7 @@ fn compute_total(items: &[Item]): i32 {
 fn process() ! IO {
     let items = load_items()?
     let total = compute_total(&items)  // Fine
-    println!("Total: {total}")
+    println("Total: {total}")
 }
 ```
 
@@ -587,7 +587,7 @@ fn main() ! IO {
     // Explicitly block this thread until the async work completes
     let result = runtime.block_on(fetch_and_compute())
 
-    println!("Got: {result:?}")
+    println("Got: {result:?}")
 }
 ```
 
@@ -693,7 +693,7 @@ Use bounded channels by default. They provide backpressure — if the consumer i
 Sometimes you need to wait for whichever happens first — a message from any of several channels, or a timeout:
 
 ```ferrum
-let result = select! {
+let result = select {
     rx1 -> msg => {
         // Received from rx1
         handle_message(msg)
@@ -702,7 +702,7 @@ let result = select! {
         // Received from rx2
         handle_other(msg)
     },
-    timeout!(Duration::from_secs(5)) => {
+    timeout(Duration::from_secs(5)) => {
         // 5 seconds passed with no messages
         Err(Error::Timeout)
     },
@@ -711,7 +711,7 @@ let result = select! {
 
 Compare to C's `select()`:
 - C: You're working with file descriptors. Channels must be implemented as pipes or sockets. Tedious.
-- Ferrum: Channels are first-class. `select!` works directly with them.
+- Ferrum: Channels are first-class. `select` works directly with them.
 
 Compare to Python's `asyncio.wait()`:
 - Python: `done, pending = await asyncio.wait(tasks, return_when=FIRST_COMPLETED)` — returns sets, you fish out results.
@@ -726,12 +726,12 @@ Here's a complete example — a server that accepts connections and echoes back 
 ```ferrum
 async fn run_server(addr: &str): Result[(), Error] ! Net + Async {
     let listener = TcpListener.bind(addr).await?
-    println!("Listening on {addr}")
+    println("Listening on {addr}")
 
     scope s {
         loop {
             let (socket, client_addr) = listener.accept().await?
-            println!("Client connected: {client_addr}")
+            println("Client connected: {client_addr}")
 
             s.spawn(handle_client(socket, client_addr))
         }
@@ -747,7 +747,7 @@ async fn handle_client(
     loop {
         let n = socket.read(&mut buf).await?
         if n == 0 {
-            println!("Client disconnected: {addr}")
+            println("Client disconnected: {addr}")
             return Ok(())
         }
 
@@ -786,9 +786,9 @@ async fn fetch_with_timeout(
         for handle in handles {
             let remaining = deadline.saturating_duration_since(Instant.now())
 
-            let result = select! {
+            let result = select {
                 handle -> response => response,
-                timeout!(remaining) => return Err(Error::Timeout),
+                timeout(remaining) => return Err(Error::Timeout),
             }
 
             responses.push(result?)
@@ -847,9 +847,9 @@ tx.send(value).await?
 let value = rx.recv().await
 
 // Select on multiple operations
-select! {
+select {
     rx -> msg => handle(msg),
-    timeout!(duration) => handle_timeout(),
+    timeout(duration) => handle_timeout(),
 }
 
 // Effects in signatures

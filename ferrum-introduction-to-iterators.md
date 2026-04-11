@@ -455,7 +455,7 @@ let product = numbers.iter().fold(1, |acc, x| acc * x);
 let csv = numbers.iter()
     .map(|x| x.to_string())
     .fold(String::new(), |acc, s| {
-        if acc.is_empty() { s } else { format!("{},{}", acc, s) }
+        if acc.is_empty() { s } else { format("{},{}", acc, s) }
     });
 // "1,2,3,4,5"
 ```
@@ -596,7 +596,7 @@ struct User {
     active: bool,
 }
 
-let users = vec![
+let users = vec[
     User { name: "Alice".into(), age: 30, active: true },
     User { name: "Bob".into(), age: 25, active: false },
     User { name: "Carol".into(), age: 35, active: true },
@@ -713,7 +713,7 @@ fn fetch_active_users() -> Result<Vec<DisplayUser>, Error> {
         .filter(|u| !u.deleted)
         .map(|u| DisplayUser {
             id: u.id,
-            display_name: format!("{} <{}>", u.username, u.email),
+            display_name: format("{} <{}>", u.username, u.email),
         })
         .collect();
 
@@ -838,7 +838,7 @@ let (evens, odds): (Vec<i32>, Vec<i32>) = numbers.iter()
 ### Find or Use Default
 
 ```ferrum
-let settings = vec![
+let settings = vec[
     ("timeout", 30),
     ("retries", 3),
 ];
@@ -887,7 +887,7 @@ let dot: i32 = a.iter()
 ### Flatten Nested Structures
 
 ```ferrum
-let nested = vec![vec![1, 2], vec![3, 4], vec![5]];
+let nested = vec[vec[1, 2], vec[3, 4], vec[5]];
 let flat: Vec<i32> = nested.iter()
     .flatten()
     .copied()
@@ -1051,7 +1051,7 @@ numbers.iter()
 You can't modify a collection while iterating over it:
 
 ```ferrum
-let mut numbers = vec![1, 2, 3, 4, 5];
+let mut numbers = vec[1, 2, 3, 4, 5];
 
 // WRONG: Can't modify vec while iterating
 for x in &numbers {
@@ -1080,7 +1080,7 @@ error[E0502]: cannot borrow `numbers` as mutable because it is also borrowed as 
 **Fix:** Collect first, then modify:
 
 ```ferrum
-let mut numbers = vec![1, 2, 3, 4, 5];
+let mut numbers = vec[1, 2, 3, 4, 5];
 
 // Collect what to add first
 let to_add: Vec<i32> = numbers.iter()
@@ -1127,7 +1127,7 @@ Closures capture by reference by default, which can cause issues:
 
 ```ferrum
 fn make_closures() -> Vec<impl Fn() -> i32> {
-    let mut closures = vec![];
+    let mut closures = vec[];
     for i in 0..3 {
         closures.push(|| i);  // ERROR: `i` doesn't live long enough
     }
@@ -1139,7 +1139,7 @@ fn make_closures() -> Vec<impl Fn() -> i32> {
 
 ```ferrum
 fn make_closures() -> Vec<impl Fn() -> i32> {
-    let mut closures = vec![];
+    let mut closures = vec[];
     for i in 0..3 {
         closures.push(move || i);  // Each closure owns its own copy of i
     }
