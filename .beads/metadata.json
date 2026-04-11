@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "FrontierProgrammingLanguageIdeas",
+  "project_id": "d3061a65-a439-48e7-8d44-f4babe07a48a"
+}
