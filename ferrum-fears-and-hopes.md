@@ -385,24 +385,7 @@ this.
 
 ---
 
-### 6. The numeric conversion rules are underspecified
-
-The numeric amendment specifies that `as` never panics and is defined for all
-conversions. What it does not specify:
-
-- `NaN as i32` produces 0. This breaks code that checks `is_nan()` then casts.
-- `0.1d64 as f64` produces the binary approximation, not 0.1.
-- `BigInt as f32` when the value exceeds f32::MAX — saturate? truncate?
-- `Fixed[16,16] as d64` — is this exact?
-- `f128 as f16` NaN payload propagation — which bits survive?
-
-**Mitigation:** Write a complete numeric conversion table in the spec before
-implementing any conversion. Every source type × destination type pair gets
-a defined behavior, an example, and a test case.
-
----
-
-### 7. The capability/given/effect overlap needs a unified model
+### 6. The capability/given/effect overlap needs a unified model
 
 The capability system, the implicit parameter system, and allocator-as-effect
 are three representations of the same concept:
@@ -421,7 +404,7 @@ regions interact at every boundary.
 
 ---
 
-### 8. Novel interaction surface has no prior art
+### 7. Novel interaction surface has no prior art
 
 Each individual feature in Ferrum exists in some other language. No language
 has all of them at once. The interactions between all of them simultaneously
