@@ -73,6 +73,7 @@ Ferrum explores what Rust might look like with region inference, an effect syste
 - `ferrum-lang-verification.md` — Contracts, proofs, binary layout, safety levels
 - `ferrum-lang-modules.md` — Module system, packages
 - `ferrum-lang-internals.md` — Compiler algorithms, grammar
+- `ferrum-lang-foreign-models.md` — Foreign model system (`extern(swift)`, `extern(python)`, `extern(beam)`, GPU targets, etc.)
 
 **Standard Library:**
 - `ferrum-stdlib.md` — Standard library index and design principles
@@ -86,26 +87,44 @@ Ferrum explores what Rust might look like with region inference, an effect syste
 - `ferrum-stdlib-numeric.md` — BigInt, BigDecimal, Rational, Complex (arbitrary precision)
 - `ferrum-stdlib-util.md` — fmt, time, sync, process, env, backtrace, log modules
 - `ferrum-stdlib-crypto-testing.md` — crypto, testing modules, C mistakes reference
-- `ferrum-plan.md` — 34-phase implementation plan
+
+**Extended Libraries** (32 external library design documents, `ferrum_extlib_*.md`):
+Graphics, UI, networking, cryptography, serialization, text, accessibility, fuzzing, and more. See `ferrum_extlib_*.md`.
+
+**SemanticQuery (Ferrum-specific):**
+- `ferrum-semanticquery.md` — SemanticQuery integration with Ferrum's type system and effects
+
+**Implementation:**
+- `ferrum-plan.md` — 34-phase implementation plan (long-arc)
+- `ferrum-PLAN-FAST.md` — Fast-path MVP plan: correct JVM-target compiler in 8 weeks
+
+**Design rationale and outreach:**
 - `ferrum-fears-and-hopes.md` — Design philosophy and failure mode analysis
+- `ferrum-PRFAQ.md` — Press release and FAQ (aspirational)
+- `ferrum-release-announcement.md` — Release announcement (aspirational)
+- `ferrum-arxiv-paper.md` — arXiv-style research paper (aspirational)
 
-### Compiler Agent API
+### SemanticQuery
 
-**Exposing compiler internals for AI-assisted programming.**
+**A protocol for exposing compiler internals to AI agents and tools.**
 
-A proposal for turning compilers from batch processors into interactive reasoning engines that AI agents can query, probe, and instrument.
+SemanticQuery turns compilers from batch processors into interactive reasoning engines. It is designed as a language-agnostic protocol (parallel to LSP) that any compiler can implement.
 
-| Capability | Description |
-|------------|-------------|
-| Query | Ask the compiler what it knows at any program point (types, aliasing, lifetimes, optimization blockers) |
-| Hypothesize | Inject proposed invariants and ask if they close verification gaps—without modifying source |
-| Trap | Place semantic monitors that the compiler weaves into binaries because it understands the type system |
-| Instrument | Extract contracts and type invariants as executable test scaffolding |
+| Operation | Description |
+|-----------|-------------|
+| Point Query | Ask the compiler what it knows at any program point: types, effects, regions, active contracts, borrow state |
+| Counterfactual Query | Inject a proposed invariant and ask if it closes a verification gap — without modifying source |
+| Monitor | Place semantically-aware traps that the compiler weaves into the binary correctly because it understands the type system |
+| Scaffolding | Generate test scaffolding from what the compiler already knows: `requires` → preconditions, `ensures` → oracles |
+| SMT Export | Export verification conditions as SMT-LIB for external solvers |
 
-Includes implementation paths for Clang/LLVM, Rust, Python, and GCC.
+Prior art: ASIS (Ada, ISO/IEC 15291:1999), Libadalang, Roslyn, rust-analyzer extensions, Dafny LSP, SPARK/GNATprove. The Counterfactual Query operation is novel — no prior system exposes this.
 
 **Files:**
-- `compiler-agent-api.md` — Full proposal with per-toolchain analysis
+- `SemanticQuery-protocol-spec.md` — Language-agnostic protocol specification (start here for non-Ferrum use)
+- `SemanticQuery-mcp-spec.md` — MCP server specification (AI agent integration)
+- `ferrum-semanticquery.md` — Ferrum-specific SemanticQuery implementation and integration
+- `compiler-agent-api.md` — Earlier, informal version of the same idea
 
 ## Design Philosophy
 
@@ -119,5 +138,5 @@ These projects share some principles:
 
 ## Status
 
-These are design documents and thought experiments. No compilers exist yet. Ferrum has an implementation plan targeting a Rust bootstrap compiler; Zinc is designed for gradual upstream contribution to Zig.
+These are design documents and thought experiments. No compilers exist yet. Ferrum has a fast-path MVP plan (`ferrum-PLAN-FAST.md`) targeting a JVM bootstrap compiler (Ferrum → Kotlin source → JVM, with a load-time verification agent); Zinc is designed for gradual upstream contribution to Zig. SemanticQuery is a standalone protocol proposal intended for adoption by LLVM, rustc, and other compiler infrastructure.
 
