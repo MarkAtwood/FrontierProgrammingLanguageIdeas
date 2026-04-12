@@ -71,25 +71,13 @@ Every design decision in this library is tested against this list.
 
 ## 2. Library Layers
 
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│  Application layer                                                    │
-│  http · rpc · tls · ws · grpc  (separate crates, not stdlib)         │
-├──────────────────────────────────────────────────────────────────────┤
-│  std  (requires OS or WASI)                                           │
-│  io · fs · net · http · sys · process · env · async · time           │
-├──────────────────────────────────────────────────────────────────────┤
-│  platform shims (see ferrum-stdlib-platform.md)                       │
-│  linux · bsd · darwin · windows · fuchsia · ohos · wasi · zephyr      │
-├──────────────────────────────────────────────────────────────────────┤
-│  alloc  (requires an allocator, no OS)                                │
-│  collections · string · fmt · sync · math · linalg · crypto          │
-├──────────────────────────────────────────────────────────────────────┤
-│  core  (no allocator, no OS, always available)                        │
-│  primitives · ops · cmp · iter · option · result · mem · ptr         │
-│  simd · binary · text::core · math::core                              │
-└──────────────────────────────────────────────────────────────────────┘
-```
+| Layer | Requirements | Contents |
+|---|---|---|
+| Application layer | separate crates, not stdlib | `http` · `rpc` · `tls` · `ws` · `grpc` |
+| `std` | OS or WASI | `io` · `fs` · `net` · `http` · `sys` · `process` · `env` · `async` · `time` |
+| platform shims | — | `linux` · `bsd` · `darwin` · `windows` · `fuchsia` · `ohos` · `wasi` · `zephyr` (see ferrum-stdlib-platform.md) |
+| `alloc` | allocator, no OS required | `collections` · `string` · `fmt` · `sync` · `math` · `linalg` · `crypto` |
+| `core` | none (always available) | `primitives` · `ops` · `cmp` · `iter` · `option` · `result` · `mem` · `ptr` · `simd` · `binary` · `text::core` · `math::core` |
 
 **Import convention:**
 ```ferrum

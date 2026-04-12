@@ -63,17 +63,12 @@ pub fn fetch_and_log(url: &str): Result[String] ! IO + Net
 
 ### Four Orthogonal Layers
 
-```
-┌─────────────────────────────────┐
-│  Effect layer     IO · Net · ... │  ← what the function does
-├─────────────────────────────────┤
-│  Ownership layer  Owned · &T    │  ← who owns the value
-├─────────────────────────────────┤
-│  Type layer       Scalar · Sum  │  ← what the value is
-├─────────────────────────────────┤
-│  Allocator layer  Heap · Arena  │  ← where memory comes from
-└─────────────────────────────────┘
-```
+| Layer | Contents | Role |
+|---|---|---|
+| Effect layer | `IO` · `Net` · `Sync` · ... | what the function does |
+| Ownership layer | Owned · `&T` · `&mut T` · ... | who owns the value |
+| Type layer | Scalar · Sum · Product · ... | what the value is |
+| Allocator layer | `Heap` · `Arena` · `Pool` · ... | where memory comes from |
 
 These layers are independent. A type like `Vec[u8] | Arena` says: the type is a vector of bytes (type layer), allocated from an arena (allocator layer).
 

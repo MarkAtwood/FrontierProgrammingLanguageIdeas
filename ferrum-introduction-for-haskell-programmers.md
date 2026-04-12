@@ -578,14 +578,12 @@ Here is the cleanest way to think about Ferrum's design:
 
 **The type system is a four-axis space:**
 
-```
-              ┌───────────────────────────────────┐
-              │  Effect axis     IO · Net · Sync  │   → what the function does
-              │  Ownership axis  Owned · & · &mut │   → aliasing and lifetime
-              │  Type axis       Scalar · Sum · ∏ │   → the value's structure
-              │  Allocator axis  Heap · Arena · ⊥ │   → where memory lives
-              └───────────────────────────────────┘
-```
+| Axis | Contents | Role |
+|---|---|---|
+| Effect | `IO` · `Net` · `Sync` · ... | what the function does |
+| Ownership | Owned · `&` · `&mut` | aliasing and lifetime |
+| Type | Scalar · Sum · Product (∏) | the value's structure |
+| Allocator | `Heap` · `Arena` · ⊥ | where memory lives |
 
 These axes are orthogonal. A type like `Result[Vec[u8] | Arena, Error] ! IO + Net` is a point in this space: the type axis is `Result[...]`, the allocator axis is `Arena`, the effect axis is `IO + Net`.
 

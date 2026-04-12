@@ -30,24 +30,12 @@ Previous approaches and their failures:
 
 **Layered abstraction with explicit escape hatches:**
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  Layer 4: std.* — Portable, safe, opinionated                       │
-│  (io, fs, net, process, time, env)                                  │
-│  Uses platform traits internally. User code targets this layer.     │
-├─────────────────────────────────────────────────────────────────────┤
-│  Layer 3: Platform Traits — Abstract interfaces                     │
-│  (FileSystem, Network, Process, Memory, Time, Entropy)             │
-│  Implemented by each platform. Testable via mock implementations.   │
-├─────────────────────────────────────────────────────────────────────┤
-│  Layer 2: sys.{platform} — Platform-specific, safe wrappers         │
-│  (sys.posix, sys.linux, sys.bsd, sys.windows, sys.fuchsia, sys.wasi)│
-│  Safe Ferrum types over raw syscalls. Platform-specific features.   │
-├─────────────────────────────────────────────────────────────────────┤
-│  Layer 1: sys.{platform}.ffi — Raw bindings, unsafe                 │
-│  Direct syscall/API access. Minimal wrapper. For experts only.      │
-└─────────────────────────────────────────────────────────────────────┘
-```
+| Layer | Name | Contents | Notes |
+|---|---|---|---|
+| 4 | `std.*` | `io`, `fs`, `net`, `process`, `time`, `env` | Portable, safe, opinionated. User code targets this layer. |
+| 3 | Platform Traits | `FileSystem`, `Network`, `Process`, `Memory`, `Time`, `Entropy` | Abstract interfaces implemented per platform. Testable via mocks. |
+| 2 | `sys.{platform}` | `sys.posix`, `sys.linux`, `sys.bsd`, `sys.windows`, `sys.fuchsia`, `sys.wasi` | Safe Ferrum types over raw syscalls. Platform-specific features. |
+| 1 | `sys.{platform}.ffi` | Direct syscall/API access | Raw bindings, unsafe. Minimal wrapper. For experts only. |
 
 **Key principles:**
 
