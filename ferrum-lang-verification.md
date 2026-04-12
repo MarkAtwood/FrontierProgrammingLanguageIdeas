@@ -180,18 +180,82 @@ Mutual recursion is supported; the checker verifies that the combined recursion 
 
 ### 1.8 The SMT Bridge
 
-For refinement-type obligations (constraints on `where` clauses, `requires`/`ensures` involving arithmetic and comparisons), the compiler generates queries to Z3 (or a compatible SMT solver). Obligations that Z3 discharges automatically require no user-written proof. Obligations Z3 cannot discharge fall through to require manual proof terms.
+For refinement-type obligations (constraints on `where` clauses, `requires`/`ensures` involving arithmetic and comparisons), the compiler generates queries to Z3 (or a compatible SMT solver). Obligations that Z3 discharges automatically require no user-written proof. Obligations Z3 cannot discharge fall through to require manual proof terms or become runtime checks.
+
+#### The Auto-Discharge Fragment
+
+The compiler **guarantees** auto-discharge for obligations that stay within this fragment. If your contract is expressible entirely in these terms, you will never be asked for a proof function:
+
+| Category | Examples | Notes |
+|----------|---------|-------|
+| Linear arithmetic | `x + y < z`, `a - b >= 0`, `2 * x <= 100` | Multiplication by a **constant** only |
+| Comparisons | `x == y`, `a != 0`, `i < arr.len()` | All six operators |
+| Boolean combinations | `p && q`, `!p`, `p \|\| q` | Over any fragment members |
+| Constant expressions | `2 != 0`, `100 <= 255` | Always discharged |
+| Integer type bounds | `x <= 255` when `x: u8`, `x <= 100` when `x: Percent` | From type system |
+| Array/slice length | `i < arr.len()`, `start <= end && end <= arr.len()` | `len()` treated as opaque non-negative integer |
+| Simple conditionals | `if x > 0 then result >= 0` | When branches are in-fragment |
+| Transitive inequalities | `a <= b && b <= c` implies `a <= c` | Automatically chained |
+
+**Outside the fragment** — Z3 may or may not succeed; if it fails, you need a proof term or the check becomes runtime:
+
+| Category | Examples |
+|----------|---------|
+| Quantifiers | `forall i in 0..n => arr[i] >= 0` |
+| User-defined predicates | `arr.is_sorted()`, `xs.is_permutation_of(ys)` |
+| Non-linear arithmetic | `x * y > z` where both `x` and `y` are variables |
+| Recursive or inductive properties | anything that requires induction over a data structure |
+| Floating-point | `f * f >= 0.0` — Z3's float theory is incomplete |
+
+When Z3 fails on an out-of-fragment obligation, the compiler says so explicitly:
+
+```
+note: contract not auto-discharged — Z3 could not verify this obligation
+  --> src/lib.fe:12:5
+   |
+12 |     ensures forall i in 0..result.len() => result[i].is_valid()
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = reason: quantifier over user-defined predicate is outside the auto-discharge fragment
+   = help: write a `proof fn` or annotate `@contracts(runtime = "always")`
+```
 
 ```ferrum
 fn safe_divide(a: u32, b: u32 where b != 0): u32 {
     a / b
 }
 
-// Caller must prove b != 0
-safe_divide(10, x)       // requires proof that x != 0
-safe_divide(10, 2)       // discharged by SMT: 2 != 0 is trivially true
-safe_divide(10, y + 1)   // SMT may or may not discharge, depending on what's known about y
+safe_divide(10, 2)       // auto-discharged: constant 2 != 0
+safe_divide(10, y + 1)   // auto-discharged: linear arithmetic — y + 1 != 0 iff y >= 0, and y: u32
+safe_divide(10, x)       // NOT auto-discharged: x could be 0; runtime check inserted
 ```
+
+#### IDE-Assisted Proof Accumulation
+
+Over time, the compiler, linter, and prover are expected to work together with the IDE to **insert proof annotations directly into source code** as obligations are discharged:
+
+```ferrum
+// The programmer writes:
+fn index_after(arr: &[T], i: usize): usize
+    requires i < arr.len()
+    ensures result < arr.len()
+{
+    i + 1
+}
+
+// After the IDE runs the prover, it inserts:
+fn index_after(arr: &[T], i: usize): usize
+    requires i < arr.len()
+    ensures result < arr.len()
+    // @smt_verified: "i + 1 < arr.len()" — discharged 2026-04-12, ferrum 0.9.1
+{
+    i + 1
+}
+```
+
+These annotations serve as a persistent audit trail: future reviewers and CI runs can skip re-proving already-verified obligations, see exactly what was proven and when, and flag when a code change invalidates a prior proof. The IDE displays proven obligations with a distinct visual marker (analogous to Lean's proof-complete checkmark).
+
+This is intentionally incremental. A codebase starts with runtime-checked contracts and accumulates `@smt_verified` and `@proven_by` annotations over time as the prover is run. The codebase gets stronger without requiring programmers to front-load all proofs at write time.
 
 ### 1.9 Linking Fast Implementations to Specifications
 
