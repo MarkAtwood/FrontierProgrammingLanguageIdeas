@@ -191,6 +191,8 @@ proof fn reverse_involutive[T](xs: &[T])
 
 **`proof fn`** — this function has no runtime cost. It's erased after verification. It exists only to guide the compiler's reasoning.
 
+**Proof witnesses are unforgeable.** The `Prop[P]` type that a proof function produces is a compiler-intrinsic sealed type — there is no constructor accessible to user code, and `unsafe` blocks cannot bypass this. The only way a `Prop[P]` value comes into existence is when the compiler's proof checker has actually verified the proof. This is what makes `proven_by` a guarantee rather than documentation.
+
 Most programmers never write proof functions. They use contracts, and the proofs live in libraries.
 
 ### Why proof functions aren't a security concern

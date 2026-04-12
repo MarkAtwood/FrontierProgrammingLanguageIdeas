@@ -137,6 +137,22 @@ fn binary_search[T: Ord](
 }
 ```
 
+#### Proof Witness Opacity
+
+`Prop[P]` is a **compiler-intrinsic sealed type**. It has no constructor accessible to user code. The only source of a `Prop[P]` value is the compiler's proof checker, which produces one as the return value of a successfully verified `proof fn`.
+
+Direct construction is a compile error in all contexts:
+
+```ferrum
+// COMPILE ERROR: Prop has no user-accessible constructor
+let fake: Prop[xs.is_sorted()] = Prop { }
+
+// COMPILE ERROR: transmute cannot produce a Prop value
+let fake: Prop[xs.is_sorted()] = unsafe { transmute(()) }
+```
+
+> **Design decision:** `unsafe` is an escape hatch for *memory safety* — raw pointer arithmetic, FFI, layout assumptions. It is not an escape hatch for *logical soundness*. These are orthogonal axes. A `Prop[P]` makes a compile-time logical claim; constructing one without a proof would not be "unsafe code" — it would be an unsound type system. The `unsafe` keyword explicitly does not extend to proof witness construction. If it did, `proven_by` guarantees would be trivially bypassable and the entire verification system would be documentation, not enforcement.
+
 ### 1.7 Totality and Termination Checking
 
 Proof functions must terminate. Termination is verified by structural recursion:
