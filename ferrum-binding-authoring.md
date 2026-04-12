@@ -150,7 +150,7 @@ Rules:
 - Every function is `! Unsafe`
 - Types match the foreign ABI exactly — no wrapping yet
 - No error translation — return codes and out-params as declared in the foreign API
-- Symbol names match exactly; use `#[link_name = "original_name"]` if Ferrum naming conventions would change them
+- Symbol names match exactly; use `@link_name("original_name")` if Ferrum naming conventions would change them
 - The raw layer module is `pub(crate)` — do not expose it outside the binding crate
 
 ### 1.6 Step 6 — Write the Idiomatic Wrapper Layer
