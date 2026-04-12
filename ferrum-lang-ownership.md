@@ -198,6 +198,8 @@ pub fn process(path: &str): Result[Output] ! IO {
 
 If you omit the annotation on a `pub` function, the compiler emits an error telling you which effects were inferred. This keeps internal code light while ensuring public APIs are explicit about their effects.
 
+> **Design decision:** this is an error, not a warning. A warning can be suppressed or ignored; a missing effect annotation on a public function leaves the type signature incomplete — callers cannot know what the function actually does. The effect annotation is part of the function's type. Missing it is a type error, the same as a missing return type.
+
 ### 2.4 Pure Functions
 
 A function with no `!` annotation is **pure** — the compiler statically verifies it produces no effects:

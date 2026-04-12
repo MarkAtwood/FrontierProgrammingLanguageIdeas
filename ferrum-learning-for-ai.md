@@ -707,7 +707,7 @@ The compiler builds a constraint graph from borrow scopes, assigns minimal regio
 
 ### "Annotations are the compiler's TODO list"
 
-Every explicit lifetime or effect annotation is a place where the compiler currently needs human help. As the compiler improves, annotations become redundant and generate warnings. They never become wrong.
+Every explicit lifetime or effect annotation is a place where the compiler currently needs human help. As the compiler improves, *redundant* annotations (on private functions, or where inference now handles the relationship) generate warnings and can be auto-removed. Missing effect annotations on `pub` functions are always errors — the effect annotation is part of the public type signature and cannot be inferred away. The compiler tells you which effects to add.
 
 ### "The four layers are orthogonal"
 

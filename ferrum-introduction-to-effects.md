@@ -117,7 +117,20 @@ pub fn process(x: i32): i32 ! IO {
 
 The rule is simple:
 - **Private functions:** effects inferred, no annotation needed
-- **Public functions (`pub`):** effects declared explicitly
+- **Public functions (`pub`):** effects declared explicitly — omitting is a **compile error**
+
+Omitting is an error, not a warning. A warning can be ignored; a missing effect annotation on a public function is a type error — the function's signature is incomplete. The compiler tells you exactly what to write:
+
+```
+error: public function `process` has undeclared effects
+  --> src/lib.fe:3:1
+   |
+ 3 | pub fn process(x: i32): i32 {
+   |        ^^^^^^^
+   |
+   = inferred effects: IO
+   = help: add `! IO` to the signature
+```
 
 This means most code looks like regular C or Python — no effect annotations cluttering every line. The annotations appear only where they document your API.
 
