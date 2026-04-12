@@ -301,13 +301,15 @@ This provides property-based testing for free from contract annotations. Every f
 
 ### 2.1 Overview
 
-Ferrum separates logical type declarations from physical binary layout declarations. The logical type defines the fields and their value constraints. The layout declaration defines exactly how those fields map to bits and bytes. The compiler verifies consistency between the two.
+Ferrum separates logical type declarations from physical binary layout declarations. The logical type defines the fields and their types. The layout declaration defines exactly how those fields map to bits and bytes — sizes, positions, bit widths, endianness, and padding. The compiler verifies consistency between the two.
+
+Layout declarations are **purely structural**. They contain no value constraints. Value constraints belong in the type system: use a constrained type as the field type (e.g. `type Nanoseconds = u32 where value < 1_000_000_000`). This keeps wire format description separate from value semantics.
 
 Binary layout declarations provide:
 - Explicit, compiler-verified bit-level field placement
 - Automatic byte order conversion
 - Zero-copy view types for memory-mapped I/O
-- Generated read/write codecs with constraint validation
+- Generated read/write codecs
 
 ### 2.2 Syntax
 
@@ -408,9 +410,12 @@ Per-field `byte_order` overrides the layout-level default.
 A single logical type may have multiple layout declarations, each named:
 
 ```ferrum
+// Value constraint lives in the type system, not the layout
+type Nanoseconds = u32 where value < 1_000_000_000
+
 type Timestamp {
     seconds:     u32,
-    nanoseconds: u32 where value < 1_000_000_000,
+    nanoseconds: Nanoseconds,   // constraint enforced by the type, not the layout
 }
 
 layout Timestamp as PosixTimespec {
@@ -440,8 +445,8 @@ For each layout declaration, the compiler generates:
 - Extracts fields from raw bytes per the layout.
 - Applies byte/bit order conversion.
 - Applies `convert_back` functions.
-- Validates all field constraints from the logical type.
-- Returns `Err` on constraint violation.
+- Assigns extracted values to field types — if a field type is a constrained type, the constraint check fires here, returning `Err` on violation.
+- Returns `Err` if any field value violates its type's constraint.
 
 **`value.write(): [u8; N]`**
 - Packs fields into raw bytes per the layout.
