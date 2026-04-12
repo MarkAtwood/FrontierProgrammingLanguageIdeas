@@ -158,6 +158,20 @@ proof fn reverse_involutive[T](xs: &[T])
 
 Most programmers never write proof functions. They use contracts, and the proofs live in libraries.
 
+### Why proof functions aren't a security concern
+
+A reasonable question: if proc macros are a supply-chain attack vector because they execute arbitrary code at compile time, why aren't `proof fn` the same thing?
+
+They're not equivalent. The distinction:
+
+**Proc macros** are Rust programs compiled into a separate binary that the compiler invokes as a code generator. They can read files, make network requests, spawn processes, and emit any valid AST — including code that silently differs from what the source suggests. Their output is opaque to the human reviewer.
+
+**`proof fn`** operates in a constrained logical sublanguage. It cannot generate new code — it can only state propositions and provide justifications that the compiler verifies against strict typing rules. The compiler checks the proof; it doesn't execute it. A `proof fn` cannot access the filesystem, the network, or any system resource. It has no effect on the compiled binary whatsoever — the compiler erases it entirely after verification.
+
+The analogy isn't "both run at compile time." The analogy is:
+- A proc macro is like a program that writes your code for you — you have to trust what it writes.
+- A `proof fn` is like a mathematical argument in a margin — the compiler checks whether the argument is valid, but the argument itself produces nothing new.
+
 ---
 
 ## The Overflow Bug, Fixed

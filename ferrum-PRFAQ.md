@@ -204,7 +204,7 @@ Contracts (Layer 3) require familiarity with pre/postcondition reasoning, which 
 
 Two reasons.
 
-Security: macros that execute at compile time are a supply-chain attack surface. A compromised dependency that runs arbitrary code during compilation can silently modify the compiled output. Ferrum eliminates this attack vector entirely.
+Security: macros that execute at compile time are a supply-chain attack surface. A compromised dependency that runs arbitrary code during compilation can silently modify the compiled output. Ferrum eliminates this attack vector entirely. (Ferrum's `proof fn` is not in this category — proof functions are verified by the compiler against a constrained logical sublanguage, cannot generate code, cannot access system resources, and are erased before the binary is produced.)
 
 Simplicity: macros in Rust are a parallel language with its own syntax and semantics. They make code harder to read, harder to tool, and harder to reason about. Ferrum's design philosophy is that the language itself should be expressive enough that macros are not needed for common patterns — generics, traits, effects, and layout declarations cover the structural cases.
 

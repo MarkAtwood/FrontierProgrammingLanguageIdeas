@@ -168,7 +168,7 @@ let s = format("Value: {}", x)
 
 **Why?** Two reasons:
 
-1. **Security.** Rust proc macros execute arbitrary code at compile time. When you `cargo build` a project with dependencies, you're running code from the internet on your machine. This is a supply chain attack vector. Ferrum doesn't have this problem — building untrusted code can't execute arbitrary code.
+1. **Security.** Rust proc macros execute arbitrary code at compile time. When you `cargo build` a project with dependencies, you're running code from the internet on your machine. This is a supply chain attack vector. Ferrum doesn't have this problem — building untrusted code can't execute arbitrary code. (Note: Ferrum's `proof fn` is not equivalent — proof functions operate in a constrained logical sublanguage, are verified by the compiler rather than executed, and are erased before the binary is produced. See [Introduction to Proofs](ferrum-introduction-to-proofs.md).)
 
 2. **Simplicity.** Macros are notoriously hard to debug, produce confusing error messages, and make code harder to read. In Ferrum, code is what it looks like — no hidden expansions.
 
