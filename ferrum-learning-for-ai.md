@@ -223,8 +223,8 @@ fn add(x: i32, y: i32): i32 { x + y }
 
 ### Effect Inference Rule
 
-**Private functions**: effects inferred from body — no annotation needed.
-**Public functions**: annotation required — serves as documentation and API contract.
+- **Private functions**: effects inferred from body — no annotation needed.
+- **Public functions**: annotation required — serves as documentation and API contract.
 
 ```ferrum
 // Private — inferred

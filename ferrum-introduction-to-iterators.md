@@ -140,7 +140,7 @@ for n in iter {
 
 Why does this matter? Two reasons:
 
-**1. Memory efficiency:** You never build intermediate collections.
+1. **Memory efficiency:** You never build intermediate collections.
 
 ```ferrum
 // This processes one element at a time through the entire chain
@@ -151,7 +151,7 @@ let result: i32 = huge_data.iter()
     .sum();
 ```
 
-**2. You can work with infinite sequences:**
+2. **You can work with infinite sequences:**
 
 ```ferrum
 // This would be impossible if filter() tried to process everything upfront

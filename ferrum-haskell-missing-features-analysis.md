@@ -267,13 +267,10 @@ In a large ecosystem, this scales catastrophically. The Haskell ecosystem has ex
 
 ### Partial relaxations that don't blow up
 
-**Option 1: Explicit orphan with warning.** `@allow(orphan) impl Trait for Type { ... }`. Compiles with a warning. If two crates define conflicting orphan impls and are linked together, the linker error is local and fixable by the linker, not by the trait or type authors.
-
-**Option 2: Intra-crate orphans.** Within a single crate, orphan impls are allowed. At crate boundaries, coherence is enforced. This prevents ecosystem collisions while allowing a crate to define impl glue between two external types it depends on.
-
-**Option 3: Sealed traits.** A trait author can mark their trait `#[allow_orphan_impls]`, opting in to allowing external impls. The trait author owns the coherence risk.
-
-**Option 4: Newtype requirement lifted for local types.** If the *type* is new (even if defined in another crate) you can implement any trait for it. Currently the rule requires you to own the trait or type; relaxing to "or the type is used only in your crate's public interface" covers some glue-code cases.
+- **Option 1: Explicit orphan with warning.** `@allow(orphan) impl Trait for Type { ... }`. Compiles with a warning. If two crates define conflicting orphan impls and are linked together, the linker error is local and fixable by the linker, not by the trait or type authors.
+- **Option 2: Intra-crate orphans.** Within a single crate, orphan impls are allowed. At crate boundaries, coherence is enforced. This prevents ecosystem collisions while allowing a crate to define impl glue between two external types it depends on.
+- **Option 3: Sealed traits.** A trait author can mark their trait `#[allow_orphan_impls]`, opting in to allowing external impls. The trait author owns the coherence risk.
+- **Option 4: Newtype requirement lifted for local types.** If the *type* is new (even if defined in another crate) you can implement any trait for it. Currently the rule requires you to own the trait or type; relaxing to "or the type is used only in your crate's public interface" covers some glue-code cases.
 
 Of these, options 2 (intra-crate orphans) and 3 (sealed traits) are the cleanest. Neither creates global coherence problems.
 

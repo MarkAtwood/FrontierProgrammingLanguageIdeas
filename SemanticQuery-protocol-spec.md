@@ -906,15 +906,15 @@ Python has the thinnest static semantic model of any mainstream language. Most `
 
 SemanticQuery is a protocol, not a product. It succeeds when independent compiler teams implement it independently because it is useful to them. The right adoption path is:
 
-**1. Publish the spec and implement for one compiler.** A reference implementation demonstrates feasibility and exercises the protocol. The first implementation will reveal gaps in the spec; that is expected and useful.
+1. **Publish the spec and implement for one compiler.** A reference implementation demonstrates feasibility and exercises the protocol. The first implementation will reveal gaps in the spec; that is expected and useful.
 
-**2. Target LLVM first for maximum leverage.** One implementation at the LLVM IR level benefits every LLVM-targeting language simultaneously. A `clang-sq` tool or `semanticQuery/` methods in clangd would reach C, C++, Rust (via clippy/rustc), Swift, Zig, Julia, and Objective-C users with a single implementation.
+2. **Target LLVM first for maximum leverage.** One implementation at the LLVM IR level benefits every LLVM-targeting language simultaneously. A `clang-sq` tool or `semanticQuery/` methods in clangd would reach C, C++, Rust (via clippy/rustc), Swift, Zig, Julia, and Objective-C users with a single implementation.
 
-**3. Let Ada/SPARK follow naturally.** GNATprove already has 80% of the required data. An Ada SemanticQuery implementation is primarily integration work, not research. AdaCore is the natural owner.
+3. **Let Ada/SPARK follow naturally.** GNATprove already has 80% of the required data. An Ada SemanticQuery implementation is primarily integration work, not research. AdaCore is the natural owner.
 
-**4. Do not port rust-analyzer.** rust-analyzer is not the right Rust implementation layer. The Rust implementation belongs in rustc's MIR pipeline or in Prusti/Creusot. Let the Rust community adopt SemanticQuery on their own terms.
+4. **Do not port rust-analyzer.** rust-analyzer is not the right Rust implementation layer. The Rust implementation belongs in rustc's MIR pipeline or in Prusti/Creusot. Let the Rust community adopt SemanticQuery on their own terms.
 
-**5. The counterfactual query is the differentiator.** Prior systems that implemented point queries (ASIS, Roslyn) were adopted because point queries are useful. Implementations that add counterfactual queries will be adopted for a qualitatively different reason: they enable automated reasoning that was not previously possible. Lead with this operation in implementation documentation.
+5. **The counterfactual query is the differentiator.** Prior systems that implemented point queries (ASIS, Roslyn) were adopted because point queries are useful. Implementations that add counterfactual queries will be adopted for a qualitatively different reason: they enable automated reasoning that was not previously possible. Lead with this operation in implementation documentation.
 
 ---
 

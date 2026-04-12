@@ -145,13 +145,10 @@ This is 0.1. The following are known limitations:
 
 0.1 validates the architecture. The next milestones:
 
-**0.2:** LLVM codegen. Native binaries. Performance competitive with hand-written C for simple programs.
-
-**0.3:** Complete generics. Full standard library. Package manager.
-
-**0.4:** Full borrow checking moved to compile time. Load-time borrow pass becomes redundant and is removed.
-
-**1.0:** Self-hosting. The Ferrum compiler compiles itself.
+- **0.2:** LLVM codegen. Native binaries. Performance competitive with hand-written C for simple programs.
+- **0.3:** Complete generics. Full standard library. Package manager.
+- **0.4:** Full borrow checking moved to compile time. Load-time borrow pass becomes redundant and is removed.
+- **1.0:** Self-hosting. The Ferrum compiler compiles itself.
 
 ---
 

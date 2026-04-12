@@ -266,15 +266,15 @@ For the full specification including `@pure` interaction and error message forma
 
 ## What This Gets You
 
-**1. Fearless refactoring.** Extract a function and the compiler tells you its effects. No need to trace through the implementation.
+1. **Fearless refactoring.** Extract a function and the compiler tells you its effects. No need to trace through the implementation.
 
-**2. Honest APIs.** When a library says `fn compute(x: i32): i32`, you know it's pure. No hidden logging, no surprise network calls, no telemetry.
+2. **Honest APIs.** When a library says `fn compute(x: i32): i32`, you know it's pure. No hidden logging, no surprise network calls, no telemetry.
 
-**3. Better testing.** Pure functions don't need mocks. Test them with plain inputs and outputs.
+3. **Better testing.** Pure functions don't need mocks. Test them with plain inputs and outputs.
 
-**4. Safe parallelism.** The compiler knows which functions can safely run in parallel (pure ones) and which need synchronization.
+4. **Safe parallelism.** The compiler knows which functions can safely run in parallel (pure ones) and which need synchronization.
 
-**5. Optimization opportunities.** The compiler can inline, cache, or eliminate pure function calls freely.
+5. **Optimization opportunities.** The compiler can inline, cache, or eliminate pure function calls freely.
 
 ---
 

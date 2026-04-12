@@ -447,13 +447,10 @@ Speed of the compiled programs: irrelevant to MVP. Speed of the compiler itself:
 
 For orientation only — knowing what comes next prevents over-engineering the MVP:
 
-**0.2:** Boogie/Z3 integration. Move contract checks from runtime-only to static-where-possible. Persistent verification cache. Better borrow error messages.
-
-**0.3:** Full region inference. LLVM codegen (native binaries). Complete generics. Package manager.
-
-**0.4:** Move borrow checking from load-time to compile-time. Load-time pass becomes redundant for borrow checking.
-
-**1.0:** Self-hosting. SemanticQuery server implementation.
+- **0.2:** Boogie/Z3 integration. Move contract checks from runtime-only to static-where-possible. Persistent verification cache. Better borrow error messages.
+- **0.3:** Full region inference. LLVM codegen (native binaries). Complete generics. Package manager.
+- **0.4:** Move borrow checking from load-time to compile-time. Load-time pass becomes redundant for borrow checking.
+- **1.0:** Self-hosting. SemanticQuery server implementation.
 
 None of these require redesigning the MVP architecture. Each is additive. The decorated bytecode format and the four-stage pipeline are stable across all versions.
 
