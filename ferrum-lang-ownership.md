@@ -374,6 +374,31 @@ error: effect variable ?E resolves to `! IO + Net` but is not permitted here
    = help: remove @pure, or constrain `?E <: { Alloc, Sync }`
 ```
 
+#### Closure Captures and the Effect System
+
+A closure that mutates captured state has no named effect for the mutation itself — and this is correct, not a gap.
+
+```ferrum
+let mut count = 0;
+let bump = || { count += 1; };  // FnMut — mutates captured state
+                                 // effect: {} (pure — wrapping arithmetic, no IO/Net/Panic)
+```
+
+`bump` has no named effects. It also cannot be passed where `Fn` is required — it is `FnMut`, meaning the caller must hold `&mut` access to the closure to call it. The borrow checker enforces this. The mutation is to the caller's own local data, captured through exclusive `&mut` access that the borrow checker already tracks.
+
+The effect system and the ownership system answer different questions and are orthogonal:
+
+| System | Question | Mechanism |
+|--------|----------|-----------|
+| Effect system | Does this function affect the world *outside* the call? | `! IO`, `! Net`, `! Panic`, etc. |
+| Ownership / `Fn` hierarchy | Does this function mutate *the caller's* data? | `Fn` / `FnMut` / `FnOnce` trait bounds |
+
+Mutation through closure captures is "inside the call" from the perspective of the caller who created the captures — it is state the caller explicitly handed to the closure via `&mut`. It is not a surprise observable side effect. The caller knows the data may be mutated because the borrow checker required them to give up exclusive access to provide it.
+
+`?E` in a higher-order function captures the named effects of the closure — IO, Net, Panic, etc. The `Fn`/`FnMut` distinction captures whether the closure mutates captured state. Both are part of the closure's full type; neither subsumes the other.
+
+A practical consequence: a `Fn` bound in a `?E` context is not a claim that the callback does nothing surprising — it is specifically a claim that the callback does not mutate its own capture environment. The closure may still have `! IO` or `! Panic` effects, which `?E` propagates correctly.
+
 ### 2.6 Effect Boundaries
 
 Crossing certain architectural boundaries requires explicit effect declaration:
