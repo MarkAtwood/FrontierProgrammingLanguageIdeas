@@ -215,10 +215,10 @@ Pure functions are referentially transparent: calling them twice with the same a
 
 ### 2.5 Effect Polymorphism
 
-Functions can be polymorphic over effects:
+Functions can be polymorphic over effects using **effect variables** written with a `?` prefix:
 
 ```ferrum
-fn map_result[T, U, E][eff](f: fn(T): U ! eff, r: Result[T, E]): Result[U, E] ! eff {
+fn map_result[T, U, E](f: fn(T): U ! ?E, r: Result[T, E]): Result[U, E] ! ?E {
     match r {
         Ok(v)  => Ok(f(v)),
         Err(e) => Err(e),
@@ -226,7 +226,89 @@ fn map_result[T, U, E][eff](f: fn(T): U ! eff, r: Result[T, E]): Result[U, E] ! 
 }
 ```
 
-The `[eff]` parameter ranges over sets of effects. This is primarily used in the standard library for higher-order functions.
+#### Syntax and Inference
+
+Effect variables (`?E`, `?Eff`, `?E1`, `?E2`, …) are declared by use — any identifier prefixed with `?` in an effect position is an effect variable. They are **always inferred** from the argument types at each call site; you never write them explicitly as type arguments.
+
+```ferrum
+// ?E is inferred from f's concrete type at the call site
+map_result(pure_fn, r)        // ?E = {} (pure)
+map_result(io_fn, r)          // ?E = ! IO
+map_result(net_io_fn, r)      // ?E = ! Net + IO
+```
+
+#### Multiple Independent Effect Variables
+
+Each `?`-prefixed name is an independent variable. Two callbacks with different effects use different names:
+
+```ferrum
+fn run_both[F, G](f: F, g: G) ! ?Ef + ?Eg
+    where F: Fn() ! ?Ef,
+          G: Fn() ! ?Eg
+{
+    f()
+    g()
+}
+// Called with f: !IO, g: !Net  →  run_both has effects ! IO + Net
+// Called with f: pure, g: pure →  run_both is pure
+```
+
+#### Constraints on Effect Variables
+
+Effect variables can be upper-bounded to restrict what the caller may pass:
+
+```ferrum
+// Sandbox: callback may only use IO or Net, never Unsafe
+fn sandbox[F, T](f: F): T ! ?E
+    where F: Fn(): T ! ?E,
+          ?E <: {IO, Net}      // compile error if f has Unsafe, Panic, etc.
+{
+    f()
+}
+
+// Adapter: callback must not do IO (pure or allocation only)
+fn memoize[F](f: F): impl Fn(): i32
+    where F: Fn(): i32 ! ?E,
+          ?E <: {Alloc, Sync}
+{
+    // ...
+}
+```
+
+`?E <: {effects}` means "?E must be a subset of this set." The bound is checked at the call site — a caller passing a function with disallowed effects gets a compile error naming the offending effect.
+
+#### Interaction with `@pure`
+
+`@pure` suppresses `{Alloc, Sync}` from the visible effect set. A `@pure` function cannot accept an unconstrained `?E` callback — if `?E` resolves to `! IO`, the `@pure` guarantee would be violated:
+
+```ferrum
+// COMPILE ERROR: unconstrained ?E is incompatible with @pure
+@pure
+fn transform[F](f: F): i32 where F: Fn(): i32 ! ?E { f() }
+
+// OK: ?E constrained to suppressible effects
+@pure
+fn transform[F](f: F): i32
+    where F: Fn(): i32 ! ?E,
+          ?E <: {Alloc, Sync}
+{ f() }
+```
+
+#### Unification Error Messages
+
+When `?E` resolves to an incompatible effect set, the compiler names the variable, the resolved set, and why it's rejected:
+
+```
+error: effect variable ?E resolves to `! IO + Net` but is not permitted here
+  --> src/lib.fe:8:1
+   |
+ 8 | fn transform[F](f: F): i32
+   |    ^^^^^^^^^
+   |
+   = note: ?E inferred as `! IO + Net` from argument `f` at this call site
+   = note: @pure permits only { Alloc, Sync } effects
+   = help: remove @pure, or constrain `?E <: { Alloc, Sync }`
+```
 
 ### 2.6 Effect Boundaries
 

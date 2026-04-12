@@ -219,9 +219,9 @@ Sometimes you write a function that passes through whatever effects its argument
 
 ```ferrum
 pub fn retry[F, T](times: u32, f: F): Option[T]
-where
-    F: Fn(): Result[T, Error] ! ?E   // ?E means "whatever effects F has"
-! ?E {
+    where F: Fn(): Result[T, Error] ! ?E
+    ! ?E
+{
     for _ in 0..times {
         if let Ok(result) = f() {
             return Some(result)
@@ -231,7 +231,36 @@ where
 }
 ```
 
-The `?E` is an effect variable. `retry` doesn't add effects — it has whatever effects `f` has. If you pass a pure function, `retry` is pure. If you pass an IO function, `retry` does IO.
+`?E` is an **effect variable** — an identifier prefixed with `?` in an effect position. `retry` doesn't add effects; it has whatever effects `f` has. The compiler infers `?E` from the concrete type of the argument at each call site:
+
+```ferrum
+retry(3, pure_computation)    // ?E = {} — retry is pure
+retry(3, fetch_from_disk)     // ?E = ! IO — retry does IO
+retry(3, call_api)            // ?E = ! Net + IO — retry does Net + IO
+```
+
+You never write `?E` explicitly as a type argument — it's always inferred.
+
+**Multiple effect variables** are independent — use different names for different callbacks:
+
+```ferrum
+fn run_both[F, G](f: F, g: G) ! ?Ef + ?Eg
+    where F: Fn() ! ?Ef,
+          G: Fn() ! ?Eg
+```
+
+**Constraining effect variables** — if you want to limit what the caller can pass:
+
+```ferrum
+// This combinator may only wrap IO or Net callbacks, never Unsafe
+fn sandbox[F, T](f: F): T ! ?E
+    where F: Fn(): T ! ?E,
+          ?E <: {IO, Net}
+```
+
+`?E <: {IO, Net}` is a compile-time constraint: the caller gets an error if they try to pass a callback with `! Unsafe` or `! Panic`. This is how you build effect-bounded combinators — wrappers that are polymorphic but not infinitely permissive.
+
+For the full specification including `@pure` interaction and error message format, see the language reference §2.5.
 
 ---
 
