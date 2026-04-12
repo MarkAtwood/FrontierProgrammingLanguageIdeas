@@ -490,32 +490,45 @@ proof fn reverse_involutive[T](xs: &[T])
 
 `proof fn` is total, pure, and erased after verification. Writing a proof function is structurally like writing a Coq term: you're providing the derivation, and the compiler checks it.
 
-The `verified_by` annotation links a fast implementation to a proof:
+Two annotations link a fast implementation to a specification:
+
+**`tested_by`** — in debug builds, the compiler calls both implementations and asserts outputs match. Runtime equivalence checking; catches bugs on tested inputs. No guarantee for untested inputs. The Haskell analogy is QuickCheck, but wired automatically by the compiler.
+
+**`proven_by`** — you provide a proof of equivalence; the compiler verifies it at compile time. All inputs, no runtime overhead. The Haskell analogy is a Coq/Agda proof term.
 
 ```ferrum
-proof fn insertion_sort_correct[T: Ord](xs: Vec[T]): SortedVec[T]
+proof fn insertion_sort_spec[T: Ord](xs: Vec[T]): SortedVec[T]
     ensures result.is_permutation_of(&xs)
+    ensures result.is_sorted()
+{ /* reference implementation */ }
+
+// Tested: debug builds compare against spec, release builds skip spec
+fn insertion_sort[T: Ord](xs: Vec[T]): SortedVec[T]
+    tested_by(insertion_sort_spec)
 { ... }
 
-fn insertion_sort_fast[T: Ord](xs: Vec[T]): SortedVec[T]
-    verified_by insertion_sort_correct
-    ! Unsafe
-{
-    unsafe { ... }   // proof guarantees postconditions; this fn just runs fast
-}
+// Proven: formal proof covers all inputs, verified at compile time
+proof fn insertion_sort_correct[T: Ord](xs: Vec[T]):
+    Prop[insertion_sort(xs) == insertion_sort_spec(xs)]
+{ ... }
+
+fn insertion_sort[T: Ord](xs: Vec[T]): SortedVec[T]
+    proven_by(insertion_sort_correct)
+{ ... }
 ```
 
-This is certified programming: the proof establishes the specification, the implementation claims to satisfy it, and `verified_by` is the linking step. Unlike Fstar/Dafny, the proof and implementation are in the same language, same compiler.
+This is certified programming: the spec establishes correctness, the implementation claims to satisfy it, and the annotation names what kind of claim is being made. Unlike Fstar/Dafny, proof and implementation live in the same language and compiler.
 
-### The Three-Level Hierarchy
+### The Four-Level Hierarchy
 
 | Level | Mechanism | Analogy |
 |-------|-----------|---------|
-| Types | Ownership, constraints | Standard type theory |
+| Types | Ownership, constrained types | Standard type theory |
 | Contracts + SMT | `requires`/`ensures`, Z3 | LiquidHaskell |
-| Proof functions | `proof fn`, inductive reasoning | Coq/Agda proof terms |
+| Spec comparison | `tested_by(spec_fn)` | QuickCheck wired automatically |
+| Formal proof | `proof fn` + `proven_by` | Coq/Agda proof terms |
 
-You work at the lowest level sufficient for your problem. Most application code uses only level 1. Library authors use level 2. Core infrastructure (crypto, sort, arithmetic) uses level 3.
+You work at the lowest level sufficient for your problem. Most application code uses only level 1. Library authors use levels 2–3. Core infrastructure (crypto, sort, arithmetic) uses level 4.
 
 ---
 
@@ -612,7 +625,7 @@ The `! IO + Net` effect annotation is a subset of a row type over a fixed set of
 | `module M : S = struct ... end` | `mod m { ... }` | no functors |
 | OCaml effect handlers | no equivalent currently | planned |
 | LiquidHaskell `{-@ f :: x:Int -> {v:Int | v > x} @-}` | `fn f(x: i32): i32 ensures result > x` | |
-| Coq `Theorem`, `Proof` | `proof fn`, verified by type checker | |
+| Coq `Theorem`, `Proof` | `proof fn` + `proven_by`, verified by type checker | |
 | `unsafePerformIO` | `unsafe { ... }` | explicit unsafe block |
 | `ST s a` with `runST` | `region` blocks | no rank-2 needed |
 

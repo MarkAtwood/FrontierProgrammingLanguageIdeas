@@ -81,7 +81,25 @@ s.spawn_detached(expr)    // no handle returned, task still bounded by scope
 s.spawn(with Heap as alloc { worker(data) })
 ```
 
-The expression passed to `spawn` runs in a new task. Its captures must implement `Send`. Its effects must include `Sync` if it communicates with other tasks.
+The expression passed to `spawn` runs in a new task. Two things are checked on every captured value:
+
+1. **`Send` bound:** the value's type must implement `Send`.
+2. **Allocator provenance:** the value's tracked allocator must outlive the task's scope.
+
+`Heap`-allocated values satisfy (2) unconditionally — `Heap` has no scope. Values allocated from a scoped allocator (`Arena`, `Pool`, `Stack`) may only be captured by tasks whose scope is nested inside the allocator's scope. The compiler tracks allocators invisibly (same model as regions) and reports a mismatch with a message naming the specific value and allocator.
+
+```ferrum
+scope s {
+    let arena = Arena.new(64.kb())
+    let data  = Vec.new_in(&arena)   // tracked as Vec[u8, &arena]
+
+    // ERROR: Vec[u8, &arena] cannot be captured here.
+    // arena is freed when scope s exits; task may read data after that.
+    s.spawn(with Heap as alloc { process(data) })
+}
+```
+
+Its effects must include `Sync` if it communicates with other tasks.
 
 ### 1.3 Channels
 
@@ -374,7 +392,11 @@ Ferrum's `read_volatile` and `write_volatile` are explicit at every access.
 
 Data-race freedom is enforced by the type system's `Send` and `Sync` bounds. The type system handles the common cases — the vast majority of concurrent code compiles with full safety guarantees and no annotations.
 
-The `unchecked` and `trusted` levels exist for the cases the type system cannot handle: lock-free algorithms, custom synchronization primitives, FFI boundaries, and hardware-specific code. Every `unchecked` block in concurrent code is:
+`Send` and `Sync` are derived structurally from field types. This derivation is not conservative — a type is `!Sync` because it contains a field that is `!Sync`, and that field is `!Sync` for a concrete reason (e.g., `RefCell` has a non-atomic borrow counter). The `trusted` annotation may not override this determination: `trusted` exists for properties the compiler cannot see, and structural `!Sync` is not one of them.
+
+Custom synchronization primitives that wrap `!Sync` types must use `unsafe impl Sync` to declare their new synchronization contract. This is the correct mechanism for implementing a lock type; `trusted` is not.
+
+The `unchecked` and `trusted` levels exist for the cases the type system cannot handle: lock-free algorithms at the implementation level of a synchronization primitive, FFI boundaries, and hardware-specific code. Every `unchecked` block in concurrent code is:
 - A statement a security auditor can search for and read
 - Documentation of a human judgment that would otherwise be invisible
 - A machine-readable signal the compiler can use for targeted verification

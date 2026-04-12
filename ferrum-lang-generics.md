@@ -37,13 +37,17 @@ marker trait NoAlloc  // implemented by allocators that always return Err
 | Allocator | Behavior | Use case |
 |---|---|---|
 | `Heap` | System allocator (malloc/free) | General purpose |
-| `Arena[N]` | Bump allocator, frees all at once | Short-lived batches |
+| `Arena[N]` | Bump allocator with drop tracking; drops values in reverse order on scope exit, then frees backing memory | Short-lived batches of any type |
+| `Bump[N]` | Simple bump pointer; no individual frees, no drop calls — scope exit frees the whole block | Parse buffers, plain-data types only |
 | `Pool[T, N]` | Fixed-size object pool | Repeated allocation of same type |
 | `Stack[N]` | Stack allocator (LIFO) | Nested allocations |
-| `Bump` | Simple bump pointer, no free | Parse buffers |
 | `Null` | Always returns `AllocError` | Enforcing zero-allocation paths |
 | `Counted[A]` | Wraps A, tracks allocation count | Testing, debugging |
 | `Failing[A, N]` | Fails after N allocations | Fault injection testing |
+
+**`Arena` vs `Bump`:** `Arena` can store any type — it maintains a drop list and calls destructors in reverse order when the scope exits. `Bump` is simpler and faster (no drop list, one pointer reset), but the compiler rejects storing types with drop glue in a `Bump` allocator. Use `Bump` when you know your data is plain and want to pay nothing for cleanup; use `Arena` for everything else.
+
+**Linter:** The lint `arena_trivial_drop` fires when every type stored in an `Arena` is drop-glue-free — the compiler can see that `Bump` would have been sufficient and the drop tracking overhead is wasted. This is informational, not an error: use `Bump` explicitly if you want to enforce the constraint and pay nothing for drop tracking.
 
 ### 1.3 Allocator as Capability
 
@@ -73,7 +77,7 @@ fn parse_and_keep(src: &str)
     given [ParseAlloc: Allocator, OutputAlloc: Allocator]
     : Ast
 {
-    let tmp: ParseTree | ParseAlloc = parse_tree(src)
+    let tmp: ParseTree[ParseAlloc] = parse_tree(src)
     tmp.into_ast()   // converts to Ast, allocated with OutputAlloc
 }
 ```
@@ -84,7 +88,7 @@ The `given [A: Allocator]` clause makes the function generic over allocators. Ca
 let arena = Arena.new(64.kb())
 with arena as alloc {
     let idx = build_temp_index(&docs)  // uses arena
-}  // arena and all its allocations freed here
+}  // arena drops all stored values in reverse order, then frees backing memory
 ```
 
 ### 1.4 Zero-Allocation Enforcement
@@ -107,21 +111,58 @@ with Null as alloc {
 
 ### 1.5 Allocation in Types
 
-Collections carry their allocator as an associated type:
+Collections are generic over their allocator. The allocator parameter is always present and always tracked by the compiler — but it is invisible at the surface by default, the same way region annotations are invisible until you need them.
 
 ```ferrum
-type Vec[T] {
-    ptr: *mut T,
-    len: usize,
-    cap: usize,
-    alloc: A,   // A resolved at construction
-    ...
+// Surface type — allocator hidden, inferred from context
+let v: Vec[i32] = Vec.new()           // allocator = ambient (Heap by default)
+let v: Vec[i32] = Vec.new_in(arena)   // allocator = arena (inferred from argument)
+
+// Explicit allocator parameter — surfaced when you need to name it
+let v: Vec[i32, Arena] = Vec.new_in(arena)   // allocator named explicitly
+let v: Vec[i32, _]     = Vec.new_in(arena)   // compiler infers Arena, but parameter is visible
+```
+
+The compiler always knows the allocator — `Vec[i32]` in the type of `v` is shorthand for `Vec[i32, Heap]` or `Vec[i32, Arena]` depending on how it was constructed. The short form is used when the allocator doesn't need to be communicated; the long form is used when it does.
+
+**Allocator provenance and spawn safety:**
+
+A value's tracked allocator determines where it can go. A task may only capture values whose allocator outlives the task's scope. This check is **recursive**: the compiler walks the full type tree of every captured value and checks the allocator of every heap-backed field, not just the outermost type.
+
+```ferrum
+scope s {
+    let arena = Arena.new(64.kb())
+    let data: Vec[u8] = Vec.new_in(&arena)   // compiler tracks: Vec[u8, &arena]
+
+    // COMPILE ERROR: data's allocator (&arena) does not outlive the Heap task.
+    // The task may run past the scope exit; arena drops and frees at scope exit.
+    s.spawn(with Heap as alloc { process(data) })
+
+    // ok: task is bounded by scope s, arena is also bounded by scope s
+    s.spawn(with arena as alloc { process(data) })
 }
 
-// Construction uses ambient allocator
-let v: Vec[i32] = Vec.new()           // A = ambient
-let v: Vec[i32] = Vec.new_in(Arena)   // A = Arena, explicit override
+// The check reaches into nested types:
+scope s {
+    let arena = Arena.new(64.kb())
+    let strings: Vec[String[Arena], Heap] = ...  // Heap Vec, Arena String contents
+
+    // COMPILE ERROR: String[Arena] fields inside strings use arena,
+    // which does not outlive this Heap task.
+    s.spawn(with Heap as alloc { process(strings) })
+}
 ```
+
+The error message names the mismatch and the path to it: "cannot move `Vec[String[Arena], Heap]` into task — field `String.buf` uses allocator `arena` which does not outlive this task's scope."
+
+`Heap`-allocated values at every level of the type tree are always movable across task boundaries because `Heap` has no scope.
+
+> **Design decision:** Allocator provenance is tracked invisibly by the compiler, not erased from
+> the type system. The surface type `Vec[i32]` hides the allocator the same way `&T` hides the
+> region. The spawn check is recursive through the full type tree because a scoped sub-allocation
+> at any depth causes a use-after-free if it escapes the scope — checking only the outermost
+> allocator would leave nested arena-backed fields unguarded. The cost of drop tracking in `Arena`
+> is surfaced by the `arena_trivial_drop` lint, not enforced as a restriction.
 
 ---
 

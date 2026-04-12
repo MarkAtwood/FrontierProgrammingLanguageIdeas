@@ -186,6 +186,35 @@ return value    // early return
 return          // early return of ()
 ```
 
+**`defer`:**
+```ferrum
+defer { expr }   // runs on any exit from the enclosing block
+```
+
+`defer` binds to the innermost enclosing block, not the function. It runs unconditionally on:
+- Normal block completion
+- `return` from the enclosing function
+- `?` propagation (before the error leaves the block)
+- Panic unwind
+
+Multiple `defer` expressions in one block run in **reverse declaration order** — last declared, first executed. `defer` captures variables by reference.
+
+```ferrum
+fn push_batch(q: &mut BoundedQueue[T], items: &[T]) ! IO {
+    trusted("batch push — truncate restores invariant on any exit") {
+        defer { q.data.truncate(q.limit) }   // guaranteed to run
+
+        for item in items {
+            q.data.push(item.clone())
+            log_progress(q)?   // early return here: defer fires, truncate runs,
+                               // then Err propagates — invariant holds for caller
+        }
+    }
+}
+```
+
+`defer` does not suppress or catch errors — it runs cleanup and then allows the exit to proceed normally. A panic inside a `defer` expression behaves the same as a panic anywhere else.
+
 ### 1.6 The `?` Operator
 
 Propagates `Err` or `None` from the current function:
@@ -198,9 +227,26 @@ fn read_and_parse(path: &str): Result[Data] ! IO {
 }
 ```
 
-`?` works on `Result[T, E]` and `Option[T]`. For `Option`, `None` propagates. For `Result`, `Err(e)` propagates after applying `From.from` to convert the error type.
+`?` works on `Result[T, E]` and `Option[T]`. For `Option`, `None` propagates. For `Result`, `Err(e)` propagates directly — no implicit type conversion occurs.
+
+The function's return error type must accommodate the propagated error. There are two ways to achieve this:
+
+1. **Error union (preferred):** The return type is `Result[T, E1 | E2 | ...]`. The compiler widens the union automatically as `?` expressions are encountered. Private functions may write `Result[T, _]` and let the compiler infer the full union. `pub` functions must write the union explicitly — same rule as effect annotations.
+
+2. **Explicit conversion:** Use `.map_err(|e| ...)` at the call site to convert before propagating:
+   ```ferrum
+   let x = fallible().map_err(MyError::Wrap)?
+   ```
+
+There is no implicit `From`-trait coercion. If a `?` expression's error type does not fit the return type, it is a compile error with a message naming the mismatch.
 
 `?` also propagates the effect: using `?` on a `! IO` function inside a function makes that function `! IO`.
+
+> **Design decision:** `?` does not coerce through a `From` trait. The `From`-based approach (as in
+> Rust) leads to god error types, coherence conflicts, and invisible information loss at every `?`
+> site. Error unions make the accumulated error types visible in the signature, preserve all error
+> information, and require no trait impls. Explicit `.map_err()` is available when a caller
+> genuinely wants to collapse to a named type.
 
 ### 1.7 Closures
 

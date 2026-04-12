@@ -488,19 +488,31 @@ proof fn sorted_insert_preserves_order[T: Ord](
 }
 ```
 
-### `verified_by` — Linking Fast Code to Proofs
+### `tested_by` and `proven_by` — Linking Fast Implementations to Specifications
+
+Two annotations, two levels of guarantee:
+
+- **`tested_by(spec_fn)`** — in debug builds, calls both implementations and asserts outputs match. Runtime check on tested inputs only. No formal guarantee.
+- **`proven_by(proof_fn)`** — proof of equivalence verified at compile time. Covers all inputs. Requires writing a proof function.
 
 ```ferrum
-proof fn sorted_insert[T: Ord](xs: SortedVec[T], x: T): SortedVec[T]
+proof fn sorted_insert_spec[T: Ord](xs: SortedVec[T], x: T): SortedVec[T]
     ensures result.is_sorted()
 { ... }
 
-fn sorted_insert_fast[T: Ord](xs: &mut SortedVec[T], x: T)
-    verified_by sorted_insert
-    ! Unsafe
-{
-    unsafe { ... }
-}
+// tested_by: debug builds compare outputs; release builds skip spec
+fn sorted_insert[T: Ord](xs: SortedVec[T], x: T): SortedVec[T]
+    tested_by(sorted_insert_spec)
+{ ... }
+
+// proven_by: formal proof, compiler-verified, all inputs
+proof fn sorted_insert_correct[T: Ord](xs: SortedVec[T], x: T):
+    Prop[sorted_insert(xs, x) == sorted_insert_spec(xs, x)]
+{ ... }
+
+fn sorted_insert[T: Ord](xs: SortedVec[T], x: T): SortedVec[T]
+    proven_by(sorted_insert_correct)
+{ ... }
 ```
 
 ---
@@ -726,7 +738,8 @@ requires <expr>                   — precondition
 ensures <expr>                    — postcondition
 invariant <expr>                  — type invariant
 proof fn ...                      — compile-time proof, erased
-verified_by <proof_fn>            — link fast impl to proof
+tested_by(<spec_fn>)              — link fast impl to spec; debug builds compare outputs
+proven_by(<proof_fn>)             — link fast impl to proof; compiler-verified for all inputs
 region r { ... }                  — arena lifetime scope
 unchecked / trusted / unsafe      — safety escape hatches
 pinned type                       — self-referential, non-moveable

@@ -1080,11 +1080,15 @@ proof fn reverse_involutive[T](xs: &[T])
 
 ### Linking Proofs to Implementations
 
-You can write a reference implementation with a proof and link it to an optimized implementation:
+Two annotations connect a fast implementation to a specification, at different levels of guarantee:
+
+**`tested_by`** — the compiler calls both implementations in debug builds and asserts their outputs match. Catches behavioral divergence on inputs you actually run. No formal guarantee for untested inputs.
+
+**`proven_by`** — you write a proof of equivalence. The compiler verifies it at compile time. Covers all inputs. Hard to write; use for crypto and safety-critical paths.
 
 ```ferrum
-// Reference implementation — slow but obviously correct
-proof fn sorted_insert[T: Ord](xs: SortedVec[T], x: T): SortedVec[T]
+// Specification — correct by construction
+proof fn sorted_insert_spec[T: Ord](xs: SortedVec[T], x: T): SortedVec[T]
     ensures result.len() == xs.len() + 1
     ensures result.is_sorted()
 {
@@ -1094,13 +1098,22 @@ proof fn sorted_insert[T: Ord](xs: SortedVec[T], x: T): SortedVec[T]
     result
 }
 
-// Optimized implementation
-fn sorted_insert_fast[T: Ord](xs: &mut SortedVec[T], x: T)
-    verified_by sorted_insert
-    ! Unsafe
+// Fast implementation with runtime equivalence checking (debug only)
+fn sorted_insert[T: Ord](xs: SortedVec[T], x: T): SortedVec[T]
+    tested_by(sorted_insert_spec)
 {
-    // Can use unsafe optimizations — the proof guarantees correctness
-    // The compiler verifies this matches sorted_insert's behavior
+    // optimized path — debug builds compare output against sorted_insert_spec
+}
+
+// Or: formal proof that the fast impl equals the spec for all inputs
+proof fn sorted_insert_correct[T: Ord](xs: SortedVec[T], x: T):
+    Prop[sorted_insert(xs, x) == sorted_insert_spec(xs, x)]
+{ ... }
+
+fn sorted_insert[T: Ord](xs: SortedVec[T], x: T): SortedVec[T]
+    proven_by(sorted_insert_correct)
+{
+    // compiler has verified this is equivalent to the spec for all inputs
 }
 ```
 
@@ -1118,6 +1131,17 @@ fn sorted_insert_fast[T: Ord](xs: &mut SortedVec[T], x: T)
 - Code where incorrectness is annoying but not catastrophic
 
 The proof system is opt-in. You can use Ferrum's contracts as runtime checks forever and never touch proofs. Proofs are for when "all my tests pass" isn't strong enough.
+
+### The Four Levels of Correctness
+
+| Level | Mechanism | Coverage | Who uses it |
+|-------|-----------|----------|-------------|
+| Types | Ownership, constrained types, `Option[T]` | Values the type system can represent | Everyone |
+| Contracts | `requires`/`ensures`, SMT auto-discharge | Properties expressible as predicates | Library authors, careful code |
+| Spec comparison | `tested_by(spec_fn)` | Inputs you actually run | Anyone with a reference impl |
+| Formal proof | `proof fn` + `proven_by` | All inputs, mathematically | Crypto, safety-critical, high-assurance |
+
+Most Ferrum code stops at level 2. `tested_by` is the practical step up when contracts aren't expressive enough. `proven_by` is for when untested inputs must also be correct.
 
 ---
 

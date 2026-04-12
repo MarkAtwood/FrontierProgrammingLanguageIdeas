@@ -690,17 +690,28 @@ let p: Percent = 150u8.try_into()?     // Err(ConstraintViolation)
 // From constrained type — always succeeds (constraint satisfied)
 let x: u8 = p.into()                   // 50
 
-// as bypasses constraint checking (unsafe for constrained types)
-let p: Percent = 150u8 as Percent      // undefined behavior in safe code!
-// Constrained types require try_into() or explicit unsafe
+// as to a constrained target always checks the constraint and panics on violation.
+// The check is never elided, even in release mode.
+//
+// Design decision: 'as' does not bypass constrained-type invariants.
+// Rationale: 'as' is the direct syntax for constructing a constrained value;
+// allowing it to silently produce out-of-range values in safe code makes the
+// invariant unenforceable. Callers who need to recover from a violation
+// rather than panic must use try_into() instead.
+let p: Percent = 50u8 as Percent       // ok: 50 satisfies value <= 100
+let p: Percent = 150u8 as Percent      // panic: 150 violates value <= 100
+// To handle the violation instead of panicking:
+let p: Result[Percent] = 150u8.try_into()  // Err(ConstraintViolation)
 ```
 
 **Conversion method summary:**
 
 ```ferrum
 // For any numeric conversion:
-value as T                    // defined behavior per matrix above
-value.try_into(): Result[T]   // Err if not exactly representable
+value as T                    // defined behavior per matrix above;
+                              // if T is a constrained type, panics on violation
+                              // (check is never elided — use try_into() to recover)
+value.try_into(): Result[T]   // Err if not exactly representable, or constraint violated
 value.saturating_into(): T    // clamp to T.MIN..=T.MAX
 value.wrapping_into(): T      // modular arithmetic (integers only)
 
@@ -767,6 +778,13 @@ type SafeQ16_16 = Q16_16 where value >= -1000.0 and value <= 1000.0
 // - by the SMT solver in proof mode
 // - as a runtime assertion in debug mode
 // - elided in release mode (unless annotated `safe`)
+//
+// Exception — 'as' casts to a constrained type: the constraint check is always
+// a runtime panic, in all build modes, and is never elided.
+// Rationale: 'as' is the direct construction syntax; eliding its check in
+// release would silently invalidate values that downstream code treats as
+// statically guaranteed. This is the only place where a constraint check is
+// unconditional. Use try_into() if you need to handle violation without panicking.
 ```
 
 Constraint language supports: `==`, `!=`, `<`, `<=`, `>`, `>=`, `&&`, `||`,

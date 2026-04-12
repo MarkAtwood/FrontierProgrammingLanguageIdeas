@@ -134,7 +134,42 @@ When SMT can't verify something, the contract becomes a runtime check or you wri
 
 ---
 
-## Layer 3: Proof Functions
+## Layer 3: Spec Comparison (`tested_by`)
+
+For properties that are hard to express as contracts but easy to verify by comparison, you write a specification function and link it with `tested_by`.
+
+In debug builds, the compiler calls both functions on the same inputs and asserts their outputs match. In release builds, only the fast path runs.
+
+```ferrum
+// Specification — correct by construction, not optimized
+proof fn sorted_insert_spec[T: Ord](xs: SortedVec[T], x: T): SortedVec[T]
+    ensures result.len() == xs.len() + 1
+    ensures result.is_sorted()
+{
+    let mut result = xs.clone()
+    let pos = result.binary_search(&x).unwrap_or_else(|i| i)
+    result.insert(pos, x)
+    result
+}
+
+// Fast implementation — compared against spec in every debug build run
+fn sorted_insert[T: Ord](xs: SortedVec[T], x: T): SortedVec[T]
+    tested_by(sorted_insert_spec)
+{
+    // optimized path
+    // debug builds call sorted_insert_spec on the same inputs and assert outputs match
+}
+```
+
+**This catches:** divergence between the reference impl and the optimization on any input you actually run.
+
+**This doesn't catch:** bugs that only appear on inputs you never test.
+
+This is the layer most application developers reach for when contracts aren't enough. You don't need to know anything about formal logic — just write a simple, obviously-correct version of the function.
+
+---
+
+## Layer 4: Proof Functions (`proven_by`)
 
 For properties SMT can't handle, you write a proof — a function that exists only to convince the compiler.
 
@@ -276,10 +311,15 @@ You escalate to more complex contracts when:
 - The correctness property isn't obvious
 - You're writing a library others will depend on
 
-You write proof functions when:
-- SMT can't verify the contract
-- You're implementing core data structures
-- You need mathematical certainty (cryptography, aerospace, finance)
+You use `tested_by` when:
+- The property is hard to express as a contract but easy to express as a reference implementation
+- You can write a simple, obviously-correct version and a fast version
+- Debug-only coverage is acceptable (bugs on untested inputs won't be caught)
+
+You write `proof fn` + `proven_by` when:
+- You need mathematical certainty for **all** inputs, not just tested ones
+- You're implementing cryptographic or safety-critical code
+- "All my tests pass" isn't a strong enough guarantee
 
 ---
 
@@ -287,9 +327,10 @@ You write proof functions when:
 
 | Layer | What it is | Who uses it | Compiler does |
 |-------|-----------|-------------|---------------|
-| Types | `i32`, `Option[T]` | Everyone | Full verification |
+| Types | `i32`, `Option[T]`, constrained types | Everyone | Full verification |
 | Contracts | `requires`, `ensures` | Library authors, careful code | SMT where possible, runtime checks otherwise |
-| Proofs | `proof fn` | Data structure implementers, high-assurance code | Full verification, then erases |
+| Spec comparison | `tested_by(spec_fn)` | Anyone with a reference impl | Debug: compare outputs against spec; release: fast path only |
+| Formal proofs | `proof fn` + `proven_by` | Crypto, safety-critical, high-assurance | Verifies all inputs at compile time, then erases |
 
 Each layer is optional. You move up when your problem requires it.
 
@@ -329,7 +370,8 @@ You can control this:
 | Postconditions | Comments | None | `ensures` (verified or checked) |
 | Overflow checks | None (UB) | Automatic (slow) | Verified at compile time |
 | Bounds checks | None (UB) | Automatic (runtime) | Verified where possible |
-| Mathematical proofs | Not possible | Not possible | `proof fn` |
+| Spec comparison | None | None | `tested_by` (debug oracle) |
+| Formal proofs | Not possible | Not possible | `proof fn` + `proven_by` |
 
 Proofs in Ferrum aren't academic exercises. They're tools for catching bugs that testing misses — the overflow that happens at scale, the bounds error in the edge case, the invariant that holds "by construction" until someone changes the construction.
 

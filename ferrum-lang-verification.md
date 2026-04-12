@@ -50,7 +50,42 @@ type BoundedQueue[T] {
 | Debug | Runtime assertions — violations abort with diagnostic |
 | Release | Optimizer assumptions — violations are undefined behavior |
 
-In **debug builds**, contracts are runtime checks. A violated `requires` aborts at the call site with a message naming the caller's bug. A violated `ensures` aborts at the return site with a message naming the implementer's bug. Type invariants are checked at public API boundaries.
+In **debug builds**, contracts are runtime checks. A violated `requires` aborts at the call site with a message naming the caller's bug. A violated `ensures` aborts at the return site with a message naming the implementer's bug. Type invariants are checked at two points:
+
+1. **Public API boundaries** — when an owned value of a type with invariants crosses into or out of a public function. The invariant is checked on the value itself.
+
+2. **Exit of `trusted`/`unchecked` blocks holding `&mut T`** — when a `trusted` or `unchecked` block exits (by any means: normal completion, `return`, `?`, or panic unwind) while holding a `&mut T` where `T` has declared invariants, the invariant is checked on `*T` before the exit proceeds. This covers the case where the caller still holds the reference and will observe any violation.
+
+```ferrum
+fn push_batch(q: &mut BoundedQueue[T], items: &[T]) ! IO {
+    trusted("...") {
+        for item in items { q.data.push(item.clone()) }
+        log_progress(q)?   // exit via ?: invariant checked here on *q before Err propagates
+    }
+    // boundary: also checked here at function exit
+}
+```
+
+**Lint: `mut_invariant_unguarded_exit`**
+
+The compiler emits this lint when a `trusted` or `unchecked` block:
+- holds a `&mut T` where `T` has declared invariants, AND
+- contains an early exit (`?`, `return`, labeled `break`) that may occur while the invariant is temporarily violated, AND
+- has no `defer` expression that restores the invariant before any such exit.
+
+The lint is a warning, not an error, because the programmer may know the invariant holds on all early-exit paths even without a `defer`. The warning text names the specific `&mut` binding and the early-exit expression.
+
+**Ownership principle for unrestorable invariants**
+
+If a function cannot guarantee invariant restoration on all exit paths — because the restoration itself can fail, or because the transformation is fundamentally non-atomic — the function should take **ownership** rather than `&mut`. A function that owns the value and fails can return the broken value wrapped in an error, or simply drop it. The caller never observes an intermediate state because they gave up ownership for the duration of the call.
+
+```ferrum
+// If restoration can fail, take ownership — caller never sees a broken BoundedQueue
+fn push_batch(q: BoundedQueue[T], items: &[T]): Result[BoundedQueue[T], (BoundedQueue[T], IoError)] ! IO {
+    // on failure, return (q_in_some_valid_state, error) so caller can recover
+    // or drop q if recovery is impossible
+}
+```
 
 In **release builds**, contracts become optimizer assumptions. The compiler assumes all contracts hold and optimizes accordingly: eliminating redundant bounds checks, proving branches unreachable, enabling vectorization. Violating a contract in release mode is undefined behavior — the compiler already used the contract to transform the code.
 
@@ -139,27 +174,65 @@ safe_divide(10, 2)       // discharged by SMT: 2 != 0 is trivially true
 safe_divide(10, y + 1)   // SMT may or may not discharge, depending on what's known about y
 ```
 
-### 1.9 `verified_by`: Linking Proofs to Implementations
+### 1.9 Linking Fast Implementations to Specifications
+
+Two annotations exist, at different levels of guarantee. Choose based on what the consequences of a wrong implementation are.
+
+#### `tested_by` — runtime equivalence checking
 
 ```ferrum
-// Proof (slow, verified)
-proof fn sorted_insert[T: Ord](xs: SortedVec[T], x: T): SortedVec[T]
+proof fn sorted_insert_spec[T: Ord](xs: SortedVec[T], x: T): SortedVec[T]
     ensures result.len() == xs.len() + 1
     ensures result.is_sorted()
-{ ... }
+    ensures result.contains(&x)
+{ /* reference implementation — correct but not optimized */ }
 
-// Fast implementation, linked to proof
-fn sorted_insert_fast[T: Ord](xs: &mut SortedVec[T], x: T)
-    verified_by sorted_insert
-    ! Unsafe
+fn sorted_insert[T: Ord](xs: SortedVec[T], x: T): SortedVec[T]
+    tested_by(sorted_insert_spec)
 {
-    // The proof guarantees the postconditions hold
-    // Compiler checks that the observable behavior matches
-    unsafe { ... }
+    // fast path — binary search, in-place insert
 }
 ```
 
-The `verified_by` link is checked by the compiler: the fast implementation's signature must be compatible with the proof function's specification. Mismatches are compile errors.
+In **debug builds**: the compiler calls both `sorted_insert` and `sorted_insert_spec` with the same inputs and asserts their outputs are equal. A mismatch panics:
+
+```
+tested_by mismatch: sorted_insert vs sorted_insert_spec
+  input: xs=[1,3,5], x=2
+  fast:  [1,3,5]     ← missing x
+  spec:  [1,2,3,5]
+```
+
+In **release builds**: only the fast implementation runs. The spec function is never called.
+
+`tested_by` is honest about what it provides: behavioral equivalence on inputs you actually run. It does not prove equivalence for all possible inputs. A fast implementation that is wrong only for inputs not covered by your test suite will not be caught. Use `tested_by` for performance-optimized implementations where testing gives sufficient confidence.
+
+#### `proven_by` — formal proof of equivalence
+
+```ferrum
+proof fn sorted_insert_correct[T: Ord](xs: SortedVec[T], x: T):
+    Prop[sorted_insert(xs, x) == sorted_insert_spec(xs, x)]
+{ /* formal proof — verified by the compiler */ }
+
+fn sorted_insert[T: Ord](xs: SortedVec[T], x: T): SortedVec[T]
+    proven_by(sorted_insert_correct)
+{
+    // fast path
+}
+```
+
+The compiler verifies the proof function at compile time. No runtime check, no coverage concern — the proof holds for all inputs or the build fails. Use `proven_by` for cryptographic implementations, safety-critical paths, and anything where a missed edge case causes serious harm.
+
+`proven_by` requires writing a proof function that establishes equivalence using Ferrum's proof system (§1.5–1.8). This is hard. Expect it in core libraries and security-critical code, not everyday application code.
+
+#### What is checked in both cases
+
+Both annotations verify at minimum that the signatures are compatible — same type parameters, same argument types, same return type. A mismatch is a compile error regardless of which annotation you use.
+
+> **Design decision:** The original `verified_by` checked only signature compatibility, not behavioral
+> equivalence — providing no actual verification guarantee while implying one. Renamed and split into
+> `tested_by` (runtime comparison in debug, honest about coverage limits) and `proven_by` (formal
+> proof, covers all inputs). The names say what the annotations actually do.
 
 ### 1.10 Design-by-Contract Integration
 
@@ -440,6 +513,40 @@ fn from_raw_parts[T](ptr: *const T, len: usize): &[T] {
 Multiple `trusted` annotations are permitted on one function, each naming a distinct claim.
 
 `trusted` functions appear in the audit report (`ferrum audit --level trusted`) with their assertion strings. This makes the trust boundary explicit, nameable, and searchable.
+
+#### Prohibited assertions
+
+`trusted` may not assert `Send` or `Sync` on a type whose fields include a `!Send` or `!Sync` type. The compiler enforces this: if a `trusted` block attempts to use or produce a type in a `Send`/`Sync` position and the compiler has determined that type is `!Send`/`!Sync` due to its fields, the assertion is a compile error.
+
+```ferrum
+// COMPILE ERROR: RefCell[u64] is !Sync — trusted cannot override a known structural fact.
+// The compiler determined !Sync from the field type, not from conservative analysis.
+trusted("we manage synchronization ourselves") {
+    share_across_threads(Arc::new(RefCell::new(0u64)))
+}
+```
+
+The distinction that matters: `trusted` exists for properties the compiler's analysis cannot see — aliasing patterns, pointer validity, domain-specific invariants. Whether a type is `Send`/`Sync` is *not* something the compiler cannot see — it is derived directly from field types, and that derivation is correct. `trusted` cannot contradict a correct derivation; it can only fill in information the compiler lacks.
+
+**Legitimate alternative for custom synchronization primitives:**
+
+If you are wrapping a `!Sync` type with your own synchronization (e.g., building a new lock type around a `!Sync` primitive), use `unsafe impl`:
+
+```ferrum
+// MyMutex wraps UnsafeCell (which is !Sync) but provides its own locking protocol.
+// This requires unsafe impl, not trusted, because it declares a new synchronization contract.
+unsafe impl Sync for MyMutex[T] {}
+unsafe impl Send for MyMutex[T] {}
+```
+
+`unsafe impl Sync` is appropriate when you are *implementing* a synchronization primitive. `trusted` is never appropriate for asserting thread safety on a type that contains `!Sync` fields you did not wrap with synchronization.
+
+> **Design decision:** `trusted` was prohibited from asserting `Send`/`Sync` on `!Sync`-field types
+> because the `!Sync` determination is structural and correct — the compiler is not being overly
+> conservative, the type genuinely is not thread-safe. Allowing `trusted` to override a correct
+> structural determination would hollow out data-race freedom: any `!Sync` type could be made
+> "trusted Sync" with a string argument. The legitimate use case (implementing a new
+> synchronization primitive) already has a proper mechanism: `unsafe impl Sync`.
 
 ### 3.4 `extern`
 

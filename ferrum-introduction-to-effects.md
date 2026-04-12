@@ -236,21 +236,47 @@ The `?E` is an effect variable. `retry` doesn't add effects — it has whatever 
 
 ---
 
-## The Escape Hatch
+## Observationally Pure Functions
 
-Sometimes you need to lie. Maybe you're implementing a memoization cache that's observationally pure but internally uses mutation:
+Sometimes a function is pure from the caller's perspective but uses internal mutation — a memoization cache is the canonical example. The `@pure` attribute handles this, but it is **compiler-verified**, not a trust assertion.
+
+`@pure` is only valid when the compiler's inferred effects are a subset of `{Alloc, Sync}`. These are the two effects that are genuinely unobservable to callers: whether memory was allocated internally, and whether an internal lock was acquired, are implementation details the caller cannot detect. All other effects — `IO`, `Net`, `Panic`, `Unsafe`, `Async` — are caller-visible by definition and cannot be suppressed.
 
 ```ferrum
-// This function is pure from the caller's perspective
-// but uses internal mutation for the cache
-@pure  // trust me
+// ok: inferred effects are ! Alloc + ! Sync — both suppressible
+@pure
 fn expensive_computation(x: i32): i32 {
     static CACHE: Mutex[HashMap[i32, i32]] = ...
     // ...
 }
+
+// COMPILE ERROR: inferred effects include ! IO, which is not suppressible
+// A function that does IO is not observationally pure — the IO happens or it doesn't.
+@pure
+fn sneaky(x: i32): i32 {
+    log_to_file(x)
+    x * 2
+}
+
+// COMPILE ERROR: inferred effects include ! Panic, which is not suppressible
+// A panic is always caller-visible.
+@pure
+fn risky(x: i32): i32 {
+    vec![1, 2, 3][x]   // ! Panic (bounds check can fail)
+}
 ```
 
-The `@pure` attribute tells the compiler "I know this looks effectful, but trust me." This is an auditable escape hatch — you can grep for `@pure` to find all the places humans overrode the compiler.
+**What `@pure` does and does not guarantee:**
+
+The compiler verifies that the function's only effects are internal allocation and synchronization. It does *not* verify that the caching logic is correct — a buggy cache that returns wrong results for some inputs would still compile. This is the same situation as `unsafe`: the compiler checks the boundary, but correctness of the implementation inside that boundary is the author's responsibility.
+
+You can find all `@pure` functions in a codebase with `grep @pure`. Each one is a human claim that internal allocation/synchronization does not affect the observable result. That claim is auditable; the effect types are compiler-enforced.
+
+> **Design decision:** `@pure` was deliberately narrowed to `{Alloc, Sync}` suppressible effects.
+> The alternative — allowing suppression of any effect — would let functions lie about `IO`,
+> `Net`, and `Panic`, destroying the value of the effect system for callers. The memoization
+> pattern (the primary use case) only needs `Alloc` + `Sync` suppression, so the narrowed
+> form covers all legitimate uses without opening the broader hole.
 
 ---
 
@@ -262,7 +288,7 @@ The `@pure` attribute tells the compiler "I know this looks effectful, but trust
 | IO function | Same signature as pure | `! IO` in signature |
 | Effect checking | None | Compiler-enforced |
 | Writing annotations | N/A | Only at `pub` boundaries |
-| Escape hatch | Just do it | `@pure` attribute (auditable) |
+| Internal mutation, observationally pure | Just do it | `@pure` — compiler-verified: only `Alloc`+`Sync` effects allowed |
 
 Effects are types for "what else a function does." They make the implicit explicit, let the compiler help you, and document your APIs honestly — without cluttering every line of code.
 

@@ -361,12 +361,12 @@ Writing `match` for every operation is verbose. Most of the time, you want to sa
 ### What `?` Does
 
 ```ferrum
-let contents = fs.read_to_string(path)?;
+let contents = fs.read_to_string(path)?
 ```
 
 This single line means:
 1. Call `fs.read_to_string(path)`, which returns a `Result`
-2. If it's `Ok(value)`, unwrap it—`contents` becomes the string
+2. If it's `Ok(value)`, unwrap it — `contents` becomes the string
 3. If it's `Err(e)`, **return early** from this function with `Err(e)`
 
 It's shorthand for:
@@ -375,53 +375,104 @@ It's shorthand for:
 let contents = match fs.read_to_string(path) {
     Ok(value) => value,
     Err(e) => return Err(e),
-};
+}
 ```
 
-### Using `?` in Practice
+There is no implicit type conversion. The error `e` propagates as-is. The function's return type must accommodate it.
 
-Here's the config example rewritten with `?`:
+### Error Unions: Composing Multiple Error Types
+
+When a function can fail in multiple ways, the return type is an **error union** — written with `|`:
 
 ```ferrum
-fn read_config(path: &str) -> Result[Config, ConfigError] {
-    let contents = fs.read_to_string(path)?;  // returns early if file read fails
-    let config = parse(&contents)?;           // returns early if parse fails
+fn read_config(path: &str): Result[Config, IoError | ParseError] ! IO {
+    let contents = fs.read_to_string(path)?   // IoError propagates directly
+    let config = parse(&contents)?             // ParseError propagates directly
     Ok(config)
 }
 ```
+
+The compiler tracks which error types can emerge from `?` expressions and builds the union. For private functions, you can use `_` and let the compiler infer the full union:
+
+```ferrum
+fn read_config(path: &str): Result[Config, _] ! IO {
+    let contents = fs.read_to_string(path)?
+    let config = parse(&contents)?
+    Ok(config)
+    // compiler infers: Result[Config, IoError | ParseError]
+}
+```
+
+For `pub` functions, write the union explicitly — same rule as effect annotations. This makes the API contract visible without reading the implementation:
+
+```ferrum
+pub fn read_config(path: &str): Result[Config, IoError | ParseError] ! IO {
+    ...
+}
+```
+
+Callers see exactly what can go wrong and handle each case:
+
+```ferrum
+match read_config("app.conf") {
+    Ok(cfg)             => use_config(cfg),
+    Err(IoError(e))     => eprintln("file error: {}", e),
+    Err(ParseError(e))  => eprintln("bad config syntax: {}", e),
+}
+```
+
+### When You Want a Single Named Error Type
+
+Error unions are the default. When you want to collapse to your own error type — for a public API that shouldn't expose its internal dependencies — use `.map_err()` explicitly:
+
+```ferrum
+enum ConfigError {
+    Io(IoError),
+    Parse(ParseError),
+}
+
+pub fn read_config(path: &str): Result[Config, ConfigError] ! IO {
+    let contents = fs.read_to_string(path).map_err(ConfigError::Io)?
+    let config = parse(&contents).map_err(ConfigError::Parse)?
+    Ok(config)
+}
+```
+
+The `.map_err()` is visible at each call site. There is no implicit coercion — you see exactly where the conversion happens and what shape it takes.
 
 Compare to the version without `?`:
 
 ```ferrum
-fn read_config(path: &str) -> Result[Config, ConfigError] {
+pub fn read_config(path: &str): Result[Config, ConfigError] ! IO {
     let contents = match fs.read_to_string(path) {
         Ok(s) => s,
-        Err(e) => return Err(e),
-    };
+        Err(e) => return Err(ConfigError::Io(e)),
+    }
     let config = match parse(&contents) {
         Ok(c) => c,
-        Err(e) => return Err(e),
-    };
+        Err(e) => return Err(ConfigError::Parse(e)),
+    }
     Ok(config)
 }
 ```
 
-Same behavior, much less noise.
+Same behavior, much less noise — but the conversion is still explicit.
 
 ### Chaining Multiple Operations
 
 `?` shines when you have a sequence of operations that might fail:
 
 ```ferrum
-fn process_user_data(user_id: u64) -> Result[Report, Error] {
-    let user = database.find_user(user_id)?;        // might fail
-    let transactions = database.get_transactions(user.id)?;  // might fail
-    let report = generate_report(&user, &transactions)?;     // might fail
+fn process_user_data(user_id: u64): Result[Report, _] {
+    let user = database.find_user(user_id)?
+    let transactions = database.get_transactions(user.id)?
+    let report = generate_report(&user, &transactions)?
     Ok(report)
+    // compiler infers error union from find_user, get_transactions, generate_report
 }
 ```
 
-If any step fails, the function returns immediately with that error. No nested `match` statements. The error propagates automatically.
+If any step fails, the function returns immediately with that error. No nested `match` statements. The compiler assembles the union from whatever the called functions can produce.
 
 ### `?` Only Works Inside Functions That Return Result (or Option)
 
@@ -446,18 +497,19 @@ error[E0277]: the `?` operator can only be used in a function that returns `Resu
 You have two choices:
 
 ```ferrum
-// Option 1: Make main return Result
-fn main() -> Result[(), ConfigError] {
-    let cfg = read_config("app.conf")?;
-    use_config(&cfg);
+// Option 1: Make main return Result (error union matches read_config's union)
+fn main(): Result[(), IoError | ParseError] {
+    let cfg = read_config("app.conf")?
+    use_config(&cfg)
     Ok(())
 }
 
-// Option 2: Handle the error with match
+// Option 2: Handle the error explicitly with match
 fn main() {
     match read_config("app.conf") {
-        Ok(cfg) => use_config(&cfg),
-        Err(e) => eprintln("Failed to load config: {:?}", e),
+        Ok(cfg)            => use_config(&cfg),
+        Err(IoError(e))    => eprintln("file error: {}", e),
+        Err(ParseError(e)) => eprintln("bad config: {}", e),
     }
 }
 ```
