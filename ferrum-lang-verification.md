@@ -564,6 +564,26 @@ Ferrum provides a graduated ladder of five safety levels. Each level is **strict
 | 3 | `extern` | FFI boundary. Ferrum types checked; foreign behavior unknown. |
 | 4 | `unsafe` | Raw pointers, arbitrary memory. Full responsibility. |
 
+### 3.1.1 Decision Guide
+
+Pick the **lowest level** that covers your situation. Higher levels have larger audit surface and require more human justification.
+
+| Situation | Use | Do NOT use |
+|-----------|-----|------------|
+| Two `&mut` slices the borrow checker thinks alias but you know don't overlap | `unchecked` | `unsafe` |
+| Skipping a bounds check you have manually verified | `unchecked` | `unsafe` |
+| Temporarily violating a struct invariant during a batch update | `trusted` | `unchecked` |
+| Asserting a precondition the compiler cannot prove (pointer validity, domain invariant) | `trusted` | `unsafe` |
+| Declaring a C function to call from Ferrum | `extern(c)` | `unsafe` |
+| Receiving a callback from C into a Ferrum function | `extern(c) fn` | `unsafe fn` |
+| Wrapping a `!Sync` field with your own synchronization protocol | `unsafe impl Sync` | `trusted` |
+| Raw pointer arithmetic, `transmute`, `volatile_store`, inline assembly | `unsafe` | — |
+| Calling a foreign function that also requires raw pointer arguments | `extern(c)` + `unsafe` block at the call site | one or the other alone |
+
+**The invariant:** each level names a precise claim. `unchecked` says "I assert the aliasing is correct." `trusted` says "I assert this named precondition." `extern` says "this is an FFI boundary." `unsafe` says "I take full responsibility for memory correctness." Using a higher level to sidestep a lower-level check is a misuse — it makes the audit trail dishonest.
+
+**Minimum blast radius:** prefer block-level scoping over function-level. A two-line `unchecked { }` block is easier to audit than an `unchecked fn` whose entire body escapes checking.
+
 ### 3.2 `unchecked`
 
 Relaxes the aliasing rules of the borrow checker. Memory is still safe — no raw pointers, no undefined behavior. The only thing relaxed is the compiler's conservative approximation of aliasing.
