@@ -343,12 +343,13 @@ subtasks:
       Every token has a span.
 
   fe-001.3:
-    title: "Implement Lexer: character-by-character, UTF-8 aware"
+    title: "Implement Lexer: ASCII source, UTF-8 in literals/comments"
     priority: 0
     acceptance: >
       All compile-pass/lexer/*.fe files lex without error.
       All compile-fail/lexer/*.fe files produce the expected LexError.
-      Unicode identifiers lex correctly.
+      Non-ASCII bytes outside string literals and comments produce LexError.
+      UTF-8 content inside string literals and comments lexes without error.
       Nested block comments /* /* */ */ lex correctly.
     deps: [fe-001.1, fe-001.2]
 
@@ -1736,7 +1737,7 @@ working on a component must read its spec before coding.
 # Lexer Specification
 
 ## Purpose
-Transform Ferrum source text (UTF-8) into a flat token stream with spans.
+Transform Ferrum source text (ASCII, with UTF-8 permitted in string literals and comments) into a flat token stream with spans.
 
 ## Requirements
 
@@ -2128,7 +2129,7 @@ tests/
       all_integer_suffixes.fe
       decimal_float_literals.fe
       nested_block_comments.fe
-      unicode_identifiers.fe
+      unicode_in_strings_comments.fe
     parser/
       all_items.fe
       all_expressions.fe
@@ -2153,6 +2154,7 @@ tests/
   compile-fail/
     lexer/
       invalid_escape.fe        # expected: LexError::InvalidEscape
+      non_ascii_identifier.fe  # expected: LexError::NonAscii
     types/
       implicit_widening.fe     # expected: "expected f64, found f32"
       use_after_move.fe        # expected: "use of moved value"

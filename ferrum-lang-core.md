@@ -41,11 +41,11 @@ Ferrum is a systems programming language with the following properties, listed i
 
 ### 2.1 Source Files
 
-Source files are UTF-8 encoded. File extension is `.fe`. One module per file. No header files.
+Source files are ASCII. UTF-8 is permitted inside string literals and comments; a non-ASCII byte anywhere else is a lexer error. File extension is `.fe`. One module per file. No header files.
 
 ### 2.2 Whitespace and Newlines
 
-Newlines are significant as statement terminators in limited contexts (see §9). Elsewhere whitespace is insignificant. There are no semicolons.
+Newlines are significant as statement terminators in limited contexts (see §9). Elsewhere whitespace is insignificant. There are no semicolons. Tabs are valid whitespace but discouraged; the compiler emits a lint warning for tab-indented lines. Use spaces.
 
 ### 2.3 Comments
 
