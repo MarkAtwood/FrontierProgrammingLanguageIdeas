@@ -90,7 +90,7 @@ for score in scores.iter_mut() {
 }
 
 // Consume the array (can't use scores after this)
-let doubled: Vec<i32> = scores.into_iter().map(|x| x * 2).collect();
+let doubled: Vec[i32] = scores.into_iter().map(|x| x * 2).collect();
 ```
 
 **When to use which:**
@@ -144,7 +144,7 @@ Why does this matter? Two reasons:
 
 ```ferrum
 // This processes one element at a time through the entire chain
-// No intermediate Vec<i32> is ever created
+// No intermediate Vec[i32] is ever created
 let result: i32 = huge_data.iter()
     .filter(|x| x.is_valid())
     .map(|x| x.compute_expensive())
@@ -155,7 +155,7 @@ let result: i32 = huge_data.iter()
 
 ```ferrum
 // This would be impossible if filter() tried to process everything upfront
-let first_10_evens: Vec<i32> = (0..)   // 0, 1, 2, 3, ... forever
+let first_10_evens: Vec[i32] = (0..)   // 0, 1, 2, 3, ... forever
     .filter(|x| x % 2 == 0)             // Keep only evens
     .take(10)                           // Stop after 10
     .collect();                         // Now compute and collect
@@ -276,7 +276,7 @@ Ferrum decides how to capture variables based on what you do with them:
 **Reading a variable? Capture by reference (borrow it):**
 
 ```ferrum
-let name = String::from("Alice");
+let name = String.from("Alice");
 let greet = || println("Hello, {}", name);  // Just reads `name`
 
 greet();           // Works
@@ -300,7 +300,7 @@ Note: the closure itself must be declared `mut` because calling it modifies stat
 **Need the closure to own the value? Use `move`:**
 
 ```ferrum
-let name = String::from("Alice");
+let name = String.from("Alice");
 let greet = move || println("Hello, {}", name);  // Takes ownership
 
 greet();           // Works
@@ -316,7 +316,7 @@ fn make_greeter(name: String) -> impl Fn() {
     move || println("Hello, {}", name)
 }
 
-let greet = make_greeter(String::from("Bob"));
+let greet = make_greeter(String.from("Bob"));
 greet();  // Prints: Hello, Bob
 ```
 
@@ -325,7 +325,7 @@ greet();  // Prints: Hello, Bob
 Here's a real use case—counting how many items pass a filter:
 
 ```ferrum
-fn count_matching<T>(items: &[T], predicate: impl Fn(&T) -> bool) -> usize {
+fn count_matching[T](items: &[T], predicate: impl Fn(&T) -> bool): usize {
     let mut count = 0;
     for item in items {
         if predicate(item) {
@@ -355,7 +355,7 @@ Apply a function to each element, producing a new iterator of transformed values
 
 ```ferrum
 let numbers = [1, 2, 3, 4];
-let doubled: Vec<i32> = numbers.iter()
+let doubled: Vec[i32] = numbers.iter()
     .map(|x| x * 2)
     .collect();
 // [2, 4, 6, 8]
@@ -388,7 +388,7 @@ let log_lines = [
 ];
 
 // Extract just the timestamps
-let timestamps: Vec<&str> = log_lines.iter()
+let timestamps: Vec[&str] = log_lines.iter()
     .map(|line| &line[0..19])  // First 19 chars are the timestamp
     .collect();
 // ["2024-01-15 10:30:00", "2024-01-15 10:30:01", "2024-01-15 10:30:02"]
@@ -400,7 +400,7 @@ Keep only elements that satisfy a condition:
 
 ```ferrum
 let numbers = [1, 2, 3, 4, 5, 6];
-let evens: Vec<i32> = numbers.iter()
+let evens: Vec[i32] = numbers.iter()
     .filter(|x| *x % 2 == 0)
     .copied()  // Convert &i32 to i32
     .collect();
@@ -420,10 +420,10 @@ struct User {
     last_login_days_ago: u32,
 }
 
-let users: Vec<User> = fetch_users_from_api();
+let users: Vec[User] = fetch_users_from_api();
 
 // Find users who haven't logged in for 30+ days and are still active
-let inactive_actives: Vec<&User> = users.iter()
+let inactive_actives: Vec[&User] = users.iter()
     .filter(|u| u.active && u.last_login_days_ago >= 30)
     .collect();
 
@@ -454,7 +454,7 @@ let product = numbers.iter().fold(1, |acc, x| acc * x);
 // Build a comma-separated string
 let csv = numbers.iter()
     .map(|x| x.to_string())
-    .fold(String::new(), |acc, s| {
+    .fold(String.new(), |acc, s| {
         if acc.is_empty() { s } else { format("{},{}", acc, s) }
     });
 // "1,2,3,4,5"
@@ -478,7 +478,7 @@ struct Sale {
     price_cents: u64,
 }
 
-let sales: Vec<Sale> = load_daily_sales();
+let sales: Vec[Sale] = load_daily_sales();
 
 // Calculate total revenue
 let total_cents: u64 = sales.iter()
@@ -508,10 +508,10 @@ Turn an iterator back into a concrete collection:
 let numbers = [1, 2, 3, 4, 5];
 
 // Into a Vec
-let vec: Vec<i32> = numbers.iter().copied().collect();
+let vec: Vec[i32] = numbers.iter().copied().collect();
 
 // Into a HashSet (removes duplicates)
-let set: HashSet<i32> = numbers.iter().copied().collect();
+let set: HashSet[i32] = numbers.iter().copied().collect();
 
 // Into a String (for char iterators)
 let s: String = ['h', 'e', 'l', 'l', 'o'].iter().collect();
@@ -527,10 +527,10 @@ struct Config {
     value: String,
 }
 
-let configs: Vec<Config> = load_config_file();
+let configs: Vec[Config] = load_config_file();
 
 // Build a HashMap for O(1) lookup
-let config_map: HashMap<String, String> = configs
+let config_map: HashMap[String, String] = configs
     .into_iter()
     .map(|c| (c.key, c.value))
     .collect();
@@ -600,7 +600,7 @@ let users = vec[
 ];
 
 // Names of active users over 27
-let names: Vec<&str> = users.iter()
+let names: Vec[&str] = users.iter()
     .filter(|u| u.active)
     .filter(|u| u.age > 27)
     .map(|u| u.name.as_str())
@@ -661,10 +661,10 @@ The Ferrum version reads like a recipe: filter, transform, filter, transform, co
 ### Processing Log Files
 
 ```ferrum
-let log_contents = fs::read_to_string("server.log")?;
+let log_contents = fs.read_to_string("server.log")?;
 
 // Count error messages per hour
-let error_counts: HashMap<String, usize> = log_contents
+let error_counts: HashMap[String, usize] = log_contents
     .lines()
     .filter(|line| line.contains("ERROR"))
     .map(|line| {
@@ -672,7 +672,7 @@ let error_counts: HashMap<String, usize> = log_contents
         let hour = &line[11..13];
         hour.to_string()
     })
-    .fold(HashMap::new(), |mut counts, hour| {
+    .fold(HashMap.new(), |mut counts, hour| {
         *counts.entry(hour).or_insert(0) += 1;
         counts
     });
@@ -700,11 +700,11 @@ struct DisplayUser {
     display_name: String,
 }
 
-fn fetch_active_users() -> Result<Vec<DisplayUser>, Error> {
-    let response: Vec<ApiUser> = http::get("https://api.example.com/users")
+fn fetch_active_users(): Result[Vec[DisplayUser], Error] {
+    let response: Vec[ApiUser] = http.get("https://api.example.com/users")
         .json()?;
 
-    let active_users: Vec<DisplayUser> = response
+    let active_users: Vec[DisplayUser] = response
         .into_iter()
         .filter(|u| !u.deleted)
         .map(|u| DisplayUser {
@@ -728,17 +728,17 @@ struct Order {
 }
 
 // Calculate total spent per user
-fn spending_by_user(orders: &[Order]) -> HashMap<u64, u64> {
+fn spending_by_user(orders: &[Order]): HashMap[u64, u64] {
     orders.iter()
-        .fold(HashMap::new(), |mut totals, order| {
+        .fold(HashMap.new(), |mut totals, order| {
             *totals.entry(order.user_id).or_insert(0) += order.total_cents;
             totals
         })
 }
 
 // Find top 10 spenders
-fn top_spenders(orders: &[Order], n: usize) -> Vec<(u64, u64)> {
-    let mut spending: Vec<(u64, u64)> = spending_by_user(orders)
+fn top_spenders(orders: &[Order], n: usize): Vec[(u64, u64)] {
+    let mut spending: Vec[(u64, u64)] = spending_by_user(orders)
         .into_iter()
         .collect();
 
@@ -752,7 +752,7 @@ fn top_spenders(orders: &[Order], n: usize) -> Vec<(u64, u64)> {
 
 ```ferrum
 // Parse a KEY=VALUE config file, skipping comments and empty lines
-fn parse_config(content: &str) -> HashMap<String, String> {
+fn parse_config(content: &str): HashMap[String, String] {
     content
         .lines()
         .map(|line| line.trim())
@@ -770,7 +770,7 @@ fn parse_config(content: &str) -> HashMap<String, String> {
 // DATABASE_URL=postgres://localhost/mydb
 // # This is a comment
 // TIMEOUT=30
-let config = parse_config(&fs::read_to_string("app.conf")?);
+let config = parse_config(&fs.read_to_string("app.conf")?);
 let db_url = config.get("DATABASE_URL").expect("DATABASE_URL required");
 ```
 
@@ -785,12 +785,12 @@ The most common pattern: transform each element and collect results.
 ```ferrum
 // Parse strings to integers
 let strings = ["1", "2", "3", "4"];
-let numbers: Vec<i32> = strings.iter()
+let numbers: Vec[i32] = strings.iter()
     .map(|s| s.parse().unwrap())
     .collect();
 
 // Extract fields from structs
-let names: Vec<&str> = users.iter()
+let names: Vec[&str] = users.iter()
     .map(|u| u.name.as_str())
     .collect();
 ```
@@ -824,7 +824,7 @@ let numbers: Vec[i32] = strings.iter()
 
 ```ferrum
 let numbers = [1, 2, 3, 4, 5, 6];
-let (evens, odds): (Vec<i32>, Vec<i32>) = numbers.iter()
+let (evens, odds): (Vec[i32], Vec[i32]) = numbers.iter()
     .copied()
     .partition(|x| x % 2 == 0);
 // evens = [2, 4, 6]
@@ -884,14 +884,14 @@ let dot: i32 = a.iter()
 
 ```ferrum
 let nested = vec[vec[1, 2], vec[3, 4], vec[5]];
-let flat: Vec<i32> = nested.iter()
+let flat: Vec[i32] = nested.iter()
     .flatten()
     .copied()
     .collect();
 // [1, 2, 3, 4, 5]
 
 // flat_map = map + flatten in one step
-let words: Vec<&str> = lines.iter()
+let words: Vec[&str] = lines.iter()
     .flat_map(|line| line.split_whitespace())
     .collect();
 ```
@@ -902,15 +902,15 @@ let words: Vec<&str> = lines.iter()
 let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 // First 3 elements
-let first_three: Vec<i32> = numbers.iter().copied().take(3).collect();
+let first_three: Vec[i32] = numbers.iter().copied().take(3).collect();
 // [1, 2, 3]
 
 // Skip first 3, take rest
-let rest: Vec<i32> = numbers.iter().copied().skip(3).collect();
+let rest: Vec[i32] = numbers.iter().copied().skip(3).collect();
 // [4, 5, 6, 7, 8, 9, 10]
 
 // Pagination: page 2, 3 items per page
-let page_2: Vec<i32> = numbers.iter()
+let page_2: Vec[i32] = numbers.iter()
     .copied()
     .skip(3)      // Skip page 1
     .take(3)      // Take page 2
@@ -964,7 +964,7 @@ let count = numbers.iter().count();        // Another fresh iterator
 let numbers = [1, 2, 3, 4, 5];
 
 // WRONG: comparing &i32 with i32
-let evens: Vec<i32> = numbers.iter()
+let evens: Vec[i32] = numbers.iter()
     .filter(|x| x % 2 == 0)   // x is &&i32 here!
     .collect();
 ```
@@ -985,12 +985,12 @@ error[E0369]: cannot mod `&&i32` by `{integer}`
 
 ```ferrum
 // Option 1: Dereference in the closure
-let evens: Vec<&i32> = numbers.iter()
+let evens: Vec[&i32] = numbers.iter()
     .filter(|x| *x % 2 == 0)
     .collect();
 
 // Option 2: Use copied() to work with values
-let evens: Vec<i32> = numbers.iter()
+let evens: Vec[i32] = numbers.iter()
     .copied()                    // Now we have i32, not &i32
     .filter(|x| x % 2 == 0)      // x is i32
     .collect();
@@ -1033,7 +1033,7 @@ warning: unused `Map` that must be used
 
 ```ferrum
 // Option 1: Collect the results
-let doubled: Vec<i32> = numbers.iter()
+let doubled: Vec[i32] = numbers.iter()
     .map(|x| x * 2)
     .collect();
 
@@ -1079,7 +1079,7 @@ error[E0502]: cannot borrow `numbers` as mutable because it is also borrowed as 
 let mut numbers = vec[1, 2, 3, 4, 5];
 
 // Collect what to add first
-let to_add: Vec<i32> = numbers.iter()
+let to_add: Vec[i32] = numbers.iter()
     .filter(|x| **x > 3)
     .map(|x| *x * 2)
     .collect();
@@ -1122,7 +1122,7 @@ let results: Result[Vec[i32], _] = strings.iter()
 Closures capture by reference by default, which can cause issues:
 
 ```ferrum
-fn make_closures() -> Vec<impl Fn() -> i32> {
+fn make_closures(): Vec[impl Fn() -> i32] {
     let mut closures = vec[];
     for i in 0..3 {
         closures.push(|| i);  // ERROR: `i` doesn't live long enough
@@ -1134,7 +1134,7 @@ fn make_closures() -> Vec<impl Fn() -> i32> {
 **Fix:** Use `move` to take ownership:
 
 ```ferrum
-fn make_closures() -> Vec<impl Fn() -> i32> {
+fn make_closures(): Vec[impl Fn() -> i32] {
     let mut closures = vec[];
     for i in 0..3 {
         closures.push(move || i);  // Each closure owns its own copy of i
