@@ -158,23 +158,136 @@ let fake: Prop[xs.is_sorted()] = unsafe { transmute(()) }
 
 ### 1.7 Totality and Termination Checking
 
-Proof functions must terminate. Termination is verified by structural recursion:
+Proof functions must terminate. The checker supports two termination arguments, tried in order:
 
-- A recursive call is valid if at least one argument is **structurally smaller** than the corresponding parameter.
-- For inductively defined types (lists, trees, natural numbers), "structurally smaller" means a sub-term produced by pattern matching.
+1. **Structural recursion** (automatic) — the recursive call is on a syntactically smaller sub-term produced by pattern matching. No annotation needed.
+2. **Well-founded recursion** (user-supplied `decreases`) — the author provides a measure expression that the checker verifies strictly decreases at every recursive call.
+
+#### Structural Recursion (automatic)
 
 ```ferrum
-// OK: xs is structurally decreasing
 proof fn length[T](xs: List[T]): Nat {
     match xs {
         List.Nil        => 0,
-        List.Cons(_, t) => 1 + length(t)  // t is structurally smaller than xs
+        List.Cons(_, t) => 1 + length(t)  // t is a sub-term of xs — auto-accepted
+    }
+}
+```
+
+If structural recursion is detected, no annotation is needed. The compiler checks this first.
+
+#### `decreases` — Well-Founded Recursion
+
+When structural recursion is not obvious, supply a `decreases` clause naming a **measure** — an expression that strictly decreases at every recursive call. Inspired by Dafny and F*.
+
+```ferrum
+// Single natural number measure
+proof fn gcd(a: Nat, b: Nat): Nat
+    decreases b
+{
+    if b == 0 { a } else { gcd(b, a % b) }
+    // decreases: b → a % b, and a % b < b when b > 0
+}
+
+// Lexicographic tuple — (m, n) in lexicographic order
+// Borrowed from Dafny's decreases tuple semantics
+proof fn ackermann(m: Nat, n: Nat): Nat
+    decreases (m, n)
+{
+    match (m, n) {
+        (0, _)    => n + 1,
+        (m, 0)    => ackermann(m - 1, 1),                      // (m-1, _) < (m, _)
+        (m, n)    => ackermann(m - 1, ackermann(m, n - 1)),    // outer: (m-1, _) < (m, _)
     }
 }
 
-// ERROR: not obviously terminating
-proof fn collatz(n: Nat): Nat { ... }
+// Size-based measure — e.g. for merge sort
+proof fn merge_sort[T: Ord](xs: Vec[T]): Vec[T]
+    decreases xs.len()
+{
+    if xs.len() <= 1 { return xs }
+    let (l, r) = split(xs)   // l.len() < xs.len(), r.len() < xs.len()
+    merge(merge_sort(l), merge_sort(r))
+}
 ```
+
+**What the checker verifies at each recursive call:**
+- The measure at the call site is strictly less than the measure at the start of the function body.
+- "Strictly less" uses the natural order for `Nat`/integers, lexicographic order for tuples.
+- Discharged by the SMT bridge (§1.8) where possible. If SMT cannot discharge it, you must provide a proof term (see below).
+
+**Measure types with well-founded order:**
+- `Nat`, `u8`–`u64`, `usize` — natural ordering; must be ≥ 0 (the checker rejects integer measures that may go negative without proof)
+- Tuples of the above — lexicographic ordering, same as Dafny/Lean
+- Inductively-defined types — structural ordering (same as auto-detected structural recursion)
+
+#### When SMT Cannot Discharge the Decrease
+
+If the measure decrease requires non-trivial reasoning, provide a `decreases_proof` function:
+
+```ferrum
+proof fn collatz(n: Nat): Nat
+    decreases collatz_measure(n)
+    decreases_proof(collatz_decreases)  // names the proof that measure decreases
+{
+    if n == 1 { 1 }
+    else if n % 2 == 0 { collatz(n / 2) }
+    else { collatz(3 * n + 1) }
+}
+
+// The proof that collatz_measure decreases — must be proven separately
+proof fn collatz_decreases(n: Nat):
+    Prop[collatz_measure(collatz_next(n)) < collatz_measure(n)]
+{ ... }
+```
+
+This is the F* pattern: separate the termination argument from the function body. The checker verifies the proof function at compile time; if it passes, the `decreases` obligation is considered discharged.
+
+> **Note:** `collatz` is used here as an illustrative structure. The Collatz conjecture is unproven; a real `decreases_proof` for it would require a mathematical breakthrough. In practice, `decreases_proof` is for algorithms like Euclidean division or matrix exponentiation where termination is proven but the proof is too complex for SMT.
+
+#### Mutual Recursion
+
+All functions in a mutually recursive group must have compatible `decreases` clauses. The measure must decrease across the call cycle:
+
+```ferrum
+proof fn is_even(n: Nat): bool
+    decreases n
+{
+    if n == 0 { true } else { is_odd(n - 1) }   // n-1 < n
+}
+
+proof fn is_odd(n: Nat): bool
+    decreases n
+{
+    if n == 0 { false } else { is_even(n - 1) }  // n-1 < n
+}
+```
+
+The checker verifies each call in the cycle reduces the measure.
+
+#### Disabling Termination Checking
+
+When termination cannot be proven (e.g. a function that is total but requires a mathematical conjecture), use `decreases *` combined with `trusted`:
+
+```ferrum
+// Termination not checked — must also be trusted
+trusted("this function terminates — termination proof is an open research problem")
+proof fn collatz_unproven(n: Nat): Nat
+    decreases *
+{
+    if n == 1 { 1 }
+    else if n % 2 == 0 { collatz_unproven(n / 2) }
+    else { collatz_unproven(3 * n + 1) }
+}
+```
+
+`decreases *` without `trusted` is a compile error — disabling the termination check is an explicit trust assertion and must be named. The function appears in the audit report.
+
+> **Design decision:** the three-tier approach (structural → `decreases` → `decreases *` + `trusted`) follows the precedent of Dafny, Lean 4, and F*:
+> - Structural recursion is free and automatic (Lean 4 style)
+> - `decreases` with SMT discharge covers the vast majority of real proofs (Dafny style)
+> - `decreases_proof` for complex termination arguments (F* style)
+> - `decreases *` for the escape hatch, gated behind `trusted` so it appears in audit output
 
 Mutual recursion is supported; the checker verifies that the combined recursion is well-founded.
 
