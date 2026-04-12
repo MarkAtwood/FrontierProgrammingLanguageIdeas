@@ -484,12 +484,10 @@ When a scope exits early — via `return`, `break`, `?` propagation, or panic �
 ```ferrum
 fn download_first(urls: &[String]): Result[Response, Error] ! Net + Async {
     scope s {
-        // Start downloading all URLs concurrently
         for url in urls {
             s.spawn(fetch(url))
         }
 
-        // Wait for the first one to succeed
         for handle in s.handles() {
             if let Ok(response) = handle.await {
                 return Ok(response)  // Early return!
@@ -498,15 +496,47 @@ fn download_first(urls: &[String]): Result[Response, Error] ! Net + Async {
 
         Err(Error::AllFailed)
     }
-    // <- Early return causes all remaining downloads to be cancelled
+    // <- Scope signals all remaining tasks to cancel, waits for them to exit,
+    //    then returns. defer blocks in cancelled tasks run before the scope exits.
 }
 ```
 
-In C, you'd have to track every in-flight request, send them each a cancellation signal, handle partial states, and wait for acknowledgment. Miss one and you leak resources.
+**Cancellation is cooperative.** The runtime delivers a cancellation signal at each task's next `await` point. Code between two `await` points runs to completion. Because all I/O in Ferrum is non-blocking (every file read, network call, or sleep is an `await` point), any task doing I/O will be cancelled promptly. A CPU-bound task with no `await` points will block the scope exit until it returns naturally — the compiler warns about this (`task_no_cancel_point`).
 
-In Python, task cancellation exists but is tricky — `task.cancel()` doesn't immediately stop the task, it raises `CancelledError` at the next await point, which the task can catch and ignore.
+**`defer` blocks always run**, whether a task exits normally, via `?`, via panic, or via cancellation. Cleanup is guaranteed.
 
-In Ferrum, cancellation is cooperative but enforced. A cancelled task can run cleanup code, but it can't refuse to stop.
+**Critical sections with `@noncancellable`:**
+
+Some operations must not be interrupted mid-way:
+
+```ferrum
+s.spawn(async {
+    let data = fetch(url).await?         // cancellable — fine to stop here
+
+    @noncancellable {
+        db.write(&data)?                 // must complete — partial write is worse than no write
+        cache.invalidate(&key)
+    }
+    // cancellation is re-checked here, after the critical section
+})
+```
+
+`@noncancellable` defers cancellation until the block exits. Keep these blocks short — a long `@noncancellable` block containing I/O will delay scope exit and the compiler warns about it (`noncancellable_io`, `noncancellable_large`).
+
+**Scope deadlines:**
+
+If a misbehaving task might not cancel promptly, declare a deadline:
+
+```ferrum
+scope s timeout(5s) {
+    s.spawn(fetch(url))
+}
+// Panics if any task hasn't exited 5s after cancellation was signalled
+```
+
+Without a deadline, a scope with `! Net` tasks that fail to cancel will wait indefinitely. The compiler warns when a scope spawns `! Net` tasks and has no timeout (`scope_no_timeout_net`).
+
+In Python, `task.cancel()` raises `CancelledError` at the next await point, which the task can catch and ignore — cancellation can be silently swallowed. In Ferrum, a task that swallows cancellation will be caught by the scope deadline (if set) or the `task_no_cancel_point` lint (if it has no await points at all).
 
 ---
 

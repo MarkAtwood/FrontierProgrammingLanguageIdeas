@@ -101,6 +101,77 @@ scope s {
 
 Its effects must include `Sync` if it communicates with other tasks.
 
+### 1.2.1 Cancellation Semantics
+
+#### Cooperative cancellation at `await` points
+
+Cancellation is **cooperative**. A cancelled task is not forcibly interrupted. The runtime delivers a cancellation signal at the task's next `await` point. Code between two `await` points runs to completion before cancellation is checked.
+
+This means:
+- `defer` blocks run on cancellation, exactly as on any other exit — cleanup is guaranteed
+- A CPU-bound task with no `await` points cannot be cancelled until it returns naturally
+- The async runtime uses non-blocking I/O, so all I/O operations (`! IO`, `! Net`) are `await` points — they can always be cancelled
+
+#### Scope exit waits for cancellation
+
+When a scope exits (normally, via `return`, `?`, or panic), it:
+1. Signals all running tasks to cancel
+2. Waits for all tasks to reach their next `await` point and exit (running their `defer` blocks)
+3. Only then does the scope itself exit
+
+By default there is no timeout on this wait.
+
+#### Scope deadline
+
+A scope may declare a deadline. If tasks have not exited by the deadline, the scope panics:
+
+```ferrum
+scope s timeout(5s) {
+    s.spawn(fetch(url))
+    s.spawn(process_data())
+}
+// If either task is still running 5s after cancellation is signalled, ! Panic
+
+scope s timeout(5s) or_abandon {
+    s.spawn(fetch(url))
+}
+// If task is still running after 5s: emits a warning log, continues.
+// The task is marked abandoned — it may still be running on the thread pool.
+// Use only when leaking a task is acceptable (e.g. best-effort telemetry).
+```
+
+`or_abandon` exists for cases where a misbehaving task must not block program exit. It is a last resort — an abandoned task is a resource leak.
+
+#### `@noncancellable` — critical sections
+
+A block annotated `@noncancellable` defers cancellation until the block exits. Use this for operations that must complete atomically — flushing a buffer, committing a transaction, releasing a lock in a consistent state:
+
+```ferrum
+s.spawn(async {
+    let data = fetch(url).await?       // cancellable
+
+    @noncancellable {
+        db.write(&data)?               // must not be interrupted mid-write
+        cache.invalidate(&key)         // must happen atomically with the write
+    }
+    // cancellation is re-checked here, on exit from @noncancellable
+})
+```
+
+Inside `@noncancellable`, `await` points exist but cancellation signals are held until the block exits. The block is expected to be brief. Long `@noncancellable` blocks delay scope exit.
+
+#### Compiler and linter warnings
+
+| Warning | Trigger | Meaning |
+|---------|---------|---------|
+| `task_no_cancel_point` | A spawned task body (or its full call chain) contains no `await` point | Cancellation cannot be delivered; scope exit will block until the task returns naturally |
+| `noncancellable_io` | `@noncancellable` block contains `! IO` or `! Net` operations | I/O may block indefinitely, holding up scope exit |
+| `noncancellable_large` | `@noncancellable` block spans more than ~20 lines or calls functions with `! Async` | Block is too large to be a "brief critical section"; refactor or document why |
+| `scope_no_timeout_net` | A scope spawns tasks with `! Net` effects and has no `timeout` declaration | If the network blocks, the scope may wait indefinitely |
+| `abandon_task_leak` | `or_abandon` is used | Reminder that the task may still be running after the scope exits |
+
+These are **warnings**, not errors — there are legitimate uses of each pattern. The warnings surface the risk so the programmer can make an informed choice and document it.
+
 ### 1.3 Channels
 
 ```ferrum
