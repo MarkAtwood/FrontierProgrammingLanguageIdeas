@@ -99,7 +99,7 @@ environment, and owns the connection to the display server.
 /// `app_id` is the most important field. It must be set for correct desktop
 /// integration on every platform.
 @derive(Debug, Clone)
-pub type AppConfig {
+pub struct AppConfig {
     /// Reverse-DNS application identifier.
     ///
     /// Used as:
@@ -219,7 +219,7 @@ factory for new windows. It is not `Send`; all operations must occur on the main
 ///
 /// Not Send — must be used only on the main thread.
 /// Not Clone — there is one AppContext per running application.
-pub type AppContext { ... }
+pub struct AppContext { ... }
 ```
 
 ### Window Creation
@@ -297,7 +297,7 @@ impl AppContext {
 /// Use WindowConfig::new() to start a builder. Every field has a documented
 /// default. Only set what you need.
 @derive(Debug, Clone)]
-pub type WindowConfig {
+pub struct WindowConfig {
     /// Window title shown in the title bar and task switcher.
     /// Default: "" (empty string)
     pub title: String,
@@ -339,7 +339,7 @@ impl WindowConfig {
 ### `Size`
 
 ```ferrum
-pub type Size {
+pub struct Size {
     pub width:  f32,
     pub height: f32,
 }
@@ -362,7 +362,7 @@ its own widget tree, menu bar (on platforms where that is per-window), and lifec
 ///
 /// Created via AppContext::create_window. Starts hidden; call show() to display.
 /// Dropping an AppWindow is equivalent to calling close().
-pub type AppWindow { ... }
+pub struct AppWindow { ... }
 ```
 
 ### Title and Geometry
@@ -505,7 +505,7 @@ impl AppWindow {
 /// Width and height are in physical pixels.
 /// Pixel data is stored in row-major order, 4 bytes per pixel: R, G, B, A.
 /// Total length: width * height * 4 bytes.
-pub type ImageData {
+pub struct ImageData {
     pub width:  u32,
     pub height: u32,
     pub pixels: Vec[u8],
@@ -515,7 +515,7 @@ pub type ImageData {
 ### `Point`
 
 ```ferrum
-pub type Point {
+pub struct Point {
     pub x: f32,
     pub y: f32,
 }
@@ -534,7 +534,7 @@ these to the correct system accelerators and menu item behaviors automatically.
 ```ferrum
 /// An immutable, fully-constructed menu tree ready to attach to a window or
 /// the global menu bar.
-pub type Menu { ... }
+pub struct Menu { ... }
 
 impl Menu {
     // Start building a new menu.
@@ -543,7 +543,7 @@ impl Menu {
 ```
 
 ```ferrum
-pub type MenuBuilder { ... }
+pub struct MenuBuilder { ... }
 
 impl MenuBuilder {
     // Add a menu item with a label and action.
@@ -621,7 +621,7 @@ pub enum MenuAction {
 
 ```ferrum
 /// A keyboard shortcut to display alongside a menu item.
-pub type KeyShortcut {
+pub struct KeyShortcut {
     pub key:       KeyCode,
     pub modifiers: Modifiers,
 }
@@ -654,7 +654,7 @@ not focused.
 ### `NotificationService`
 
 ```ferrum
-pub type NotificationService { ... }
+pub struct NotificationService { ... }
 
 impl NotificationService {
     // Send a desktop notification.
@@ -682,7 +682,7 @@ impl NotificationService {
 ```ferrum
 /// A notification to send to the desktop notification system.
 @derive(Debug, Clone)]
-pub type Notification {
+pub struct Notification {
     /// Short summary line. Shown in the notification bubble and notification center.
     pub title:   String,
 
@@ -755,7 +755,7 @@ pub enum Urgency {
 
 ```ferrum
 /// An action button that appears in the notification body.
-pub type NotificationAction {
+pub struct NotificationAction {
     /// Machine-readable identifier. Returned by NotificationHandle::on_action
     /// when the user clicks this button.
     pub id:    String,
@@ -785,7 +785,7 @@ pub enum NotificationTimeout {
 ```ferrum
 /// A handle to a sent notification. Used to close the notification programmatically
 /// or register action callbacks.
-pub type NotificationHandle { ... }
+pub struct NotificationHandle { ... }
 
 impl NotificationHandle {
     // Dismiss the notification before its timeout expires.
@@ -822,7 +822,7 @@ Sandboxed applications MUST use this service for user-initiated file access. Cal
 with permission errors; the portal provides the only sanctioned path.
 
 ```ferrum
-pub type FilePickerService { ... }
+pub struct FilePickerService { ... }
 ```
 
 ### Open File
@@ -878,7 +878,7 @@ impl FilePickerService {
 ```ferrum
 /// Configuration for file open dialogs.
 @derive(Debug, Clone)]
-pub type FilePickerConfig {
+pub struct FilePickerConfig {
     /// Title shown in the dialog's title bar.
     /// None uses the platform default ("Open" or equivalent).
     pub title:       Option[String],
@@ -904,7 +904,7 @@ impl FilePickerConfig {
 
 ```ferrum
 @derive(Debug, Clone)]
-pub type SavePickerConfig {
+pub struct SavePickerConfig {
     pub title:            Option[String],
     pub filters:          Vec[FileFilter],
     pub initial_dir:      Option[PathBuf],
@@ -925,7 +925,7 @@ impl SavePickerConfig {
 
 ```ferrum
 @derive(Debug, Clone)]
-pub type FolderPickerConfig {
+pub struct FolderPickerConfig {
     pub title:       Option[String],
     pub initial_dir: Option[PathBuf],
 }
@@ -949,7 +949,7 @@ impl FolderPickerConfig {
 /// Extensions are specified without the leading dot.
 /// An empty extensions list matches all files.
 @derive(Debug, Clone)]
-pub type FileFilter {
+pub struct FileFilter {
     pub name:       String,
     pub extensions: Vec[String],
 }
@@ -1024,7 +1024,7 @@ are appropriate for applications that run in the background and provide quick ac
 controls without opening a window.
 
 ```ferrum
-pub type TrayIcon { ... }
+pub struct TrayIcon { ... }
 
 impl TrayIcon {
     // Create a system tray icon with the given icon and tooltip text.
@@ -1126,7 +1126,7 @@ impl AppContext {
 
 ```ferrum
 @derive(Debug, Clone)]
-pub type AboutInfo {
+pub struct AboutInfo {
     /// Application name displayed as the dialog's title.
     pub app_name:    &'static str,
 

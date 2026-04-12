@@ -70,7 +70,7 @@ extlib.ccsp.style = { version = "1.0" }
 /// This four-way structure guarantees legible text on every surface
 /// without ad-hoc contrast adjustments.
 @derive(Debug, Clone)]
-pub type ColorTokens {
+pub struct ColorTokens {
     // Primary family — the brand color, used for key interactive elements
     primary:              Color,
     primary_container:    Color,
@@ -202,7 +202,7 @@ impl ColorTokens {
 ///   label    — button labels, tabs, navigation items (prominent small text)
 ///   body     — body copy, descriptions, input field text
 @derive(Debug, Clone)]
-pub type TypographyTokens {
+pub struct TypographyTokens {
     display_large:  TextStyle,
     display_medium: TextStyle,
     display_small:  TextStyle,
@@ -301,7 +301,7 @@ impl TypographyTokens {
 /// alpha-blend separately. surface_tint is an opacity in [0.0, 1.0] applied
 /// to the theme's primary color before compositing onto the surface.
 @derive(Debug, Clone, Copy)]
-pub type ElevationStyle {
+pub struct ElevationStyle {
     shadow_color:  Color,
     shadow_offset: Point,
     shadow_blur:   f32,
@@ -322,7 +322,7 @@ pub type ElevationStyle {
 ///   spacing_16 = 64 px
 ///   spacing_24 = 96 px
 @derive(Debug, Clone)]
-pub type GeometryTokens {
+pub struct GeometryTokens {
     // Corner radii — M3 shape scale
     border_radius_small:       f32,   // 4 px  — chips, text fields
     border_radius_medium:      f32,   // 12 px — cards, dialogs
@@ -457,7 +457,7 @@ impl GeometryTokens {
 ///
 /// EasingCurve is the cubic Bezier type from extlib.ccsp.anim.
 @derive(Debug, Clone)]
-pub type MotionTokens {
+pub struct MotionTokens {
     duration_short_1: Duration,   // 50 ms
     duration_short_2: Duration,   // 100 ms
     duration_short_3: Duration,   // 150 ms
@@ -545,7 +545,7 @@ impl MotionTokens {
 /// Construct with Theme::default() for the M3 baseline blue theme, or with
 /// Theme::from_seed(color) for a brand-specific theme.
 @derive(Debug, Clone)]
-pub type Theme {
+pub struct Theme {
     pub colors:     ColorTokens,
     pub typography: TypographyTokens,
     pub geometry:   GeometryTokens,
@@ -670,7 +670,7 @@ impl ColorTokens {
 ///
 /// Clone is cheap: it clones the Arc, not the Theme.
 @derive(Debug, Clone)]
-pub type ThemeHandle {
+pub struct ThemeHandle {
     inner: Arc[RwLock[Theme]],
 }
 
@@ -727,7 +727,7 @@ impl ThemeHandle {
 /// Purpose: place a ThemedWidget at the root of a window or a subtree to
 /// establish the theme for that subtree. When the handle is updated via
 /// ThemeHandle::set(), the ThemedWidget schedules a repaint of its subtree.
-pub type ThemedWidget {
+pub struct ThemedWidget {
     pub theme: ThemeHandle,
     pub child: Arc[dyn Widget],
 }
@@ -804,7 +804,7 @@ Every design system must allow exceptions: the delete button is red, not primary
 /// source of cascade surprises in CSS. Explicit overrides are local: you can
 /// read the widget construction site and know exactly what is overridden.
 @derive(Debug, Clone, Default)]
-pub type WidgetOverrides {
+pub struct WidgetOverrides {
     pub border_radius: Option[f32],
     pub background:    Option[Color],
     pub text_color:    Option[Color],
@@ -856,7 +856,7 @@ pub enum ButtonStyle {
 }
 
 /// A Material Design 3 button.
-pub type Button {
+pub struct Button {
     pub label:     String,
     pub on_tap:    Box[dyn Fn()],
     pub theme:     ThemeHandle,
@@ -875,7 +875,7 @@ impl Widget for Button { ... }
 ///
 /// value is shared mutable state; the widget reads and writes through it.
 /// on_change is called after every keystroke with the new string value.
-pub type TextField {
+pub struct TextField {
     pub value:       Arc[RefCell[String]],
     pub label:       String,
     pub placeholder: Option[String],
@@ -893,7 +893,7 @@ impl Widget for TextField { ... }
 
 ```ferrum
 /// A labeled checkbox.
-pub type Checkbox {
+pub struct Checkbox {
     pub checked:   Arc[Cell[bool]],
     pub label:     String,
     pub theme:     ThemeHandle,
@@ -912,7 +912,7 @@ impl Widget for Checkbox { ... }
 ///
 /// Grouping is the caller's responsibility: the caller tracks which value
 /// is selected and passes selected=true to at most one RadioButton per group.
-pub type RadioButton {
+pub struct RadioButton {
     pub selected:  bool,
     pub label:     String,
     pub theme:     ThemeHandle,
@@ -928,7 +928,7 @@ impl Widget for RadioButton { ... }
 
 ```ferrum
 /// A toggle switch.
-pub type Switch {
+pub struct Switch {
     pub on:        Arc[Cell[bool]],
     pub theme:     ThemeHandle,
     pub overrides: WidgetOverrides,
@@ -943,7 +943,7 @@ impl Widget for Switch { ... }
 
 ```ferrum
 /// An M3 chip: compact interactive element for filters, choices, or actions.
-pub type Chip {
+pub struct Chip {
     pub label:     String,
     pub theme:     ThemeHandle,
     pub overrides: WidgetOverrides,
@@ -962,7 +962,7 @@ impl Widget for Chip { ... }
 ///
 /// elevation is 0..5, indexing into theme.geometry.elevation_0..elevation_5.
 /// Elevation 1 is the M3 default for filled cards.
-pub type Card {
+pub struct Card {
     pub child:     Arc[dyn Widget],
     pub theme:     ThemeHandle,
     pub overrides: WidgetOverrides,
@@ -976,7 +976,7 @@ impl Widget for Card { ... }
 
 ```ferrum
 /// A horizontal rule using theme.colors.outline_variant.
-pub type Divider {
+pub struct Divider {
     pub theme: ThemeHandle,
 }
 
@@ -990,7 +990,7 @@ impl Widget for Divider { ... }
 ///
 /// value: Some(v) where v is in [0.0, 1.0] for determinate progress.
 /// value: None for indeterminate (animated cycling).
-pub type ProgressIndicator {
+pub struct ProgressIndicator {
     pub value:     Option[f32],
     pub theme:     ThemeHandle,
     pub overrides: WidgetOverrides,
@@ -1011,7 +1011,7 @@ impl Widget for ProgressIndicator { ... }
 /// A WCAG contrast warning: a token pair whose contrast ratio falls below
 /// the required threshold.
 @derive(Debug, Clone)]
-pub type ContrastWarning {
+pub struct ContrastWarning {
     /// Name of the foreground color token (e.g., "on_primary").
     pub foreground_token:    String,
     /// Name of the background color token (e.g., "primary").

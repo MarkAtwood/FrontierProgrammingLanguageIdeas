@@ -118,7 +118,7 @@ enum TlsCertValidation {
 }
 
 // Full configuration for SecureResolver.
-type SecureResolverConfig {
+struct SecureResolverConfig {
     // How to reach nameservers.
     transport:      ResolverTransport,
 
@@ -284,7 +284,7 @@ impl SecureResolver {
 // Calling cancel() signals the query to abort at its next await point.
 // After cancel() returns, the associated query Future resolves to
 // Err(ResolverError.Cancelled) and no further side effects occur.
-type CancelToken {
+struct CancelToken {
     pub fn cancel(self)       // Consume and cancel
     pub fn is_cancelled(&self): bool
 }
@@ -354,7 +354,7 @@ enum ResourceRecord {
 }
 
 // Common metadata present on every record, regardless of type.
-type RrMeta {
+struct RrMeta {
     pub name:  String,      // Owner name
     pub class: DnsClass,    // Always In for Internet records
     pub ttl:   Duration,
@@ -371,14 +371,14 @@ enum DnsClass {
 
 ```ferrum
 // MX record — mail exchange.
-type MxRecord {
+struct MxRecord {
     pub priority: u16,      // Lower values preferred
     pub exchange: String,   // Hostname of mail server
 }
 
 // SRV record (RFC 2782) — service location.
 // Queried as _service._proto.name, e.g. _imaps._tcp.example.com
-type SrvRecord {
+struct SrvRecord {
     pub priority: u16,      // Lower values preferred
     pub weight:   u16,      // Load balancing among equal-priority records
     pub port:     u16,
@@ -393,7 +393,7 @@ impl SrvRecord {
 
 // TLSA record (RFC 6698) — DANE certificate association.
 // Used to bind a TLS certificate to a DNS name under DNSSEC protection.
-type TlsaRecord {
+struct TlsaRecord {
     pub usage:         TlsaUsage,
     pub selector:      TlsaSelector,
     pub matching_type: TlsaMatchingType,
@@ -419,7 +419,7 @@ enum TlsaMatchingType {
 }
 
 // SVCB record (RFC 9460) — service binding for arbitrary protocol endpoints.
-type SvcbRecord {
+struct SvcbRecord {
     pub priority: u16,          // 0 = alias mode; >0 = service mode
     pub target:   String,       // Target hostname; "." means owner name
     pub params:   SvcbParams,   // Service parameters
@@ -428,14 +428,14 @@ type SvcbRecord {
 // HTTPS record (RFC 9460) — SVCB subtype for HTTPS endpoints.
 // Structurally identical to SvcbRecord; a distinct type prevents confusion
 // between HTTPS-specific and generic SVCB usage.
-type HttpsRecord {
+struct HttpsRecord {
     pub priority: u16,
     pub target:   String,
     pub params:   SvcbParams,
 }
 
 // Parsed SVCB/HTTPS service parameters (SvcParamKey values).
-type SvcbParams {
+struct SvcbParams {
     pub alpn:              Option[Vec[String]],     // Supported ALPN IDs
     pub no_default_alpn:   bool,
     pub port:              Option[u16],
@@ -448,7 +448,7 @@ type SvcbParams {
 
 // NAPTR record (RFC 3403) — Naming Authority Pointer.
 // Used in ENUM (telephone number mapping) and SIP service discovery.
-type NaptrRecord {
+struct NaptrRecord {
     pub order:       u16,
     pub preference:  u16,
     pub flags:       String,        // "S", "A", "U", "P" or empty
@@ -459,7 +459,7 @@ type NaptrRecord {
 
 // CAA record (RFC 8659) — Certification Authority Authorization.
 // Restricts which CAs may issue certificates for a domain.
-type CaaRecord {
+struct CaaRecord {
     pub critical: bool,
     pub tag:      CaaTag,
     pub value:    String,
@@ -474,7 +474,7 @@ enum CaaTag {
 
 // DS record (RFC 4034) — Delegation Signer.
 // Published in the parent zone to authenticate the child zone's DNSKEY.
-type DsRecord {
+struct DsRecord {
     pub key_tag:     u16,
     pub algorithm:   DnsKeyAlgorithm,
     pub digest_type: DsDigestType,
@@ -490,14 +490,14 @@ enum DsDigestType {
 
 // DNSKEY record (RFC 4034) — DNS public key.
 // Used to verify RRSIG records. The Zone Key bit indicates signing keys.
-type DnskeyRecord {
+struct DnskeyRecord {
     pub flags:     DnskeyFlags,
     pub protocol:  u8,          // Always 3 per RFC 4034
     pub algorithm: DnsKeyAlgorithm,
     pub public_key: Vec[u8],    // Algorithm-specific public key bytes
 }
 
-type DnskeyFlags {
+struct DnskeyFlags {
     pub zone_key:    bool,      // Bit 7 — key signs zone data
     pub secure_entry_point: bool, // Bit 15 — key is a trust anchor (KSK)
     pub revoked:     bool,      // Bit 8 — key is revoked (RFC 5011)
@@ -515,7 +515,7 @@ enum DnsKeyAlgorithm {
 
 // RRSIG record (RFC 4034) — Resource Record Signature.
 // Covers a complete RRset; validated against the DNSKEY with matching key tag.
-type RrsigRecord {
+struct RrsigRecord {
     pub type_covered: RecordType,
     pub algorithm:    DnsKeyAlgorithm,
     pub labels:       u8,           // Label count in owner name
@@ -529,14 +529,14 @@ type RrsigRecord {
 
 // NSEC record (RFC 4034) — Next Secure.
 // Provides authenticated denial of existence for a name or type.
-type NsecRecord {
+struct NsecRecord {
     pub next_name:  String,
     pub type_bitmap: Vec[RecordType],   // Types present at owner name
 }
 
 // NSEC3 record (RFC 5155) — Hashed Next Secure.
 // Provides authenticated denial without exposing the zone contents.
-type Nsec3Record {
+struct Nsec3Record {
     pub algorithm:   u8,
     pub flags:       u8,
     pub iterations:  u16,
@@ -555,7 +555,7 @@ type Nsec3Record {
 ```ferrum
 // Per-response DNSSEC validation status.
 // Every QueryResponse carries one of these.
-type DnssecResult {
+struct DnssecResult {
     // True if the complete chain from root to leaf was validated
     // and every signature was current and correct.
     pub authenticated: bool,
@@ -581,7 +581,7 @@ type DnssecResult {
 }
 
 // One link in the DNSSEC authentication chain.
-type DnssecChainLink {
+struct DnssecChainLink {
     pub zone:    String,
     pub ds:      Vec[DsRecord],         // DS records anchoring this zone
     pub dnskey:  Vec[DnskeyRecord],     // ZSK/KSK records at this zone
@@ -632,7 +632,7 @@ enum DnssecValidationError {
 ```ferrum
 // A trust anchor is a DNSKEY (or its DS digest) that is accepted without
 // a parent signature — typically the IANA root KSK, or a private zone root.
-type TrustAnchor {
+struct TrustAnchor {
     pub zone:    String,
     pub dnskey:  DnskeyRecord,
     pub ds:      Option[DsRecord],  // If DS form is preferred for matching
@@ -664,7 +664,7 @@ enum TrustAnchorError {
 
 ```ferrum
 // Result of a DANE/TLSA validation attempt for a specific TLS connection.
-type DaneValidationResult {
+struct DaneValidationResult {
     // True if at least one TLSA record matched the presented certificate.
     pub matched:           bool,
 
@@ -726,7 +726,7 @@ enum DaneError {
 ```ferrum
 // The full response to a DNS query, including all sections and
 // per-response DNSSEC status.
-type QueryResponse {
+struct QueryResponse {
     // Name as queried (after CNAME following if any).
     pub queried_name:  String,
 
@@ -868,7 +868,7 @@ same resolver instance. It is safe for concurrent access from multiple tasks.
 //   .local responses are cached separately with their own TTL tracking.
 //   They are never served in response to non-.local queries.
 
-type CacheStats {
+struct CacheStats {
     pub total_entries:         usize,
     pub authenticated_entries: usize,
     pub negative_entries:      usize,

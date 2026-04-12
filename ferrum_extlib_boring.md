@@ -231,7 +231,7 @@ impl MotionTokens {
 ```ferrum
 /// The boring widget suite. Use as the default suite for applications that
 /// want functional, honest rendering without decorative overhead.
-pub type BoringWidgetSuite {
+pub struct BoringWidgetSuite {
     button:     BoringButtonStyle,
     text_field: BoringTextFieldStyle,
     checkbox:   BoringCheckboxStyle,
@@ -1298,7 +1298,7 @@ A custom suite that overrides only the button style:
 ```ferrum
 use extlib.ccsp.boring.{BoringWidgetSuite, *}
 
-pub type MyBrandedSuite {
+pub struct MyBrandedSuite {
     base:          BoringWidgetSuite,
     button:        MyBrandedButtonStyle,
 }

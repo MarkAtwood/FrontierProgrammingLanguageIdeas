@@ -144,7 +144,7 @@ enum ImapAuth {
 ### 2.3 Configuration
 
 ```ferrum
-type ImapConfig {
+struct ImapConfig {
     pub security:          ImapSecurity,
     pub auth:              ImapAuth,
 
@@ -211,7 +211,7 @@ impl ImapClient {
 ```ferrum
 // An authenticated IMAP session in the Authenticated state (RFC 9051 §3.3).
 // From here the caller can manage mailboxes or SELECT/EXAMINE a mailbox.
-type ImapSession {
+struct ImapSession {
     // Server capability set as reported after authentication.
     // Refreshed automatically when the server sends updated CAPABILITY responses.
     pub fn capabilities(&self): &CapabilitySet
@@ -270,7 +270,7 @@ impl ImapSession {
 }
 
 // Information about a single mailbox returned by LIST or LSUB.
-type MailboxInfo {
+struct MailboxInfo {
     // Full mailbox name (e.g., "INBOX", "INBOX/Sent", "Archive/2024").
     pub name:       String,
 
@@ -334,7 +334,7 @@ enum StatusItem {
     Size,         // total size of all messages in bytes (RFC 9051 §6.3.10)
 }
 
-type MailboxStatus {
+struct MailboxStatus {
     // Each field is None if the corresponding StatusItem was not requested
     // or if the server did not return a value for it.
     pub messages:     Option[u32],
@@ -372,7 +372,7 @@ impl ImapSession {
 }
 
 // Response to the NAMESPACE command (RFC 2342, mandatory in RFC 9051).
-type NamespaceResponse {
+struct NamespaceResponse {
     // Namespaces accessible to the authenticated user as their own mailboxes.
     // Typically one entry: prefix="" delimiter="/" for most servers.
     pub personal: Vec[Namespace],
@@ -385,7 +385,7 @@ type NamespaceResponse {
     pub shared: Vec[Namespace],
 }
 
-type Namespace {
+struct Namespace {
     // The prefix string that must be prepended to a mailbox name in this
     // namespace to form a full mailbox name (e.g., "", "INBOX.", "user/").
     pub prefix:    String,
@@ -427,7 +427,7 @@ impl ImapSession {
 }
 
 // Data returned by SELECT or EXAMINE.
-type SelectData {
+struct SelectData {
     // Total number of messages in the mailbox.
     pub exists:           u32,
 
@@ -453,7 +453,7 @@ type SelectData {
 
 // An IMAP session in the Selected state.
 // Provides all ImapSession methods plus message-level operations.
-type SelectedSession {
+struct SelectedSession {
     // Metadata returned by the SELECT or EXAMINE command.
     pub fn select_data(&self): &SelectData
 
@@ -601,7 +601,7 @@ enum BodySection {
 
 ```ferrum
 // Response data for one message from a FETCH command.
-type FetchResponse {
+struct FetchResponse {
     // Sequence number (always present).
     pub sequence_num:  u32,
 
@@ -628,7 +628,7 @@ type FetchResponse {
 }
 
 // RFC 5322 envelope fields as parsed by the server.
-type Envelope {
+struct Envelope {
     pub date:        Option[String],
     pub subject:     Option[String],
     pub from:        Vec[Address],
@@ -641,7 +641,7 @@ type Envelope {
     pub message_id:  Option[String],
 }
 
-type Address {
+struct Address {
     pub display_name: Option[String],
     pub mailbox:      Option[String],  // local part
     pub host:         Option[String],  // domain
@@ -913,7 +913,7 @@ impl SelectedSession {
 
 // COPYUID / MOVEUID response data from the server (RFC 4315 UIDPLUS).
 // Present only when the server advertises UIDPLUS capability.
-type CopyResponse {
+struct CopyResponse {
     // UIDVALIDITY of the destination mailbox.
     pub uidvalidity:  Option[u32],
     // UID set of source messages copied.
@@ -922,7 +922,7 @@ type CopyResponse {
     pub dest_uids:    Option[SequenceSet],
 }
 
-type MoveResponse {
+struct MoveResponse {
     pub uidvalidity:  Option[u32],
     pub source_uids:  Option[SequenceSet],
     pub dest_uids:    Option[SequenceSet],
@@ -947,7 +947,7 @@ impl ImapSession {
 
 // APPEND result data (RFC 4315 UIDPLUS).
 // Fields are None on servers that do not advertise UIDPLUS.
-type AppendResult {
+struct AppendResult {
     // UIDVALIDITY of the mailbox the message was appended to.
     pub uidvalidity: Option[u32],
     // UID assigned to the appended message.
@@ -1043,7 +1043,7 @@ capability advertisement, tag tracking, and literal synchronization.
 ### 9.1 Server Configuration
 
 ```ferrum
-type ImapServerConfig {
+struct ImapServerConfig {
     // TLS configuration for IMAPS (mandatory; the server always requires TLS).
     pub tls_config:       TlsServerConfig,
 
@@ -1198,7 +1198,7 @@ trait SelectedBackend: Send + Sync {
 }
 
 // Per-connection context passed to every backend call.
-type SessionContext {
+struct SessionContext {
     pub username:   String,
     pub peer_addr:  SocketAddr,
 }

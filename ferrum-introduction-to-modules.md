@@ -271,7 +271,7 @@ Now use it:
 // src/main.fe
 import json.{to_json, from_json}
 
-type User {
+struct User {
     name: String,
     age: u32,
 }
@@ -467,7 +467,7 @@ where
 
 import internal.retry.with_retry   // can import pub(crate) items from same package
 
-pub(crate) type HealthStatus {
+pub(crate) struct HealthStatus {
     is_healthy: bool,
     last_check: Instant,
     consecutive_failures: u32,
@@ -512,7 +512,7 @@ import internal.retry.with_retry
 /// let conn = pool.get()?
 /// conn.execute("SELECT 1")?
 /// ```
-pub type Pool {
+pub struct Pool {
     connections: Vec[Connection],    // private field
     max_size: usize,                 // private field
 }
@@ -667,14 +667,14 @@ Ferrum allows circular imports between modules. You can have `A imports B` and `
 // a.fe
 import b.B
 
-pub type A {
+pub struct A {
     b: B,      // A contains B by value
 }
 
 // b.fe
 import a.A
 
-pub type B {
+pub struct B {
     a: A,      // B contains A by value - impossible!
 }
 ```
@@ -707,7 +707,7 @@ The fix:
 // b.fe
 import a.A
 
-pub type B {
+pub struct B {
     a: Box[A],   // Box breaks the cycle - B has fixed size
 }
 ```
@@ -818,7 +818,7 @@ edition = "2025"
 import lexer.{Lexer, Token}
 import ast.Ast
 
-pub type Parser {
+pub struct Parser {
     lexer: Lexer,
     current: Token,
 }
@@ -915,14 +915,14 @@ In Ferrum:
 ```ferrum
 // a.fe
 import b.B
-pub type A { }
+pub struct A { }
 impl A {
     pub fn method(self: &Self): B { B { } }
 }
 
 // b.fe
 import a.A
-pub type B { }
+pub struct B { }
 impl B {
     pub fn method(self: &Self): A { A { } }
 }
@@ -1282,7 +1282,7 @@ fn main(): Result[()] ! IO + Net {
 ```ferrum
 import env
 
-pub type Config {
+pub struct Config {
     pub host: String,
     pub port: u16,
     pub database_url: String,
@@ -1309,7 +1309,7 @@ import routes
 import middleware.{auth, logging}
 import db.connection.Pool
 
-pub type Server {
+pub struct Server {
     http: HttpServer,
     db: Pool,
 }
@@ -1388,7 +1388,7 @@ pub fn create(db: &Pool, req: &Request): Result[Response] ! IO {
 }
 
 // Request body type - only used in this module
-type CreateUser {
+struct CreateUser {
     name: String,
     email: String,
 }
@@ -1396,14 +1396,14 @@ type CreateUser {
 
 **`src/db/models.fe`:**
 ```ferrum
-pub type User {
+pub struct User {
     pub id: i64,
     pub name: String,
     pub email: String,
     pub created_at: DateTime,
 }
 
-pub(crate) type UserRow {
+pub(crate) struct UserRow {
     // Internal representation matching database schema
     // Not exposed to users of this library
     id: i64,
@@ -1540,7 +1540,7 @@ pub(crate) fn internal() { }      // package only
 fn private_helper() { }           // this module only
 
 // Type visibility
-pub type PublicStruct {
+pub struct PublicStruct {
     pub visible_field: i32,
     hidden_field: i32,            // private even though type is pub
 }

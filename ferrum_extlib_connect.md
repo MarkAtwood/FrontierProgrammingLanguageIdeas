@@ -273,7 +273,7 @@ impl Connection {
 ### `TransportInfo`
 
 ```ferrum
-pub type TransportInfo {
+pub struct TransportInfo {
     // The transport that was actually used.
     pub transport:     TransportKind,
 

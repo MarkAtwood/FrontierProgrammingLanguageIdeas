@@ -414,7 +414,7 @@ impl TlsStream {
 ### 6.3 HandshakeData
 
 ```ferrum
-type HandshakeData {
+struct HandshakeData {
     // TLS version that was negotiated.
     pub protocol_version: TlsVersion,
 
@@ -594,7 +594,7 @@ QUIC provides its own reliable delivery of crypto data. The TLS handshake uses t
 
 ```ferrum
 // Callbacks provided by the QUIC implementation to the TLS handshake engine.
-type QuicTransportCallbacks {
+struct QuicTransportCallbacks {
     // Called by TLS to send handshake data at a given encryption level.
     // QUIC wraps this in a CRYPTO frame and sends it.
     pub send_crypto: fn(level: EncryptionLevel, data: &[u8]): Result[(), TlsError],
@@ -627,7 +627,7 @@ enum EncryptionLevel {
 ```ferrum
 // Traffic key material for all encryption levels, derived by the TLS handshake.
 // The QUIC implementation uses these to construct AEAD contexts for packet protection.
-type QuicCryptoState {
+struct QuicCryptoState {
     // Seals (encrypts + authenticates) a QUIC packet payload.
     // level: the encryption level of the packet.
     // packet_number: QUIC packet number, used as the AEAD nonce.

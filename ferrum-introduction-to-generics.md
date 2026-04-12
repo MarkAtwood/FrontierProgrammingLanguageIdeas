@@ -324,7 +324,7 @@ The compiler catches the error. No runtime crash, no memory corruption. You fix 
 Let's build something more substantial: a stack (last-in, first-out data structure).
 
 ```ferrum
-type Stack[T] {
+struct Stack[T] {
     items: Vec[T],
 }
 
@@ -377,7 +377,7 @@ commands.push("save".to_string());
 let last_command = commands.pop();  // Some("save")
 
 // Stack of your own types
-type Task {
+struct Task {
     id: u64,
     name: String,
     priority: u8,
@@ -403,7 +403,7 @@ In Ferrum, you write `Stack[T]` once, and it works for every type.
 Here's a cache that stores computed values to avoid recomputing them:
 
 ```ferrum
-type Cache[K, V] {
+struct Cache[K, V] {
     map: HashMap[K, V],
     max_size: usize,
 }
@@ -575,7 +575,7 @@ max(3.14, 2.72);        // OK: f64 implements Ord
 But:
 
 ```ferrum
-type Point { x: f64, y: f64 }
+struct Point { x: f64, y: f64 }
 
 let p1 = Point { x: 1.0, y: 2.0 };
 let p2 = Point { x: 3.0, y: 4.0 };
@@ -622,7 +622,7 @@ This function requires `T` to be:
 If you call it with a type that's `Ord` but not `Debug`:
 
 ```ferrum
-type SecretKey { bytes: [u8; 32] }
+struct SecretKey { bytes: [u8; 32] }
 impl Ord for SecretKey { /* ... */ }
 // Note: we deliberately don't implement Debug to avoid accidental logging
 
@@ -662,7 +662,7 @@ error[E0277]: `SecretKey` doesn't implement `Debug`
 
 ```ferrum
 // Hash map keys need Hash + Eq
-type HashMap[K: Hash + Eq, V] { ... }
+struct HashMap[K: Hash + Eq, V] { ... }
 
 // Sorting needs Ord
 fn sort[T: Ord](items: &mut [T]) { ... }
@@ -807,7 +807,7 @@ In practice:
 Types themselves can have type parameters. Here's a simplified vector:
 
 ```ferrum
-type Vec[T] {
+struct Vec[T] {
     data: *mut T,
     len: usize,
     cap: usize,
@@ -905,7 +905,7 @@ total = sum(numbers)  # TypeError at runtime when it hits "oops"
 Types can have multiple type parameters:
 
 ```ferrum
-type Pair[A, B] {
+struct Pair[A, B] {
     first: A,
     second: B,
 }
@@ -915,7 +915,7 @@ let pair: Pair[String, i32] = Pair {
     second: 30,
 };
 
-type HashMap[K, V] {
+struct HashMap[K, V] {
     // ...
 }
 
@@ -942,8 +942,8 @@ trait Draw {
     fn draw(&self) ! IO;
 }
 
-type Circle { radius: f64 }
-type Rectangle { width: f64, height: f64 }
+struct Circle { radius: f64 }
+struct Rectangle { width: f64, height: f64 }
 
 impl Draw for Circle {
     fn draw(&self) ! IO {
@@ -1102,7 +1102,7 @@ note: method defined here
 **Type doesn't implement required trait:**
 
 ```ferrum
-type SecretData {
+struct SecretData {
     content: Vec[u8],
 }
 
@@ -1181,7 +1181,7 @@ where
 { ... }
 
 // Generic type
-type Container[T] { value: T }
+struct Container[T] { value: T }
 
 // impl block for generic type
 impl[T] Container[T] { ... }

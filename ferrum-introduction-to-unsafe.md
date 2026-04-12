@@ -493,7 +493,7 @@ The syntax makes the dangerous operations visible. An auditor can find every loc
 A ring buffer is a fixed-size circular queue. It needs internal pointer arithmetic that the borrow checker cannot track.
 
 ```ferrum
-type RingBuffer[T] {
+struct RingBuffer[T] {
     buffer: *mut T,      // Raw pointer to storage
     capacity: usize,
     head: usize,         // Next read position
@@ -703,7 +703,7 @@ Here's a more complete implementation of `Vec` showing the pattern:
 
 ```ferrum
 mod vec {
-    type Vec[T] {
+    struct Vec[T] {
         ptr: *mut T,     // Raw pointer to heap allocation
         len: usize,      // Number of initialized elements
         cap: usize,      // Total capacity in elements

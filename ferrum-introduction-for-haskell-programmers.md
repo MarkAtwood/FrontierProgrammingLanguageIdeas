@@ -69,7 +69,7 @@ enum Shape {
 }
 
 // Product type (no anonymous tuples-as-constructors — fields are named)
-type Span {
+struct Span {
     start: usize,
     end:   usize,
 }
@@ -347,7 +347,7 @@ This is the "no hidden costs" principle. Allocation and duplication are never im
 For self-referential types (think of values that contain pointers into themselves), Ferrum has `pinned` as a first-class concept:
 
 ```ferrum
-pinned type RingBuffer[T] {
+pinned struct RingBuffer[T] {
     data:  [T; 256],
     read:  *const T,   // interior pointer
     write: *const T,
@@ -450,7 +450,7 @@ Constrained types attach predicates to base types:
 ```ferrum
 type Percent   = u8  where value <= 100
 type NonZero   = u32 where value != 0
-type SortedVec[T: Ord] {
+struct SortedVec[T: Ord] {
     data: Vec[T],
     invariant forall i, j where i < j => self.data[i] <= self.data[j]
 }

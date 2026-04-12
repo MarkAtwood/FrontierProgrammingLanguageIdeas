@@ -155,7 +155,7 @@ This won't compile:
 
 ```ferrum
 // ERROR: recursive type has infinite size
-type LinkedList[T] {
+struct LinkedList[T] {
     value: T,
     next: Option[LinkedList[T]],  // LinkedList contains LinkedList contains...
 }
@@ -182,7 +182,7 @@ help: insert some indirection (e.g., a `Box`) to make `LinkedList` representable
 The fix: use `Box` for indirection. `Box` has a fixed size (one pointer), even though what it points to can vary:
 
 ```ferrum
-type LinkedList[T] {
+struct LinkedList[T] {
     value: T,
     next: Option[Box[LinkedList[T]]],  // Box is just a pointer - fixed size
 }
@@ -228,9 +228,9 @@ trait Drawable {
     fn draw(&self);
 }
 
-type Circle { radius: f32 }
-type Square { side: f32 }
-type Triangle { base: f32, height: f32 }
+struct Circle { radius: f32 }
+struct Square { side: f32 }
+struct Triangle { base: f32, height: f32 }
 
 impl Drawable for Circle { fn draw(&self) { /* ... */ } }
 impl Drawable for Square { fn draw(&self) { /* ... */ } }
@@ -306,21 +306,21 @@ Multiple handlers need access to the same config. You don't want to copy the con
 ```ferrum
 import alloc.rc.Rc
 
-type AppConfig {
+struct AppConfig {
     database_url: String,
     max_connections: u32,
     debug_mode: bool,
 }
 
-type DatabaseHandler {
+struct DatabaseHandler {
     config: Rc[AppConfig],
 }
 
-type CacheHandler {
+struct CacheHandler {
     config: Rc[AppConfig],
 }
 
-type LogHandler {
+struct LogHandler {
     config: Rc[AppConfig],
 }
 
@@ -360,7 +360,7 @@ Graphs have nodes that can be reached from multiple other nodes:
 import alloc.rc.Rc
 import core.cell.RefCell
 
-type GraphNode[T] {
+struct GraphNode[T] {
     value: T,
     // Multiple nodes can point to the same neighbor
     neighbors: RefCell[Vec[Rc[GraphNode[T]]]],
@@ -482,7 +482,7 @@ The performance difference is small in most real code. An atomic increment is ab
 import sync.{Arc, Mutex}
 import collections.HashMap
 
-type Cache[K, V] {
+struct Cache[K, V] {
     data: Arc[Mutex[HashMap[K, V]]],
 }
 
@@ -540,12 +540,12 @@ Here's a problem that bites everyone eventually:
 import alloc.rc.Rc
 import core.cell.RefCell
 
-type Parent {
+struct Parent {
     name: String,
     children: RefCell[Vec[Rc[Child]]],
 }
 
-type Child {
+struct Child {
     name: String,
     parent: Rc[Parent],  // PROBLEM: Child holds strong reference to Parent
 }
@@ -583,12 +583,12 @@ Think of it as: "I want to know about this thing, but I don't need it to stick a
 import alloc.rc.{Rc, Weak}
 import core.cell.RefCell
 
-type Parent {
+struct Parent {
     name: String,
     children: RefCell[Vec[Rc[Child]]],
 }
 
-type Child {
+struct Child {
     name: String,
     parent: Weak[Parent],  // FIXED: Weak doesn't keep Parent alive
 }
@@ -688,7 +688,7 @@ But sometimes you need to mutate data that multiple things reference. That's whe
 ```ferrum
 import core.cell.RefCell
 
-type Counter {
+struct Counter {
     value: RefCell[i32],
 }
 
@@ -759,7 +759,7 @@ Since `Rc` gives you shared ownership and `RefCell` gives you interior mutabilit
 import alloc.rc.Rc
 import core.cell.RefCell
 
-type SharedVec[T] {
+struct SharedVec[T] {
     data: Rc[RefCell[Vec[T]]],
 }
 
@@ -868,7 +868,7 @@ s.spawn(|| use(shared.clone()));  // Works
 
 **The problem:**
 ```ferrum
-type Node {
+struct Node {
     next: Option[Rc[Node]],
     prev: Option[Rc[Node]],  // Creates cycle: A -> B -> A
 }
@@ -878,7 +878,7 @@ type Node {
 
 **The fix:** Use `Weak` for back-references:
 ```ferrum
-type Node {
+struct Node {
     next: Option[Rc[Node]],   // Strong: I own my successor
     prev: Option[Weak[Node]], // Weak: I know my predecessor, but don't keep it alive
 }
@@ -1009,7 +1009,7 @@ let big_data = Box.new([0u8; 10_000_000]);
 
 ```ferrum
 // Use Box for indirection
-type Tree[T] {
+struct Tree[T] {
     value: T,
     children: Vec[Box[Tree[T]]],
 }
@@ -1028,8 +1028,8 @@ let copy2 = shared.clone();
 
 ```ferrum
 // Parents own children (Rc), children reference parents (Weak)
-type Parent { children: Vec[Rc[Child]] }
-type Child { parent: Weak[Parent] }
+struct Parent { children: Vec[Rc[Child]] }
+struct Child { parent: Weak[Parent] }
 ```
 
 ### "I need to modify shared data (single thread)"

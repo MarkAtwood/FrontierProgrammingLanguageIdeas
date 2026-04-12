@@ -21,14 +21,14 @@ trait Debug {
 
 // Derive both automatically for most types
 @derive(Debug, Display)
-type Point { x: f32, y: f32 }
+struct Point { x: f32, y: f32 }
 // Display: "Point { x: 1.0, y: 2.0 }"  (same as Debug by default unless overridden)
 ```
 
 ### 19.2 Formatter
 
 ```ferrum
-type Formatter {
+struct Formatter {
     fn write_str(&mut self, s: &str): Result[(), IoError] ! IO
     fn write_char(&mut self, c: char): Result[(), IoError] ! IO
     fn write_fmt(&mut self, args: Arguments): Result[(), IoError] ! IO
@@ -48,7 +48,7 @@ type Formatter {
 }
 
 // DebugStruct — for implementing Debug on structs
-type DebugStruct { ... }
+struct DebugStruct { ... }
 impl DebugStruct {
     fn field(&mut self, name: &str, value: &dyn Debug): &mut Self
     fn finish(&mut self): Result[(), IoError] ! IO
@@ -80,7 +80,7 @@ writeln(w, "...")   : Result[(), IoError] ! IO
 
 ```ferrum
 // Duration — unsigned, nanosecond precision, no overflow for reasonable values
-type Duration {
+struct Duration {
     secs:  u64,
     nanos: u32 where value < 1_000_000_000,
 
@@ -171,7 +171,7 @@ fn sleep_async(duration: Duration): () ! Async
 
 ```ferrum
 /// A periodic timer that doesn't drift.
-type PeriodicTimer {
+struct PeriodicTimer {
     period: Duration,
     next: Instant,
 }
@@ -243,7 +243,7 @@ fn control_loop() ! IO {
 ```ferrum
 // Instant — monotonic, opaque, for measuring elapsed time
 // NOT a wall-clock. NOT convertible to a date/time.
-type Instant { ... }
+struct Instant { ... }
 
 impl Instant {
     fn now(): Self ! IO                       // current monotonic time
@@ -268,7 +268,7 @@ impl Instant {
 // that we can query its offset from JDN 0.0 for calendar conversion.
 // 64-bit signed nanoseconds = ±292 years from epoch.
 
-type Timestamp {
+struct Timestamp {
     nanos: i64,
 }
 
@@ -298,7 +298,7 @@ impl Timestamp {
 }
 
 // For historical dates or far future (±10^22 years)
-type Timestamp128 {
+struct Timestamp128 {
     nanos: i128,
 }
 
@@ -371,7 +371,7 @@ trait Timezone {
 struct Utc           // UTC, no offset
 struct Tai           // International Atomic Time
 struct Local         // System local timezone
-type FixedOffset { seconds: i32 }  // Fixed UTC offset
+struct FixedOffset { seconds: i32 }  // Fixed UTC offset
 ```
 
 ### 20.5 Calendar Modules
@@ -381,13 +381,13 @@ Each calendar is a separate module. The standard library provides Gregorian as t
 ```ferrum
 // std.time.calendar.gregorian — the most common, but not privileged
 mod gregorian {
-    type Date {
+    struct Date {
         year: i32,      // astronomical year (0 = 1 BCE, -1 = 2 BCE)
         month: u8,      // 1–12
         day: u8,        // 1–31
     }
 
-    type DateTime {
+    struct DateTime {
         date: Date,
         hour: u8,       // 0–23
         minute: u8,     // 0–59
@@ -593,7 +593,7 @@ A protected object is a monitor with automatic mutual exclusion. Functions allow
 
 ```ferrum
 /// A protected object with automatic mutual exclusion.
-type Protected[T] {
+struct Protected[T] {
     data: UnsafeCell[T],
     lock: RwLock,
     condvar: Condvar,
@@ -628,7 +628,7 @@ impl[T] Protected[T] {
 }
 
 // Example: Bounded Buffer (classic producer-consumer)
-type BoundedBuffer[T, const N: usize] {
+struct BoundedBuffer[T, const N: usize] {
     data: [Option[T]; N],
     head: usize,
     tail: usize,
@@ -759,7 +759,7 @@ For hard real-time systems with deterministic scheduling requirements.
 
 /// A mutex with priority ceiling protocol.
 /// Prevents priority inversion by temporarily raising the holder's priority.
-type CeilingMutex[T] {
+struct CeilingMutex[T] {
     data: UnsafeCell[T],
     ceiling: Priority,
     state: AtomicState,
@@ -778,7 +778,7 @@ impl[T] CeilingMutex[T] {
     fn try_lock(&self): Option[CeilingGuard[T]] ! Sync
 }
 
-type CeilingGuard[T] {
+struct CeilingGuard[T] {
     mutex: &CeilingMutex[T],
     old_priority: Priority,
 }
@@ -806,7 +806,7 @@ impl[T] DerefMut for CeilingGuard[T] {
 fn task_cpu_time(): Duration ! IO
 
 /// A budget for CPU time.
-type ExecutionTimeBudget {
+struct ExecutionTimeBudget {
     remaining: Duration,
 }
 
@@ -824,7 +824,7 @@ impl ExecutionTimeBudget {
 }
 
 /// Timing event — fires at a specific instant.
-type TimingEvent {
+struct TimingEvent {
     fn new(): Self
     fn set(&self, at: Instant) ! IO
     fn cancel(&self) ! IO
@@ -853,7 +853,7 @@ trait RavenscarSafe {}
 
 /// A Ravenscar-compliant task.
 /// Must be created at elaboration time (static).
-type RavenscarTask {
+struct RavenscarTask {
     priority: Priority,
     stack_size: usize,
     entry: fn() -> never,   // tasks don't return
@@ -861,7 +861,7 @@ type RavenscarTask {
 
 /// A Ravenscar-compliant protected object.
 /// Single entry only.
-type RavenscarProtected[T] {
+struct RavenscarProtected[T] {
     data: UnsafeCell[T],
     ceiling: Priority,
     entry_barrier: fn(&T) -> bool,
@@ -926,7 +926,7 @@ enum Stdio {
     Fd(Fd),  // posix only
 }
 
-type Child {
+struct Child {
     pub stdin:  Option[ChildStdin]
     pub stdout: Option[ChildStdout]
     pub stderr: Option[ChildStderr]
@@ -939,14 +939,14 @@ type Child {
     fn send_signal(&mut self, sig: Signal): Result[(), IoError] ! IO
 }
 
-type ExitStatus { ... }
+struct ExitStatus { ... }
 impl ExitStatus {
     fn success(&self): bool
     fn code(&self): Option[i32]   // None if terminated by signal
     fn signal(&self): Option[i32]  // None if exited normally
 }
 
-type Output {
+struct Output {
     pub status: ExitStatus,
     pub stdout: Vec[u8],
     pub stderr: Vec[u8],
@@ -993,7 +993,7 @@ fn home_dir(): Option[PathBuf] ! IO
 
 ```ferrum
 // Backtrace — captured stack trace
-type Backtrace {
+struct Backtrace {
     inner: BacktraceInner,
 }
 
@@ -1069,7 +1069,7 @@ impl BacktraceConfig {
 }
 
 // BacktraceFrame — a single frame in the stack trace
-type BacktraceFrame {
+struct BacktraceFrame {
     ip: usize,          // instruction pointer
     symbol_address: Option[usize],
 }
@@ -1086,7 +1086,7 @@ impl BacktraceFrame {
 }
 
 // BacktraceSymbol — resolved symbol information
-type BacktraceSymbol {
+struct BacktraceSymbol {
     name: Option[String],
     filename: Option[PathBuf],
     lineno: Option[u32],
@@ -1128,7 +1128,7 @@ impl Debug for Backtrace {
 // With the error module
 @derive(Debug, Error)
 @error("database query failed: {query}")
-type DbError {
+struct DbError {
     query: String,
 
     @source
@@ -1222,7 +1222,7 @@ impl LevelFilter {
 }
 
 // Record — a single log entry
-type Record {
+struct Record {
     level: Level,
     target: &str,           // typically module path
     message: String,
@@ -1280,7 +1280,7 @@ fn logger(): &dyn Log {
     LOGGER.get().unwrap_or(&NOP_LOGGER)
 }
 
-type SetLoggerError {}
+struct SetLoggerError {}
 
 impl Display for SetLoggerError {
     fn fmt(&self, f: &mut Formatter): Result[(), FmtError] {
@@ -1384,7 +1384,7 @@ mod log_keys {
 
 ```ferrum
 // Simple stderr logger
-type StderrLogger {
+struct StderrLogger {
     level: LevelFilter,
 }
 

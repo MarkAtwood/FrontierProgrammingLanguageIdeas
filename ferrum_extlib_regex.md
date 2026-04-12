@@ -41,7 +41,7 @@ This design follows the approach of CCSP's `lib_ccsp_regex`: backtracking is nev
 ///
 /// Compiled from a pattern string at construction time. Immutable after construction.
 /// Thread-safe: impl Send + Sync.
-type Regex { ... }
+struct Regex { ... }
 
 impl Regex {
     // Constructors — see Section 3
@@ -57,7 +57,7 @@ impl Regex {
 
 ```ferrum
 /// Builder for configuring a Regex before compilation.
-type RegexBuilder {
+struct RegexBuilder {
     fn new(pattern: &str): Self
 
     /// Case-insensitive matching. Default: false.
@@ -100,7 +100,7 @@ type RegexBuilder {
 ```ferrum
 /// A single match: a contiguous region of an input string.
 /// Borrows from the input string; does not allocate.
-type Match['input] {
+struct Match['input] {
     /// The matched substring.
     fn as_str(&self): &'input str
 
@@ -124,7 +124,7 @@ type Match['input] {
 ```ferrum
 /// The result of a capturing match.
 /// Group 0 is always the overall match. Groups 1..n are capturing groups.
-type Captures['input] {
+struct Captures['input] {
     /// The overall match (group 0). Always present on success.
     fn get(&self, i: usize): Option[Match['input]]
 
@@ -156,7 +156,7 @@ impl[I: Into[usize]] core.ops.Index[I] for Captures['input] {
 ```ferrum
 /// Iterator over capture group names. Unnamed groups yield None.
 /// Indices correspond to capture group numbers (0-indexed).
-type CaptureNames { ... }
+struct CaptureNames { ... }
 
 impl Iterator for CaptureNames {
     type Item = Option[&'static str]
@@ -178,7 +178,7 @@ impl Regex {
 
 ```ferrum
 /// A set of patterns matched simultaneously in a single pass over the input.
-type RegexSet { ... }
+struct RegexSet { ... }
 
 impl RegexSet {
     /// Compile multiple patterns. Fails if any pattern is invalid.
@@ -198,7 +198,7 @@ impl RegexSet {
 }
 
 /// The result of a RegexSet match: which patterns matched.
-type SetMatches { ... }
+struct SetMatches { ... }
 
 impl SetMatches {
     /// True if any pattern matched.
@@ -466,7 +466,7 @@ for i in matches.iter() {
 
 ```ferrum
 /// Builder for RegexSet with shared flags across all patterns.
-type RegexSetBuilder {
+struct RegexSetBuilder {
     fn new(patterns: impl IntoIterator[Item=impl AsRef[str]]): Self
     fn case_insensitive(self, yes: bool): Self
     fn multiline(self, yes: bool): Self
@@ -619,7 +619,7 @@ fn count_words(text: &str): usize {
 ```ferrum
 use extlib.regex.{Regex, Captures}
 
-type LogEntry {
+struct LogEntry {
     timestamp: String,
     level:     String,
     message:   String,

@@ -81,7 +81,7 @@ struct XChaCha20Poly1305 // key 32, nonce 24, tag 16 (extended nonce — safe wi
 // For protocol implementation (TLS record layer) where nonce management is
 // the protocol's responsibility, use the raw Aead trait above.
 
-type SafeAead[A: Aead] {
+struct SafeAead[A: Aead] {
     key:     [u8; A.KEY_LEN],
     counter: u64,
     base:    [u8; 4],   // random, set on construction

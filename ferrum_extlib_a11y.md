@@ -224,7 +224,7 @@ pub enum A11yRole {
 /// All bool fields default to false. Option fields default to None, meaning
 /// the property is not applicable to this node's role.
 @derive(Debug, Clone, PartialEq)]
-pub type A11yState {
+pub struct A11yState {
     /// The control is enabled and can receive user input.
     /// false means the control is visually dimmed and non-interactive.
     enabled: bool,
@@ -281,7 +281,7 @@ pub type A11yState {
 /// as are meaningful for the role: a ProgressBar with no value gives the user
 /// no information about how much progress has been made.
 @derive(Debug, Clone)]
-pub type A11yNodeDesc {
+pub struct A11yNodeDesc {
     /// Stable identity. Must be unique within the tree. See A11yNodeId.
     id: A11yNodeId,
 
@@ -503,7 +503,7 @@ impl A11yTree {
 /// a complete tree on every frame would flood the D-Bus or COM message
 /// queue with redundant data. Diffs transmit only what changed.
 @derive(Debug)]
-pub type A11yTreeDiff {
+pub struct A11yTreeDiff {
     /// Nodes added to the tree since the last diff.
     added: Vec[A11yNodeDesc],
 
@@ -1199,7 +1199,7 @@ pub enum A11yError {
 use extlib::ccsp::a11y::{A11yCtx, A11yRole, A11yState, A11yAction}
 use extlib::ccsp::widget::Widget
 
-pub type SaveButton {
+pub struct SaveButton {
     label:    String,
     enabled:  bool,
 }
@@ -1234,7 +1234,7 @@ impl Widget for SaveButton {
 ```ferrum
 use extlib::ccsp::a11y::{A11yCtx, A11yRole, A11yState, A11yTree, A11yNodeId, AnnouncePoliteness}
 
-pub type FormErrorMessage {
+pub struct FormErrorMessage {
     message:    Option[String],
     node_id:    Option[A11yNodeId],
 }
@@ -1276,7 +1276,7 @@ impl FormErrorMessage {
 ```ferrum
 use extlib::ccsp::a11y::{A11yCtx, A11yRole, A11yFocusManager, A11yNodeId}
 
-pub type ConfirmDialog {
+pub struct ConfirmDialog {
     root_id:     Option[A11yNodeId],
     ok_id:       Option[A11yNodeId],
     cancel_id:   Option[A11yNodeId],

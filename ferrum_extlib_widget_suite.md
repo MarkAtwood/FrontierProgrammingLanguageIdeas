@@ -95,7 +95,7 @@ where `constraints: Constraints` is a bounding box of allowed sizes:
 
 ```ferrum
 @derive(Debug, Clone, Copy, PartialEq)
-pub type Constraints {
+pub struct Constraints {
     pub min_width:  f32,
     pub max_width:  f32,   // f32::INFINITY means unconstrained
     pub min_height: f32,
@@ -179,7 +179,7 @@ impl LayoutCtx {
     pub fn is_resize(&self): bool
 }
 
-pub type TextMeasurement {
+pub struct TextMeasurement {
     pub size:     Size,
     pub baseline: f32,   // distance from top to text baseline
     pub lines:    u32,
@@ -357,7 +357,7 @@ pub enum TextFieldVisualState {
 }
 
 /// A half-open byte range into the content string.
-pub type Selection { pub start: usize, pub end: usize }
+pub struct Selection { pub start: usize, pub end: usize }
 
 /// Cursor position as a byte offset into the content string.
 pub type CursorPos(usize)
@@ -1050,7 +1050,7 @@ impl ButtonStyle for MyButtonStyle {
 }
 
 // Step 2: implement WidgetSuite
-pub type MySuite {
+pub struct MySuite {
     button: MyButtonStyle,
     // ... other styles ...
 }
@@ -1078,7 +1078,7 @@ impl WidgetSuite for MySuite {
 A suite that overrides only some styles and delegates the rest:
 
 ```ferrum
-pub type PartialOverrideSuite[Base: WidgetSuite] {
+pub struct PartialOverrideSuite[Base: WidgetSuite] {
     base:          Base,
     custom_button: MyButtonStyle,
 }

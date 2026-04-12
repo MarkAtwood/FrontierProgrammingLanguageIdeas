@@ -119,7 +119,7 @@ const TARGET_ENDIAN: Endian = ...     // Endian.Little or Endian.Big
 // Platform-specific version (if applicable)
 const TARGET_OS_VERSION: Option[OsVersion] = ...
 
-type OsVersion {
+struct OsVersion {
     major: u32,
     minor: u32,
     patch: u32,
@@ -394,7 +394,7 @@ bitflags type Protection: u8 {
     const EXECUTE = 0b100
 }
 
-type MappedRegion {
+struct MappedRegion {
     ptr: *mut u8,
     len: usize,
 }
@@ -613,7 +613,7 @@ The base for all Unix-like systems. Linux, BSD, and Darwin extend this.
 
 /// POSIX platform — base implementation for Unix-like systems.
 /// Conforms to POSIX.1-2017 (IEEE Std 1003.1-2017).
-pub type PosixPlatform {
+pub struct PosixPlatform {
     version: PosixVersion,
 }
 
@@ -689,10 +689,10 @@ pub mod mman {
 }
 
 pub mod pthread {
-    pub type PthreadAttr { /* ... */ }
-    pub type PthreadMutex { /* ... */ }
-    pub type PthreadCond { /* ... */ }
-    pub type PthreadRwLock { /* ... */ }
+    pub struct PthreadAttr { /* ... */ }
+    pub struct PthreadMutex { /* ... */ }
+    pub struct PthreadCond { /* ... */ }
+    pub struct PthreadRwLock { /* ... */ }
 
     // Low-level pthread wrappers
     // Higher-level abstractions in std.sync
@@ -709,12 +709,12 @@ Extends POSIX with Linux-specific features.
 /// Linux platform — extends POSIX with Linux-specific APIs.
 /// Minimum supported kernel: 5.4 LTS
 /// Recommended kernel: 6.1+ (for io_uring, landlock)
-pub type LinuxPlatform {
+pub struct LinuxPlatform {
     kernel_version: KernelVersion,
     posix: PosixPlatform,
 }
 
-pub type KernelVersion {
+pub struct KernelVersion {
     major: u32,
     minor: u32,
     patch: u32,
@@ -731,7 +731,7 @@ pub mod io_uring {
     pub const MIN_KERNEL: KernelVersion = KernelVersion { major: 5, minor: 1, patch: 0 }
 
     /// io_uring instance.
-    pub type IoUring {
+    pub struct IoUring {
         ring_fd: RawFd,
         sq: SubmissionQueue,
         cq: CompletionQueue,
@@ -766,7 +766,7 @@ pub mod io_uring {
 
 /// epoll — event notification (fallback for older kernels)
 pub mod epoll {
-    pub type Epoll { fd: RawFd }
+    pub struct Epoll { fd: RawFd }
 
     impl Epoll {
         pub fn new() : Result[Self, IoError] ! IO
@@ -792,7 +792,7 @@ pub mod epoll {
 pub mod landlock {
     pub const MIN_KERNEL: KernelVersion = KernelVersion { major: 5, minor: 13, patch: 0 }
 
-    pub type Ruleset { /* ... */ }
+    pub struct Ruleset { /* ... */ }
 
     impl Ruleset {
         pub fn new() : Result[Self, LandlockError] ! IO
@@ -826,7 +826,7 @@ pub mod landlock {
 
 /// seccomp — syscall filtering
 pub mod seccomp {
-    pub type Filter { /* BPF program */ }
+    pub struct Filter { /* BPF program */ }
 
     impl Filter {
         pub fn new() : Self
@@ -839,7 +839,7 @@ pub mod seccomp {
 
 /// pidfd — process file descriptors (kernel 5.3+)
 pub mod pidfd {
-    pub type PidFd { fd: RawFd }
+    pub struct PidFd { fd: RawFd }
 
     impl PidFd {
         pub fn open(pid: Pid) : Result[Self, IoError] ! IO
@@ -854,7 +854,7 @@ pub mod pidfd {
 
 /// eventfd, signalfd, timerfd — specialized file descriptors
 pub mod eventfd {
-    pub type EventFd { fd: RawFd }
+    pub struct EventFd { fd: RawFd }
     impl EventFd {
         pub fn new(init: u64, flags: EventFdFlags) : Result[Self, IoError] ! IO
         pub fn read(&self) : Result[u64, IoError] ! IO
@@ -863,7 +863,7 @@ pub mod eventfd {
 }
 
 pub mod signalfd {
-    pub type SignalFd { fd: RawFd }
+    pub struct SignalFd { fd: RawFd }
     impl SignalFd {
         pub fn new(mask: &SignalSet) : Result[Self, IoError] ! IO
         pub fn read(&self) : Result[SignalInfo, IoError] ! IO
@@ -871,7 +871,7 @@ pub mod signalfd {
 }
 
 pub mod timerfd {
-    pub type TimerFd { fd: RawFd }
+    pub struct TimerFd { fd: RawFd }
     impl TimerFd {
         pub fn new(clockid: ClockId) : Result[Self, IoError] ! IO
         pub fn set(&self, new_value: &TimerSpec) : Result[TimerSpec, IoError] ! IO
@@ -889,7 +889,7 @@ Common BSD features plus platform-specific extensions.
 
 /// BSD platform family — FreeBSD, OpenBSD, NetBSD, DragonFlyBSD.
 /// Extends POSIX with BSD-specific features.
-pub type BsdPlatform {
+pub struct BsdPlatform {
     variant: BsdVariant,
     posix: PosixPlatform,
 }
@@ -903,7 +903,7 @@ pub enum BsdVariant {
 
 /// kqueue — event notification (all BSDs)
 pub mod kqueue {
-    pub type Kqueue { fd: RawFd }
+    pub struct Kqueue { fd: RawFd }
 
     impl Kqueue {
         pub fn new() : Result[Self, IoError] ! IO
@@ -913,7 +913,7 @@ pub mod kqueue {
             : Result[usize, IoError] ! IO
     }
 
-    pub type KEvent {
+    pub struct KEvent {
         ident: usize,
         filter: Filter,
         flags: Flags,
@@ -1017,11 +1017,11 @@ pub mod unveil {
 /// Windows platform — Win32/NT API bindings.
 /// Minimum supported: Windows 10 1809 (build 17763)
 /// Recommended: Windows 11 / Server 2022
-pub type WindowsPlatform {
+pub struct WindowsPlatform {
     version: WindowsVersion,
 }
 
-pub type WindowsVersion {
+pub struct WindowsVersion {
     major: u32,
     minor: u32,
     build: u32,
@@ -1043,7 +1043,7 @@ impl Platform for WindowsPlatform {
 
 /// Windows IOCP — I/O Completion Ports (async I/O)
 pub mod iocp {
-    pub type CompletionPort { handle: Handle }
+    pub struct CompletionPort { handle: Handle }
 
     impl CompletionPort {
         pub fn new(concurrency: u32) : Result[Self, WinError] ! IO
@@ -1055,13 +1055,13 @@ pub mod iocp {
             : Result[usize, WinError] ! IO
     }
 
-    pub type CompletionStatus {
+    pub struct CompletionStatus {
         bytes_transferred: u32,
         completion_key: usize,
         overlapped: *mut Overlapped,
     }
 
-    pub type Overlapped {
+    pub struct Overlapped {
         // Matches Windows OVERLAPPED structure
         internal: usize,
         internal_high: usize,
@@ -1089,7 +1089,7 @@ pub mod handle {
 
 /// Windows registry
 pub mod registry {
-    pub type RegKey { handle: Handle }
+    pub struct RegKey { handle: Handle }
 
     pub enum Hive {
         ClassesRoot,
@@ -1135,8 +1135,8 @@ pub mod registry {
 
 /// Windows services
 pub mod service {
-    pub type ServiceManager { handle: Handle }
-    pub type Service { handle: Handle }
+    pub struct ServiceManager { handle: Handle }
+    pub struct Service { handle: Handle }
 
     impl ServiceManager {
         pub fn connect() : Result[Self, WinError] ! IO
@@ -1191,9 +1191,9 @@ pub mod console {
 
 /// Windows security
 pub mod security {
-    pub type SecurityDescriptor { /* ... */ }
-    pub type Sid { /* ... */ }  // Security Identifier
-    pub type Acl { /* ... */ }  // Access Control List
+    pub struct SecurityDescriptor { /* ... */ }
+    pub struct Sid { /* ... */ }  // Security Identifier
+    pub struct Acl { /* ... */ }  // Access Control List
 
     // Token operations
     pub fn open_process_token(access: TokenAccess) : Result[Handle, WinError] ! IO
@@ -1229,7 +1229,7 @@ WebAssembly System Interface — component model.
 /// WASI platform — WebAssembly System Interface.
 /// Targets WASI Preview 2 (Component Model).
 /// Preview 1 compatibility layer available.
-pub type WasiPlatform {
+pub struct WasiPlatform {
     preview: WasiPreview,
 }
 
@@ -1261,7 +1261,7 @@ pub mod filesystem {
     /// A directory handle that grants access to files within.
     /// This is WASI's capability model — you can only access files
     /// if you have a handle to a parent directory.
-    pub type Descriptor { handle: u32 }
+    pub struct Descriptor { handle: u32 }
 
     impl Descriptor {
         /// Open a file relative to this directory.
@@ -1287,8 +1287,8 @@ pub mod filesystem {
 
 /// WASI sockets — Preview 2
 pub mod sockets {
-    pub type TcpSocket { /* ... */ }
-    pub type UdpSocket { /* ... */ }
+    pub struct TcpSocket { /* ... */ }
+    pub struct UdpSocket { /* ... */ }
 
     impl TcpSocket {
         pub fn new(family: AddressFamily) : Result[Self, WasiError] ! Net
@@ -1306,7 +1306,7 @@ pub mod sockets {
         Ipv6,
     }
 
-    pub type IpSocketAddress {
+    pub struct IpSocketAddress {
         family: AddressFamily,
         port: u16,
         address: IpAddress,
@@ -1333,7 +1333,7 @@ pub mod random {
 
 /// WASI poll — unified readiness polling
 pub mod poll {
-    pub type Pollable { handle: u32 }
+    pub struct Pollable { handle: u32 }
 
     /// Poll multiple pollables, returning indices of ready ones.
     pub fn poll_list(pollables: &[Pollable]) : Vec[u32] ! Async
@@ -1344,10 +1344,10 @@ pub mod poll {
 
 /// WASI HTTP — outgoing requests (Preview 2)
 pub mod http {
-    pub type OutgoingRequest { /* ... */ }
-    pub type IncomingResponse { /* ... */ }
-    pub type OutgoingBody { /* ... */ }
-    pub type IncomingBody { /* ... */ }
+    pub struct OutgoingRequest { /* ... */ }
+    pub struct IncomingResponse { /* ... */ }
+    pub struct OutgoingBody { /* ... */ }
+    pub struct IncomingBody { /* ... */ }
 
     impl OutgoingRequest {
         pub fn new(method: Method, path: &str, headers: &[(String, String)])
@@ -1356,7 +1356,7 @@ pub mod http {
         pub fn send(self, target: &str) : Result[FutureIncomingResponse, WasiError] ! Net
     }
 
-    pub type FutureIncomingResponse { /* pollable */ }
+    pub struct FutureIncomingResponse { /* pollable */ }
 
     impl FutureIncomingResponse {
         pub fn subscribe(&self) : Pollable
@@ -1384,7 +1384,7 @@ Google's capability-based operating system built on the Zircon microkernel.
 
 /// Fuchsia platform — capability-based OS on Zircon microkernel.
 /// Minimum supported: Fuchsia F15+
-pub type FuchsiaPlatform {
+pub struct FuchsiaPlatform {
     version: FuchsiaVersion,
 }
 
@@ -1479,7 +1479,7 @@ pub mod zx {
 
 /// Channels — bidirectional IPC
 pub mod channel {
-    pub type Channel { handle: zx.Handle }
+    pub struct Channel { handle: zx.Handle }
 
     impl Channel {
         pub fn create() : Result[(Self, Self), ZxStatus] ! IO
@@ -1503,7 +1503,7 @@ pub mod channel {
 
 /// Virtual Memory Objects
 pub mod vmo {
-    pub type Vmo { handle: zx.Handle }
+    pub struct Vmo { handle: zx.Handle }
 
     impl Vmo {
         pub fn create(size: u64) : Result[Self, ZxStatus] ! IO
@@ -1530,7 +1530,7 @@ pub mod vmo {
 
 /// Ports — async event aggregation
 pub mod port {
-    pub type Port { handle: zx.Handle }
+    pub struct Port { handle: zx.Handle }
 
     impl Port {
         pub fn create() : Result[Self, ZxStatus] ! IO
@@ -1542,7 +1542,7 @@ pub mod port {
         pub fn cancel(&self, source: &zx.Handle, key: u64) : Result[(), ZxStatus] ! IO
     }
 
-    pub type Packet {
+    pub struct Packet {
         key: u64,
         type_: PacketType,
         status: ZxStatus,
@@ -1558,10 +1558,10 @@ pub mod fidl {
     }
 
     /// Client end of a FIDL channel
-    pub type ClientEnd[P: Protocol] { channel: channel.Channel }
+    pub struct ClientEnd[P: Protocol] { channel: channel.Channel }
 
     /// Server end of a FIDL channel
-    pub type ServerEnd[P: Protocol] { channel: channel.Channel }
+    pub struct ServerEnd[P: Protocol] { channel: channel.Channel }
 
     impl[P: Protocol] ClientEnd[P] {
         pub fn into_channel(self) : channel.Channel
@@ -1588,7 +1588,7 @@ pub mod fidl {
 
 /// Component framework
 pub mod component {
-    pub type Namespace { /* capability namespace */ }
+    pub struct Namespace { /* capability namespace */ }
 
     impl Namespace {
         /// Get the component's incoming namespace
@@ -1600,7 +1600,7 @@ pub mod component {
     }
 
     /// Expose capabilities to other components
-    pub type OutgoingDir { /* ... */ }
+    pub struct OutgoingDir { /* ... */ }
 
     impl OutgoingDir {
         pub fn new() : Self
@@ -1611,9 +1611,9 @@ pub mod component {
 
 /// Process management
 pub mod process {
-    pub type Process { handle: zx.Handle }
-    pub type Job { handle: zx.Handle }
-    pub type Thread { handle: zx.Handle }
+    pub struct Process { handle: zx.Handle }
+    pub struct Job { handle: zx.Handle }
+    pub struct Thread { handle: zx.Handle }
 
     impl Process {
         pub fn self_() : Self ! IO
@@ -1655,7 +1655,7 @@ Huawei's open-source distributed operating system.
 
 /// OpenHarmony platform — distributed OS for IoT and mobile.
 /// Minimum supported: OpenHarmony 4.0+
-pub type OhosPlatform {
+pub struct OhosPlatform {
     version: OhosVersion,
     device_type: DeviceType,
 }
@@ -1706,7 +1706,7 @@ pub mod ability {
     }
 
     /// Want — intent to start abilities
-    pub type Want {
+    pub struct Want {
         bundle_name: Option[String],
         ability_name: Option[String],
         device_id: Option[String],
@@ -1730,7 +1730,7 @@ pub mod softbus {
     pub fn stop_discovery() : Result[(), SoftBusError] ! Net
 
     /// Device information
-    pub type DeviceInfo {
+    pub struct DeviceInfo {
         device_id: String,
         device_name: String,
         device_type: DeviceType,
@@ -1738,7 +1738,7 @@ pub mod softbus {
     }
 
     /// Create a session for data transfer
-    pub type Session { /* ... */ }
+    pub struct Session { /* ... */ }
 
     impl Session {
         pub fn open(peer_device_id: &str, group_id: &str)
@@ -1752,7 +1752,7 @@ pub mod softbus {
 
     /// Distributed data management
     pub mod data {
-        pub type DistributedKvStore { /* ... */ }
+        pub struct DistributedKvStore { /* ... */ }
 
         impl DistributedKvStore {
             pub fn open(store_id: &str, options: &KvStoreOptions)
@@ -1770,13 +1770,13 @@ pub mod softbus {
 
 /// Hardware Driver Foundation
 pub mod hdf {
-    pub type DeviceService { /* ... */ }
+    pub struct DeviceService { /* ... */ }
 
     /// Get a device service by name
     pub fn get_service(service_name: &str) : Result[DeviceService, HdfError] ! IO
 
     /// Device manager
-    pub type DeviceManager { /* ... */ }
+    pub struct DeviceManager { /* ... */ }
 
     impl DeviceManager {
         pub fn list_devices() : Result[Vec[DeviceInfo], HdfError] ! IO
@@ -1805,7 +1805,7 @@ pub mod hilog {
 
 /// HiTrace — distributed tracing
 pub mod hitrace {
-    pub type TraceId {
+    pub struct TraceId {
         chain_id: u64,
         span_id: u64,
         parent_span_id: u64,
@@ -1823,8 +1823,8 @@ pub mod hitrace {
 
 /// IPC/RPC framework
 pub mod ipc {
-    pub type RemoteObject { /* ... */ }
-    pub type MessageParcel { /* ... */ }
+    pub struct RemoteObject { /* ... */ }
+    pub struct MessageParcel { /* ... */ }
 
     impl MessageParcel {
         pub fn new() : Self
@@ -1856,7 +1856,7 @@ For embedded systems.
 
 /// Zephyr RTOS platform — real-time embedded systems.
 /// Zephyr version: 3.5+
-pub type ZephyrPlatform {
+pub struct ZephyrPlatform {
     version: ZephyrVersion,
 }
 
@@ -1876,12 +1876,12 @@ impl Platform for ZephyrPlatform {
 
 /// Zephyr kernel primitives
 pub mod kernel {
-    pub type Thread { /* k_thread */ }
-    pub type Mutex { /* k_mutex */ }
-    pub type Semaphore { /* k_sem */ }
-    pub type MessageQueue { /* k_msgq */ }
-    pub type Timer { /* k_timer */ }
-    pub type WorkQueue { /* k_work_q */ }
+    pub struct Thread { /* k_thread */ }
+    pub struct Mutex { /* k_mutex */ }
+    pub struct Semaphore { /* k_sem */ }
+    pub struct MessageQueue { /* k_msgq */ }
+    pub struct Timer { /* k_timer */ }
+    pub struct WorkQueue { /* k_work_q */ }
 
     impl Thread {
         pub fn spawn(
@@ -1923,7 +1923,7 @@ pub mod kernel {
 
 /// Device drivers
 pub mod device {
-    pub type Device { /* struct device * */ }
+    pub struct Device { /* struct device * */ }
 
     impl Device {
         pub fn get_binding(name: &str) : Option[Self]
@@ -1933,7 +1933,7 @@ pub mod device {
 
 /// GPIO
 pub mod gpio {
-    pub type GpioPort { device: Device }
+    pub struct GpioPort { device: Device }
     pub type GpioPin(u8)
 
     impl GpioPort {
@@ -1956,14 +1956,14 @@ pub mod gpio {
         const INT_LEVEL_LOW    = 1 << 19
     }
 
-    pub type GpioCallback {
+    pub struct GpioCallback {
         // Callback registration for interrupts
     }
 }
 
 /// I2C
 pub mod i2c {
-    pub type I2cBus { device: Device }
+    pub struct I2cBus { device: Device }
 
     impl I2cBus {
         pub fn get(name: &str) : Option[Self]
@@ -1976,7 +1976,7 @@ pub mod i2c {
         pub fn transfer(&self, addr: u16, msgs: &mut [I2cMsg]) : Result[(), ZephyrError]
     }
 
-    pub type I2cMsg {
+    pub struct I2cMsg {
         buf: *mut u8,
         len: u32,
         flags: I2cMsgFlags,
@@ -1992,8 +1992,8 @@ pub mod i2c {
 
 /// SPI
 pub mod spi {
-    pub type SpiBus { device: Device }
-    pub type SpiConfig {
+    pub struct SpiBus { device: Device }
+    pub struct SpiConfig {
         frequency: u32,
         operation: SpiOperation,
         cs: Option[GpioCs],
@@ -2017,7 +2017,7 @@ pub mod spi {
 
 /// UART
 pub mod uart {
-    pub type Uart { device: Device }
+    pub struct Uart { device: Device }
 
     impl Uart {
         pub fn get(name: &str) : Option[Self]
@@ -2036,7 +2036,7 @@ pub mod uart {
         pub fn set_callback(&self, cb: fn(&Uart))
     }
 
-    pub type UartConfig {
+    pub struct UartConfig {
         baudrate: u32,
         parity: Parity,
         stop_bits: StopBits,
@@ -2064,8 +2064,8 @@ pub mod bluetooth {
 @cfg(feature = "networking")
 pub mod net {
     // Zephyr networking APIs
-    pub type Socket { /* ... */ }
-    pub type Interface { /* ... */ }
+    pub struct Socket { /* ... */ }
+    pub struct Interface { /* ... */ }
 }
 ```
 
@@ -2302,7 +2302,7 @@ impl LinuxFileExt for LinuxFile {
 
 ```ferrum
 /// Mock platform for testing without an OS.
-pub type MockPlatform {
+pub struct MockPlatform {
     fs: MockFileSystem,
     net: MockNetwork,
     time: MockTime,

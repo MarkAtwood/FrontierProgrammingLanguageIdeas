@@ -105,7 +105,7 @@ enum ReadUntilResult {
 Not an integer. Not errno. A structured type.
 
 ```ferrum
-type IoError {
+struct IoError {
     pub kind:    IoErrorKind,
     pub message: String,
     source:      Option[Box[dyn Error]],
@@ -150,7 +150,7 @@ impl IoError {
 
 ```ferrum
 // Buffered reader — adds BufRead to any Read
-type BufReader[R: Read]  given [A: Allocator] {
+struct BufReader[R: Read]  given [A: Allocator] {
     inner: R,
     buf:   Box[[u8]],
     // ...
@@ -204,9 +204,9 @@ fn stdin(): Stdin   ! IO     // buffered stdin
 fn stdout(): Stdout ! IO     // buffered stdout
 fn stderr(): Stderr ! IO     // unbuffered stderr (always unbuffered - this is intentional)
 
-type Stdin  { ... }
-type Stdout { ... }
-type Stderr { ... }
+struct Stdin  { ... }
+struct Stdout { ... }
+struct Stderr { ... }
 
 impl BufRead for Stdin
 impl Write for Stdout
@@ -282,7 +282,7 @@ trait BinaryDeserialize: Sized {
 // Derive macro for types without layout declarations
 @derive(BinarySerialize, BinaryDeserialize)
 @binary(byte_order = little_endian)
-type Record {
+struct Record {
     id:    u32,
     flags: u16,
     data:  [u8; 64],
@@ -294,7 +294,7 @@ type Record {
 For protocols and formats that pack fields below byte boundaries:
 
 ```ferrum
-type BitReader[R: Read] {
+struct BitReader[R: Read] {
     inner:     R,
     bit_buf:   u64,
     bits_left: u8,
@@ -309,7 +309,7 @@ impl[R: Read] BitReader[R] {
     fn into_inner(self): R
 }
 
-type BitWriter[W: Write] { ... }
+struct BitWriter[W: Write] { ... }
 impl[W: Write] BitWriter[W] {
     fn write_bits(&mut self, val: u64, n: u8): Result[(), IoError] ! IO
         requires n <= 64
@@ -404,8 +404,8 @@ For large files, transform in chunks:
 
 ```ferrum
 mod text.latin1 {
-    type Decoder { fn decode_chunk(&mut self, bytes: &[u8], output: &mut String) }
-    type Encoder { fn encode_chunk(&mut self, s: &str, output: &mut Vec[u8]): Result[(), EncodeError] }
+    struct Decoder { fn decode_chunk(&mut self, bytes: &[u8], output: &mut String) }
+    struct Encoder { fn encode_chunk(&mut self, s: &str, output: &mut Vec[u8]): Result[(), EncodeError] }
 }
 
 // Example: convert a large Latin-1 file to UTF-8
@@ -535,7 +535,7 @@ impl Read for File
 impl Write for File
 impl Seek for File
 
-type OpenOptions {
+struct OpenOptions {
     // builder pattern
     fn new(): Self
     fn read(&mut self, read: bool): &mut Self
@@ -607,7 +607,7 @@ fn symlink(src: impl AsRef[Path], dst: impl AsRef[Path]): Result[(), IoError] ! 
 fn read_link(path: impl AsRef[Path]): Result[PathBuf, IoError] ! IO
 
 // Metadata
-type Metadata {
+struct Metadata {
     fn file_type(&self): FileType
     fn len(&self): u64
     fn is_dir(&self): bool
@@ -622,7 +622,7 @@ type Metadata {
 // Directory iterator
 type ReadDir  // implements Iterator[Item = Result[DirEntry, IoError]]
 
-type DirEntry {
+struct DirEntry {
     fn path(&self): PathBuf
     fn file_name(&self): OsString
     fn file_type(&self): Result[FileType, IoError] ! IO

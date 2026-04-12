@@ -144,7 +144,7 @@ fn signal_channel(signals: &[Signal]): Result[SignalReceiver, PosixError] ! IO
     // There are no raw signal handlers. This is intentional.
     // Raw signal handlers are impossible to use correctly in multi-threaded programs.
 
-type Signal {
+struct Signal {
     const SIGHUP:  Self = Signal(1)
     const SIGINT:  Self = Signal(2)
     const SIGTERM: Self = Signal(15)
@@ -154,8 +154,8 @@ type Signal {
 }
 
 // mmap
-type MmapFlags { ... }
-type Protection { ... }
+struct MmapFlags { ... }
+struct Protection { ... }
 
 unsafe fn mmap(
     addr: Option[*mut u8],
@@ -166,7 +166,7 @@ unsafe fn mmap(
     offset: i64,
 ): Result[MmapGuard, PosixError] ! Unsafe + IO
 
-type MmapGuard {
+struct MmapGuard {
     // Drops the mapping on Drop
     fn as_slice(&self): &[u8]
     fn as_mut_slice(&mut self): &mut [u8]
@@ -176,7 +176,7 @@ type MmapGuard {
 }
 
 // PosixError — errno mapped to a proper type
-type PosixError {
+struct PosixError {
     code: i32,
     fn kind(&self): IoErrorKind
     fn message(&self): &str
@@ -203,7 +203,7 @@ fn setsockopt(fd: &Fd, level: i32, optname: i32, optval: &[u8]): Result[(), Posi
 fn getsockopt(fd: &Fd, level: i32, optname: i32, optval: &mut [u8]): Result[(), PosixError] ! IO
 
 // epoll/kqueue — abstracted as Poller
-type Poller {
+struct Poller {
     fn new(): Result[Self, PosixError] ! IO
     fn add(&mut self, fd: &Fd, events: Events, token: u64): Result[(), PosixError] ! IO
     fn modify(&mut self, fd: &Fd, events: Events, token: u64): Result[(), PosixError] ! IO
@@ -221,7 +221,7 @@ detach state) that the portable runtime does not expose.
 
 ```ferrum
 mod pthread {
-    type Thread {
+    struct Thread {
         fn join(self): Result[(), PosixError] ! IO  // consumes handle
         fn detach(self): Result[(), PosixError] ! IO
         fn id(&self): ThreadId
@@ -229,7 +229,7 @@ mod pthread {
 
     type ThreadId(u64)
 
-    type ThreadAttrs {
+    struct ThreadAttrs {
         fn default(): Self
         fn stack_size(self, size: usize): Self
         fn detached(self): Self
@@ -248,7 +248,7 @@ mod pthread {
     fn sleep(duration: Duration) ! IO
 
     // Thread-local storage (beyond @thread_local statics)
-    type Key[T] {
+    struct Key[T] {
         fn new(destructor: Option[fn(*mut T)]): Result[Self, PosixError]
         unsafe fn get(&self): *mut T
         unsafe fn set(&self, value: *mut T): Result[(), PosixError]
@@ -256,7 +256,7 @@ mod pthread {
 
     // Affinity (Linux-specific, cfg-gated)
     @cfg(target_os = "linux")
-    type CpuSet { ... }
+    struct CpuSet { ... }
 
     @cfg(target_os = "linux")
     fn set_affinity(thread: &Thread, cpuset: &CpuSet): Result[(), PosixError] ! IO
@@ -275,14 +275,14 @@ mod pthread {
         // Unsafe: SCHED_FIFO/RR require CAP_SYS_NICE or root
 
     // pthread mutex (when you need priority inheritance, robustness, etc.)
-    type Mutex {
+    struct Mutex {
         fn new(attrs: MutexAttrs): Result[Self, PosixError]
         fn lock(&self): Result[MutexGuard, PosixError] ! IO
         fn try_lock(&self): Result[MutexGuard, PosixError]
         fn unlock(guard: MutexGuard)  // consumed by guard drop
     }
 
-    type MutexAttrs {
+    struct MutexAttrs {
         fn default(): Self
         fn kind(self, kind: MutexKind): Self
         fn robust(self): Self           // PTHREAD_MUTEX_ROBUST
@@ -294,7 +294,7 @@ mod pthread {
     enum MutexProtocol { None, Inherit, Protect }
 
     // pthread condition variables
-    type Condvar {
+    struct Condvar {
         fn new(): Result[Self, PosixError]
         fn wait(&self, guard: &mut MutexGuard): Result[(), PosixError] ! IO
         fn wait_timeout(&self, guard: &mut MutexGuard, timeout: Duration)
@@ -304,7 +304,7 @@ mod pthread {
     }
 
     // pthread barriers
-    type Barrier {
+    struct Barrier {
         fn new(count: u32): Result[Self, PosixError]
         fn wait(&self): Result[BarrierWaitResult, PosixError] ! IO
     }
@@ -312,7 +312,7 @@ mod pthread {
     enum BarrierWaitResult { Leader, Follower }
 
     // pthread read-write locks
-    type RwLock {
+    struct RwLock {
         fn new(): Result[Self, PosixError]
         fn read(&self): Result[RwLockReadGuard, PosixError] ! IO
         fn write(&self): Result[RwLockWriteGuard, PosixError] ! IO
@@ -345,7 +345,7 @@ non-portability.
 import std.sys.windows
 
 mod thread {
-    type Thread {
+    struct Thread {
         fn join(self): Result[(), WinError] ! IO
         fn id(&self): ThreadId
         fn handle(&self): Handle  // raw HANDLE for WinAPI interop
@@ -353,7 +353,7 @@ mod thread {
 
     type ThreadId(u32)
 
-    type ThreadAttrs {
+    struct ThreadAttrs {
         fn default(): Self
         fn stack_size(self, size: usize): Self
         fn creation_flags(self, flags: CreationFlags): Self
@@ -393,16 +393,16 @@ mod thread {
 // Windows synchronization primitives
 mod sync {
     // CRITICAL_SECTION (lighter than Mutex for same-process use)
-    type CriticalSection { ... }
+    struct CriticalSection { ... }
 
     // SRWLOCK (slim reader-writer lock)
-    type SrwLock { ... }
+    struct SrwLock { ... }
 
     // CONDITION_VARIABLE
-    type ConditionVariable { ... }
+    struct ConditionVariable { ... }
 
     // Event objects
-    type Event {
+    struct Event {
         fn new(manual_reset: bool, initial_state: bool): Result[Self, WinError] ! IO
         fn set(&self): Result[(), WinError] ! IO
         fn reset(&self): Result[(), WinError] ! IO
@@ -410,7 +410,7 @@ mod sync {
     }
 
     // Semaphore
-    type Semaphore {
+    struct Semaphore {
         fn new(initial: u32, maximum: u32): Result[Self, WinError] ! IO
         fn release(&self, count: u32): Result[u32, WinError] ! IO
         fn wait(&self, timeout: Option[Duration]): Result[WaitResult, WinError] ! IO
@@ -472,7 +472,7 @@ mod gc {
     fn suggest_collection() ! IO
 
     // GC pool names and stats
-    type MemoryPool {
+    struct MemoryPool {
         fn name(&self): &str
         fn used_bytes(&self): i64
         fn committed_bytes(&self): i64
@@ -482,7 +482,7 @@ mod gc {
     fn memory_pools(): Vec[MemoryPool] ! IO
 
     // Heap summary
-    type HeapSummary {
+    struct HeapSummary {
         used_bytes: i64,
         committed_bytes: i64,
         max_bytes: i64,
@@ -491,7 +491,7 @@ mod gc {
     fn heap_summary(): HeapSummary ! IO
 
     // GC notifications — a channel receives an event after each GC cycle
-    type GcEvent {
+    struct GcEvent {
         gc_name: String,       // e.g. "G1 Young Generation"
         action: String,        // e.g. "end of minor GC"
         duration: Duration,
@@ -515,7 +515,7 @@ mod thread {
     // JVM thread priority (1 = MIN, 5 = NORM, 10 = MAX)
     enum Priority { Min = 1, Normal = 5, Max = 10 }
 
-    type ThreadAttrs {
+    struct ThreadAttrs {
         fn default(): Self
         fn name(self, name: &str): Self
         fn daemon(self, daemon: bool): Self  // daemon threads don't block JVM exit
@@ -523,7 +523,7 @@ mod thread {
         fn stack_size(self, bytes: usize): Self
     }
 
-    type Thread {
+    struct Thread {
         fn join(self): Result[(), JvmError] ! IO
         fn id(&self): i64        // java.lang.Thread.getId()
         fn name(&self): String
@@ -546,7 +546,7 @@ mod thread {
     fn all_thread_ids(): Vec[i64] ! IO
     fn thread_info(id: i64): Option[ThreadInfo] ! IO
 
-    type ThreadInfo {
+    struct ThreadInfo {
         id: i64,
         name: String,
         state: ThreadState,
@@ -569,7 +569,7 @@ mod classloader {
     // Load a class by its JVM internal name (e.g. "java/util/ArrayList")
     fn load_class(name: &str): Result[JvmClass, JvmError] ! IO
 
-    type JvmClass {
+    struct JvmClass {
         fn name(&self): String
         fn superclass(&self): Option[JvmClass]
         fn interfaces(&self): Vec[JvmClass]
@@ -612,7 +612,7 @@ The JVM NIO path API, exposed with Ferrum types.
 ```ferrum
 mod nio {
     // java.nio.file.Path — JVM path type (distinct from Ferrum's PathBuf)
-    type NioPath {
+    struct NioPath {
         fn to_string(&self): String
         fn resolve(&self, other: &str): Self
         fn parent(&self): Option[Self]
@@ -634,7 +634,7 @@ mod nio {
     fn list_dir(path: &NioPath): Result[Vec[NioPath], IoError] ! IO
 
     // WatchService — directory change events
-    type WatchService {
+    struct WatchService {
         fn new(): Result[Self, IoError] ! IO
         fn watch(
             &self,
@@ -647,7 +647,7 @@ mod nio {
 
     enum WatchEvent { Create, Modify, Delete, Overflow }
 
-    type WatchKey {
+    struct WatchKey {
         fn events(&self): Vec[(WatchEvent, NioPath)]
         fn reset(&self): bool
         fn cancel(&self)
@@ -656,21 +656,21 @@ mod nio {
 
 // java.nio.channels — non-blocking I/O
 mod channels {
-    type Selector {
+    struct Selector {
         fn open(): Result[Self, IoError] ! IO
         fn select(&mut self, timeout: Option[Duration]): Result[usize, IoError] ! IO
         fn selected_keys(&self): &[SelectionKey]
         fn close(self): Result[(), IoError] ! IO
     }
 
-    type SelectionKey {
+    struct SelectionKey {
         fn is_readable(&self): bool
         fn is_writable(&self): bool
         fn is_connectable(&self): bool
         fn is_acceptable(&self): bool
     }
 
-    type SocketChannel {
+    struct SocketChannel {
         fn open(): Result[Self, IoError] ! IO
         fn connect(&self, addr: &SocketAddr): Result[bool, IoError] ! IO
         fn finish_connect(&self): Result[bool, IoError] ! IO
@@ -681,7 +681,7 @@ mod channels {
         fn close(self): Result[(), IoError] ! IO
     }
 
-    type ServerSocketChannel {
+    struct ServerSocketChannel {
         fn open(): Result[Self, IoError] ! IO
         fn bind(&self, addr: &SocketAddr): Result[(), IoError] ! IO
         fn accept(&self): Result[Option[SocketChannel], IoError] ! IO
@@ -697,7 +697,7 @@ mod channels {
 ```ferrum
 mod process {
     // java.lang.ProcessBuilder wrapper
-    type ProcessBuilder {
+    struct ProcessBuilder {
         fn new(program: &str, args: &[&str]): Self
         fn env(self, key: &str, val: &str): Self
         fn env_remove(self, key: &str): Self
@@ -711,7 +711,7 @@ mod process {
 
     enum Stdio { Inherit, Pipe, Null }
 
-    type Child {
+    struct Child {
         fn wait(&mut self): Result[ExitStatus, IoError] ! IO
         fn wait_timeout(&mut self, d: Duration): Result[Option[ExitStatus], IoError] ! IO
         fn kill(&mut self): Result[(), IoError] ! IO
@@ -721,7 +721,7 @@ mod process {
         fn stderr(&mut self): Option[&mut InputStream>
     }
 
-    type ExitStatus {
+    struct ExitStatus {
         fn code(&self): Option[i32]
         fn success(&self): bool
     }
@@ -737,14 +737,14 @@ import std.sys.jvm.android
 
 // Looper / Handler — Android main-thread message loop
 mod looper {
-    type Looper {
+    struct Looper {
         fn prepare() ! IO   // makes a Looper for the current thread
         fn main_looper(): &'static Looper
         fn loop_forever() ! IO   // never returns; processes messages
         fn quit(&self) ! IO
     }
 
-    type Handler {
+    struct Handler {
         fn new(looper: &Looper): Self
         fn post(self: &Self, f: fn() ! IO) ! IO
         fn post_delayed(self: &Self, f: fn() ! IO, delay: Duration) ! IO
@@ -754,7 +754,7 @@ mod looper {
 
 // Binder IPC — Android inter-process communication
 mod binder {
-    type Binder {
+    struct Binder {
         // implement android.os.IBinder in Ferrum
         fn new(): Self
         unsafe fn transact(
@@ -766,7 +766,7 @@ mod binder {
         ): Result[(), BinderError] ! IO
     }
 
-    type Parcel {
+    struct Parcel {
         fn obtain(): Self
         fn write_i32(&mut self, v: i32)
         fn write_i64(&mut self, v: i64)
@@ -872,7 +872,7 @@ mod gc {
     fn get_generation[T](obj: &T): i32
 
     // Memory info
-    type GcMemoryInfo {
+    struct GcMemoryInfo {
         high_memory_load_threshold_bytes: i64,
         total_available_memory_bytes: i64,
         memory_load_bytes: i64,
@@ -905,7 +905,7 @@ mod gc {
     fn re_register_for_finalize[T](obj: &T) ! IO
 
     // Weak references
-    type WeakRef[T] {
+    struct WeakRef[T] {
         fn new(target: &T, track_resurrection: bool): Self
         fn is_alive(&self): bool ! IO
         fn try_get_target(&self): Option[ClrRef[T]] ! IO
@@ -920,7 +920,7 @@ mod assembly {
     // The default load context
     fn default_context(): AssemblyLoadContext
 
-    type AssemblyLoadContext {
+    struct AssemblyLoadContext {
         fn name(&self): Option[String]
 
         // Load from disk
@@ -940,7 +940,7 @@ mod assembly {
     // Create an isolated, collectible load context (for plugin unloading)
     fn new_collectible_context(name: &str): AssemblyLoadContext
 
-    type Assembly {
+    struct Assembly {
         fn full_name(&self): Option[String]
         fn location(&self): String
         fn get_type(&self, name: &str): Option[ClrType] ! IO
@@ -948,7 +948,7 @@ mod assembly {
         fn get_exported_types(&self): Vec[ClrType] ! IO
     }
 
-    type ClrType {
+    struct ClrType {
         fn full_name(&self): Option[String]
         fn is_interface(&self): bool
         fn is_abstract(&self): bool
@@ -1002,7 +1002,7 @@ mod threadpool {
         execute_once: bool,
     ): Result[RegisteredWait, ClrError> ! IO + Unsafe
 
-    type RegisteredWait {
+    struct RegisteredWait {
         fn unregister(self, signal_handle: Option[Handle]): bool
     }
 }
@@ -1015,7 +1015,7 @@ mod thread {
     enum ThreadPriority { Lowest, BelowNormal, Normal, AboveNormal, Highest }
     enum ApartmentState { Sta, Mta, Unknown }
 
-    type ThreadAttrs {
+    struct ThreadAttrs {
         fn default(): Self
         fn name(self, name: &str): Self
         fn is_background(self, bg: bool): Self
@@ -1023,7 +1023,7 @@ mod thread {
         fn apartment_state(self, state: ApartmentState): Self  // COM interop
     }
 
-    type Thread {
+    struct Thread {
         fn join(self): Result[(), ClrError> ! IO
         fn join_timeout(self, timeout: Duration): Result[bool, ClrError> ! IO
         fn interrupt(&self) ! IO
@@ -1066,13 +1066,13 @@ mod marshal {
     unsafe fn ptr_to_string_ansi(ptr: *const u8): String
 
     // Safe handles — typed wrappers around OS handles that auto-close
-    type SafeHandle {
+    struct SafeHandle {
         fn is_invalid(&self): bool
         fn close(self)
     }
 
     // GCHandle — pin or keep alive a managed object from native code
-    type GcHandle {
+    struct GcHandle {
         unsafe fn alloc(target: &ClrObject, kind: GcHandleKind): Self
         unsafe fn target(&self): &ClrObject
         fn free(self)
@@ -1172,7 +1172,7 @@ mod gc {
     fn remove_memory_level_callback() ! IO
 
     // Current reported memory usage from native side (RSS, PSS)
-    type NativeMemoryInfo {
+    struct NativeMemoryInfo {
         rss_kb: u64,
         pss_kb: u64,
         private_dirty_kb: u64,
@@ -1188,7 +1188,7 @@ OpenHarmony's message loop system. `EventRunner` is a thread with a message queu
 
 ```ferrum
 mod event {
-    type EventRunner {
+    struct EventRunner {
         // Create a new named background runner thread
         fn create(name: &str): Result[Self, OhosError] ! IO
 
@@ -1202,7 +1202,7 @@ mod event {
         fn stop(&self) ! IO
     }
 
-    type EventHandler {
+    struct EventHandler {
         fn new(runner: &EventRunner): Result[Self, OhosError] ! IO
 
         // Post a task (closure) to run on the runner thread
@@ -1239,7 +1239,7 @@ OpenHarmony IPC uses `MessageParcel` and `IRemoteObject`, backed by the SoftBus 
 ```ferrum
 mod ipc {
     // MessageParcel — serialization container for IPC arguments
-    type MessageParcel {
+    struct MessageParcel {
         fn new(): Self
 
         // Write primitives
@@ -1265,13 +1265,13 @@ mod ipc {
         fn reclaim(self)
     }
 
-    type MessageOption {
+    struct MessageOption {
         fn sync(): Self    // caller blocks until stub processes request
         fn async(): Self   // caller returns immediately
     }
 
     // RemoteObject — a reference to a service stub, possibly in another process
-    type RemoteObject {
+    struct RemoteObject {
         fn send_request(
             &self,
             code: u32,
@@ -1325,7 +1325,7 @@ OpenHarmony's cross-device communication layer. Devices on the same LAN (or Blue
 ```ferrum
 mod softbus {
     // Discovery — find other OpenHarmony devices on the network
-    type DiscoveryInfo {
+    struct DiscoveryInfo {
         device_id: String,
         device_name: String,
         device_type: runtime::DeviceType,
@@ -1341,7 +1341,7 @@ mod softbus {
         const APPROACH   = 0x20
     }
 
-    type DiscoveryCallbacks {
+    struct DiscoveryCallbacks {
         on_found: fn(info: &DiscoveryInfo),
         on_lost: fn(device_id: &str),
     }
@@ -1363,13 +1363,13 @@ mod softbus {
     fn unpublish_service(id: u32): Result[(), OhosError] ! IO
 
     // Sessions — bidirectional byte-stream channels between devices
-    type SessionConfig {
+    struct SessionConfig {
         fn bytes(): Self        // raw byte channel
         fn message(): Self      // message-oriented channel
         fn stream(): Self       // low-latency streaming (audio/video)
     }
 
-    type Session {
+    struct Session {
         fn send_bytes(&self, data: &[u8]): Result[(), OhosError] ! IO
         fn send_message(&self, data: &[u8]): Result[(), OhosError] ! IO
         fn send_stream(&self, data: &StreamData): Result[(), OhosError> ! IO
@@ -1378,7 +1378,7 @@ mod softbus {
         fn is_server_side(&self): bool
     }
 
-    type SessionCallbacks {
+    struct SessionCallbacks {
         on_opened: fn(session: &Session) -> i32,   // return 0 to accept
         on_closed: fn(session: &Session),
         on_bytes_received: fn(session: &Session, data: &[u8]),
@@ -1402,7 +1402,7 @@ mod softbus {
         config: SessionConfig,
     ): Result[Session, OhosError] ! IO
 
-    type StreamData {
+    struct StreamData {
         buf: Vec[u8],
         ext: Vec[u8],   // extension data (timestamps, sequence numbers)
         stream_type: StreamType,
@@ -1421,7 +1421,7 @@ mod hdf {
     // Open a driver service by its HDI service name
     fn open_service(service_name: &str): Result[HdfService, OhosError] ! IO
 
-    type HdfService {
+    struct HdfService {
         fn dispatch(
             &self,
             cmd_id: u32,
@@ -1435,7 +1435,7 @@ mod hdf {
     }
 
     // HdfSbuf — serialization buffer for HDF IPC
-    type HdfSbuf {
+    struct HdfSbuf {
         fn new(): Result[Self, OhosError>
         fn new_bound(capacity: usize): Result[Self, OhosError>
 
@@ -1481,7 +1481,7 @@ mod ability {
     // Obtain the current ability's context (set up by the NAPI glue layer)
     fn current_context(): Result[AbilityContext, OhosError] ! IO
 
-    type AbilityContext {
+    struct AbilityContext {
         // Directories
         fn files_dir(&self): String
         fn cache_dir(&self): String
@@ -1498,7 +1498,7 @@ mod ability {
     }
 
     // Want — intent-like structure for ability launching
-    type Want {
+    struct Want {
         fn new(): Self
         fn bundle_name(self, name: &str): Self
         fn ability_name(self, name: &str): Self
@@ -1513,7 +1513,7 @@ mod ability {
 
     // WantAgent — deferred Want that can be triggered by system events
     // (used for notifications, alarms, background work)
-    type WantAgent {
+    struct WantAgent {
         fn trigger(&self) ! IO
         fn cancel(&self) ! IO
     }
@@ -1542,21 +1542,21 @@ mod common_event {
     // Publish a custom event
     fn publish(event: &str, data: CommonEventData): Result[(), OhosError] ! IO
 
-    type CommonEventData {
+    struct CommonEventData {
         fn new(want: ability::Want): Self
         fn code(self, code: i32): Self
         fn data(self, data: &str): Self
     }
 
     // Subscribe to events
-    type SubscribeInfo {
+    struct SubscribeInfo {
         fn new(events: &[&str]): Self
         fn priority(self, priority: i32): Self
         fn device_id(self, id: &str): Self
         fn permission(self, perm: &str): Self
     }
 
-    type Subscriber {
+    struct Subscriber {
         fn new(info: SubscribeInfo): Result[Self, OhosError] ! IO
         fn subscribe(self, f: fn(event: &str, data: &CommonEventData)) ! IO
         fn unsubscribe(self) ! IO

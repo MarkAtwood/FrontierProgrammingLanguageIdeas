@@ -535,13 +535,13 @@ Constants must be initialized with constant expressions. A constant expression i
 ### 4.1 Struct Types
 
 ```ferrum
-type Point {
+struct Point {
     x: f32,
     y: f32,
 }
 
 // Generic struct
-type Pair[A, B] {
+struct Pair[A, B] {
     first: A,
     second: B,
 }
@@ -554,7 +554,7 @@ type Rgb(u8, u8, u8)
 type Marker
 
 // Struct with visibility
-type Config {
+struct Config {
     pub host: String,
     pub port: Port,
     timeout: Duration,    // private by default
@@ -643,7 +643,7 @@ impl Display for Wrapper { ... }
 Invariants declared on a type are enforced at every point where the type's internal state could be observed externally:
 
 ```ferrum
-type SortedVec[T: Ord] {
+struct SortedVec[T: Ord] {
     inner: Vec[T],
 
     invariant forall i, j where i < j => self.inner[i] <= self.inner[j]
@@ -658,7 +658,7 @@ The invariant is checked:
 In release mode, invariants are elided unless annotated `safe invariant`.
 
 ```ferrum
-type SafeCounter {
+struct SafeCounter {
     value: u64,
     safe invariant self.value < u64.MAX   // kept even in release
 }

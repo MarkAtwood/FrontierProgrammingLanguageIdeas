@@ -408,7 +408,7 @@ semantics â€” the compiler must not optimize away reads/writes or reorder them â
 are a compiler intrinsic (`core.ptr.read_volatile`, `core.ptr.write_volatile`).
 
 ```ferrum
-type MmioReg[T, const ADDR: usize] { ... }
+struct MmioReg[T, const ADDR: usize] { ... }
 
 impl[T: Copy, const ADDR: usize] MmioReg[T, ADDR] {
     fn read(&self): T ! Unsafe {

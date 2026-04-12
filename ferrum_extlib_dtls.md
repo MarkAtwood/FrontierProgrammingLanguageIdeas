@@ -85,7 +85,7 @@ The `extlib.tls` module provides all certificate handling, cipher suite negotiat
 `DtlsConfig` carries everything needed to initiate or accept DTLS connections. It is immutable after construction and cheaply clonable (it holds `Arc`-wrapped certificates).
 
 ```ferrum
-type DtlsConfig {
+struct DtlsConfig {
     pub mode:             DtlsMode,
     pub cipher_suites:    Vec[CipherSuite],
     pub versions:         DtlsVersionSet,
@@ -151,7 +151,7 @@ The default cipher suite list is ordered by preference: DTLS 1.3 suites first (s
 ### Version Set
 
 ```ferrum
-type DtlsVersionSet {
+struct DtlsVersionSet {
     pub dtls_12: bool,
     pub dtls_13: bool,
 }
@@ -183,7 +183,7 @@ The cookie secret is used by the server to compute `HMAC-SHA256(secret, client_a
 ### Retransmit Config
 
 ```ferrum
-type RetransmitConfig {
+struct RetransmitConfig {
     pub initial_timeout:  Duration,   // default: 1s (RFC 6347 §4.2.4)
     pub max_timeout:      Duration,   // default: 60s
     pub backoff_factor:   f32,        // default: 2.0 (exponential backoff)
@@ -203,7 +203,7 @@ impl RetransmitConfig {
 ### DtlsConfigBuilder
 
 ```ferrum
-type DtlsConfigBuilder {
+struct DtlsConfigBuilder {
     fn mode(&mut self, mode: DtlsMode): &mut Self
     fn cipher_suites(&mut self, suites: Vec[CipherSuite]): &mut Self
     fn versions(&mut self, versions: DtlsVersionSet): &mut Self
@@ -438,7 +438,7 @@ DTLS 1.3 (RFC 9147) introduces epoch-based key management that differs substanti
 This is necessary because UDP does not guarantee ordering. A key update might be acknowledged, but old records sent before the update can arrive after the update completes. Dropping them would violate application-level message delivery guarantees.
 
 ```ferrum
-type EpochConfig {
+struct EpochConfig {
     // How long to retain keys for a superseded epoch after a key update.
     // During this window, records tagged with the old epoch are decrypted
     // normally. After the window, old-epoch records return EpochError.
@@ -505,7 +505,7 @@ Handshake messages — particularly `Certificate` — often exceed the network's
 
 ```ferrum
 // Internal record header fields (not exposed to application code)
-type HandshakeMsgHeader {
+struct HandshakeMsgHeader {
     msg_type:    u8,
     length:      u24,         // total message length before fragmentation
     msg_seq:     u16,         // per-message sequence number

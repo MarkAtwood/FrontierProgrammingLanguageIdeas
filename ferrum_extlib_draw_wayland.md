@@ -159,7 +159,7 @@ impl WaylandConnection {
 Describes a connected display output (monitor).
 
 ```ferrum
-pub type WaylandOutput {
+pub struct WaylandOutput {
     // Compositor-assigned name, e.g. "HDMI-A-1", "eDP-1".
     pub name:             String,
 
@@ -265,7 +265,7 @@ impl WindowConfig {
 ### `Size`
 
 ```ferrum
-pub type Size {
+pub struct Size {
     pub width:  f32,
     pub height: f32,
 }
@@ -387,7 +387,7 @@ impl WaylandWindow {
 ### `ConfigureState`
 
 ```ferrum
-pub type ConfigureState {
+pub struct ConfigureState {
     pub maximized:   bool,
     pub fullscreen:  bool,
     pub activated:   bool,   // window has keyboard focus
@@ -557,7 +557,7 @@ impl WaylandWindow {
 ### `Rect`
 
 ```ferrum
-pub type Rect {
+pub struct Rect {
     pub x:      i32,
     pub y:      i32,
     pub width:  i32,
@@ -592,7 +592,7 @@ impl WaylandWindow {
 }
 
 // An EGL surface and context pair bound to a Wayland window.
-pub type EglSurface {
+pub struct EglSurface {
     // Raw EGLSurface handle.  Type-erased pointer; cast to EGLSurface
     // when passing to raw EGL function calls via FFI.
     pub raw_surface: *mut (),
@@ -635,7 +635,7 @@ impl WaylandWindow {
 
 // Wayland-specific Vulkan surface descriptor.
 // Consumed by extlib::draw_gpu.
-pub type VulkanSurface {
+pub struct VulkanSurface {
     // Raw pointer to the wl_display.  Valid for the lifetime of
     // the WaylandConnection this window was created from.
     pub display: *mut (),
@@ -677,7 +677,7 @@ impl WaylandWindow {
     ): Result[(), WaylandError] ! IO
 }
 
-pub type DmaBufFrame {
+pub struct DmaBufFrame {
     // File descriptors for each plane.  Maximum four planes.
     pub fds:      [Option[RawFd]; 4],
 
@@ -732,7 +732,7 @@ pub enum WindowEvent {
 ### Pointer Events
 
 ```ferrum
-pub type PointerEvent {
+pub struct PointerEvent {
     // Cursor position in logical pixels relative to the window's top-left corner.
     pub position: Point,
 
@@ -745,7 +745,7 @@ pub type PointerEvent {
     pub scroll:   Option[ScrollDelta],
 }
 
-pub type ButtonEvent {
+pub struct ButtonEvent {
     pub button: MouseButton,
     pub state:  ButtonState,
 }
@@ -761,7 +761,7 @@ pub enum MouseButton {
 
 pub enum ButtonState { Pressed, Released }
 
-pub type ScrollDelta {
+pub struct ScrollDelta {
     // Discrete scroll in notches (mouse wheel).  None for smooth scroll.
     pub discrete: Option[(i32, i32)],   // (horizontal_notches, vertical_notches)
 
@@ -773,7 +773,7 @@ pub type ScrollDelta {
 ### Keyboard Events
 
 ```ferrum
-pub type KeyEvent {
+pub struct KeyEvent {
     // Platform-independent key code.  See extlib::input::KeyCode.
     pub keycode:   KeyCode,
 
@@ -791,7 +791,7 @@ pub type KeyEvent {
 
 pub enum KeyState { Pressed, Released, Repeat }
 
-pub type Modifiers {
+pub struct Modifiers {
     pub shift:   bool,
     pub ctrl:    bool,
     pub alt:     bool,
@@ -804,7 +804,7 @@ pub type Modifiers {
 ### Touch Events
 
 ```ferrum
-pub type TouchEvent {
+pub struct TouchEvent {
     // Touch point identifier, stable across Down → Motion → Up for one finger.
     pub id:       u32,
 
@@ -825,7 +825,7 @@ pub enum TouchPhase {
 ### `Point`
 
 ```ferrum
-pub type Point {
+pub struct Point {
     pub x: f32,
     pub y: f32,
 }
@@ -1180,7 +1180,7 @@ pub enum Layer {
 
 ```ferrum
 // Bitflag: combine edges with | to anchor to multiple sides.
-pub type Anchor {
+pub struct Anchor {
     pub const NONE:   Anchor = Anchor(0)
     pub const TOP:    Anchor = Anchor(1)
     pub const BOTTOM: Anchor = Anchor(2)
@@ -1194,7 +1194,7 @@ impl std::ops::BitOr for Anchor { ... }
 ### `Edges`
 
 ```ferrum
-pub type Edges {
+pub struct Edges {
     pub top:    i32,
     pub bottom: i32,
     pub left:   i32,

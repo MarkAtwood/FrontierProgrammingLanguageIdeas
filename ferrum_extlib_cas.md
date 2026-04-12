@@ -64,7 +64,7 @@ An `ObjectId` is a SHA-256 hash. It is the address and the identity of a stored 
 /// An ObjectId is both the address of an object in the store and its
 /// integrity check. Knowing the id is sufficient to verify any copy
 /// of the object's content.
-type ObjectId {
+struct ObjectId {
     bytes: [u8; 32],
 }
 
@@ -133,7 +133,7 @@ impl Display for ObjectKind { ... }
 /// The lifetime 'a ties this view to the storage that holds the data.
 /// Use OwnedObject when you need to store or return the object
 /// independently of the backing store.
-type Object[' a] {
+struct Object[' a] {
     kind: ObjectKind,
     data: &'a [u8],
 }
@@ -146,7 +146,7 @@ impl[' a] Object[' a] {
 }
 
 /// An owned object: kind + heap-allocated bytes.
-type OwnedObject {
+struct OwnedObject {
     kind: ObjectKind,
     data: Vec[u8],
 }
@@ -209,7 +209,7 @@ impl TreeEntryMode {
 }
 
 /// One entry in a tree object.
-type TreeEntry {
+struct TreeEntry {
     mode: TreeEntryMode,
     name: String,     // single path component; must not contain '/' or '\0'
     id:   ObjectId,
@@ -220,7 +220,7 @@ type TreeEntry {
 /// Git requires entries to be sorted. The sort key for files is the
 /// entry name; the sort key for directories is the entry name with
 /// a '/' appended. This matches `git ls-tree` order.
-type Tree {
+struct Tree {
     entries: Vec[TreeEntry],
 }
 
@@ -243,7 +243,7 @@ A commit records a snapshot of a tree, zero or more parent commits, authorship, 
 
 ```ferrum
 /// Author or committer identity with timestamp.
-type CommitAuthor {
+struct CommitAuthor {
     name:      String,
     email:     String,
     timestamp: i64,       // Unix epoch seconds
@@ -258,7 +258,7 @@ impl CommitAuthor {
 }
 
 /// A commit object.
-type Commit {
+struct Commit {
     /// The tree this commit snapshots.
     tree:     ObjectId,
 
@@ -299,7 +299,7 @@ An annotated tag points at any object with tagger identity and a message. Lightw
 
 ```ferrum
 /// An annotated tag object.
-type Tag {
+struct Tag {
     /// The object being tagged. May be any ObjectKind.
     object:  ObjectId,
     kind:    ObjectKind,
@@ -378,7 +378,7 @@ The filesystem backend stores objects in the Git loose-object layout. An existin
 ### 5.1 Opening and Initializing
 
 ```ferrum
-type FsStore { ... }
+struct FsStore { ... }
 
 impl FsStore {
     /// Open an existing store rooted at `path`.
@@ -439,7 +439,7 @@ Existing objects are read regardless of their compression state; the store detec
 ### 5.4 Garbage Collection
 
 ```ferrum
-type GcStats {
+struct GcStats {
     objects_deleted: usize,
     bytes_freed:     u64,
 }
@@ -464,7 +464,7 @@ GC does not lock the store. For concurrent workloads, callers should ensure no c
 The in-memory backend stores all objects in a `HashMap`. It is intended for tests, for build-step caches that do not need to outlive the process, and for any context where filesystem I/O is unavailable or undesirable.
 
 ```ferrum
-type MemStore { ... }
+struct MemStore { ... }
 
 impl MemStore {
     /// Create an empty in-memory store.
@@ -521,7 +521,7 @@ trait RemoteStore {
 `CachingStore` composes a local `ObjectStore` and a `RemoteStore`. Reads check the local store first; on a miss, the object is fetched from the remote and inserted into the local store. Writes go to the local store and optionally to the remote.
 
 ```ferrum
-type CachingStore[L: ObjectStore, R: RemoteStore] {
+struct CachingStore[L: ObjectStore, R: RemoteStore] {
     local:  L,
     remote: R,
 }
@@ -549,7 +549,7 @@ For explicit push-to-remote, use `sync` (§7.3).
 ### 7.3 `sync`
 
 ```ferrum
-type SyncStats {
+struct SyncStats {
     objects_pushed:  usize,
     objects_already_present: usize,
     bytes_transferred: u64,
@@ -673,7 +673,7 @@ fn read_path(
 ### 9.1 Reachable Closure
 
 ```ferrum
-type CopyStats {
+struct CopyStats {
     objects_copied:        usize,
     objects_already_present: usize,
     bytes_copied:          u64,
@@ -825,7 +825,7 @@ Packages are stored once. Installing a package is writing its blob and recording
 ```ferrum
 use extlib::ccsp::cas::{FsStore, ObjectStore, write_blob, read_blob, ObjectId, CasError}
 
-type PackageStore {
+struct PackageStore {
     store: FsStore,
 }
 

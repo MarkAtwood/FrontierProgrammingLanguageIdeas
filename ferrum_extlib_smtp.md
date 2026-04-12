@@ -65,7 +65,7 @@ Buffer management is invisible to callers.
 // Represents display-name + addr-spec as a validated pair.
 // The addr-spec (local@domain) is always valid ASCII per RFC 5321.
 // For Unicode local parts, see SmtputfAddress.
-type EmailAddress {
+struct EmailAddress {
     pub display_name: Option[String],
     pub local:        String,    // left of @, ASCII only
     pub domain:       String,    // right of @, ASCII only (ACE-encoded if IDN)
@@ -109,7 +109,7 @@ impl Hash for EmailAddress
 // An internationalized email address where the local part may contain Unicode.
 // Requires the SMTPUTF8 SMTP extension. Domain is always ACE-encoded for DNS
 // but displayed as U-label for humans.
-type SmtputfAddress {
+struct SmtputfAddress {
     pub display_name: Option[String],
     pub local:        String,    // Unicode, NFC-normalized
     pub domain:       String,    // Unicode U-label form
@@ -140,7 +140,7 @@ impl SmtputfAddress {
 // - Date is set to current time if not provided
 // - Message-ID is generated if not provided
 // - Content-Type and MIME structure are determined automatically
-type MessageBuilder {
+struct MessageBuilder {
     // Addressing
     fn from(self, addr: EmailAddress): Self
     fn to(self, addr: EmailAddress): Self
@@ -214,7 +214,7 @@ enum HeaderError {
 // An immutable, fully-constructed RFC 5322 message.
 // The internal representation is the serialized byte form, which is computed
 // once at build() time. All accessors are zero-copy views into that buffer.
-type Message {
+struct Message {
     pub fn from_addrs(&self): &[EmailAddress]
     pub fn to_addrs(&self): &[EmailAddress]
     pub fn cc_addrs(&self): &[EmailAddress]
@@ -289,7 +289,7 @@ enum SmtpAuth {
     },
 }
 
-type SmtpClientConfig {
+struct SmtpClientConfig {
     pub server:           String,
     pub port:             u16,
     pub security:         SmtpSecurity,
@@ -329,7 +329,7 @@ impl SmtpClientConfig {
 ### 3.2 SmtpClient
 
 ```ferrum
-type SmtpClient { ... }
+struct SmtpClient { ... }
 
 impl SmtpClient {
     // Establish a connection to the server and negotiate capabilities.
@@ -367,7 +367,7 @@ impl SmtpClient {
     fn server_capabilities(&self): &SmtpCapabilities
 }
 
-type SmtpCapabilities {
+struct SmtpCapabilities {
     pub pipelining:   bool,
     pub starttls:     bool,
     pub size_limit:   Option[usize],    // advertised SIZE value
@@ -379,7 +379,7 @@ type SmtpCapabilities {
 }
 
 // Result of a successful send.
-type SendReceipt {
+struct SendReceipt {
     // The Message-ID of the sent message (from the message headers).
     pub message_id:      Option[String],
     // The final 250 response from the server after DATA + "." terminator.
@@ -483,7 +483,7 @@ notification system that sends without a relay).
 
 ```ferrum
 // Result of MX record lookup and DANE TLSA retrieval for one MX host.
-type MxTarget {
+struct MxTarget {
     pub hostname:    String,
     pub priority:    u16,
     pub addresses:   Vec[IpAddr],      // A/AAAA records for this MX hostname
@@ -491,12 +491,12 @@ type MxTarget {
 }
 
 // A set of TLSA records for a host:port combination.
-type TlsaSet {
+struct TlsaSet {
     pub records:        Vec[TlsaRecord],
     pub dnssec_valid:   bool,   // true if DNSSEC chain validated end-to-end
 }
 
-type TlsaRecord {
+struct TlsaRecord {
     pub usage:      TlsaUsage,
     pub selector:   TlsaSelector,
     pub matching:   TlsaMatching,
@@ -525,7 +525,7 @@ enum TlsaMatching {
 ### 6.2 SmtpMtaClient
 
 ```ferrum
-type SmtpMtaClientConfig {
+struct SmtpMtaClientConfig {
     // TLS configuration used when connecting to MX hosts.
     pub tls_config:        TlsClientConfig,
 
@@ -545,7 +545,7 @@ type SmtpMtaClientConfig {
     pub max_message_size:  Option[usize],
 }
 
-type SmtpMtaClient { ... }
+struct SmtpMtaClient { ... }
 
 impl SmtpMtaClient {
     fn new(config: SmtpMtaClientConfig): Self
@@ -576,7 +576,7 @@ impl SmtpMtaClient {
     ): Result[Vec[MxTarget], SmtpError] ! Async + Net
 }
 
-type DeliveryResult {
+struct DeliveryResult {
     pub mx_hostname:      String,
     pub mx_ip:            IpAddr,
     pub tls_used:         bool,
@@ -596,7 +596,7 @@ type DeliveryResult {
 // Ed25519 is preferred over RSA for DKIM because it produces shorter signatures
 // (88 bytes base64 vs ~344 bytes for RSA-2048), has no padding oracle attacks,
 // and is faster to sign and verify.
-type DkimSigner {
+struct DkimSigner {
     selector:    String,
     domain:      String,
     private_key: Ed25519SecretKey,
@@ -635,7 +635,7 @@ enum DkimError {
 // Verify the DKIM-Signature(s) on a received message.
 // Fetches the public key from DNS using a TXT record query on
 // <selector>._domainkey.<domain>. Requires network access.
-type DkimVerifier { ... }
+struct DkimVerifier { ... }
 
 impl DkimVerifier {
     fn new(): Self
@@ -692,7 +692,7 @@ This is a minimal SMTP server sufficient for test harnesses, internal mail
 acceptance endpoints, and simple gatewaying. It is not a full MTA.
 
 ```ferrum
-type SmtpServerConfig {
+struct SmtpServerConfig {
     // The SMTP banner string returned in the 220 greeting.
     // Example: "mail.example.com ESMTP ready"
     pub banner:            String,
@@ -721,7 +721,7 @@ trait MessageHandler {
 }
 
 // The SMTP envelope for an incoming message.
-type Envelope {
+struct Envelope {
     pub mail_from:        EmailAddress,
     pub rcpt_to:          Vec[EmailAddress],
     pub source_ip:        IpAddr,
@@ -750,7 +750,7 @@ trait AuthHandler {
     ): impl Future[Output=AuthResult] ! Async
 }
 
-type AuthCredentials {
+struct AuthCredentials {
     pub username: String,
     pub password: Option[String],   // None for token-based mechanisms
     pub token:    Option[String],
@@ -762,7 +762,7 @@ enum AuthResult {
     Error { message: String },
 }
 
-type SmtpServer { ... }
+struct SmtpServer { ... }
 
 impl SmtpServer {
     // Bind and start listening. Does not block — returns immediately.
@@ -967,7 +967,7 @@ use extlib::smtp::{
 }
 use stdlib::sync::Mutex
 
-type CollectingHandler {
+struct CollectingHandler {
     received: Mutex[Vec[Message]],
 }
 

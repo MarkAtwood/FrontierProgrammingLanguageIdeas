@@ -315,7 +315,7 @@ fn covariance(x: &[f64], y: &[f64]): Option[f64]
 fn correlation(x: &[f64], y: &[f64]): Option[f64]
 
 // Streaming statistics — O(1) memory
-type RunningStats {
+struct RunningStats {
     fn new(): Self
     fn update(&mut self, x: f64)
     fn count(&self): u64

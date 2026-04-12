@@ -171,7 +171,7 @@ fn parse_value(input: &str): Result[Value, TomlError] ! Alloc
 ```ferrum
 /// A parse error with precise source location.
 @derive(Debug)]
-type TomlError {
+struct TomlError {
     /// A human-readable description of the error.
     message: String,
 
@@ -195,7 +195,7 @@ impl core.error.Error for TomlError {}
 ```ferrum
 /// A source location: line, column (both 1-indexed), and byte offset.
 @derive(Debug, Clone, Copy, PartialEq)]
-type Span {
+struct Span {
     /// Line number in the source, 1-indexed.
     line:   u32,
 
@@ -295,7 +295,7 @@ trait FromTomlTable: Sized {
 /// Each struct field maps to a TOML key with the same name by default.
 /// Field attributes can override mapping, provide defaults, and rename keys.
 @derive(FromToml)
-type ServerConfig {
+struct ServerConfig {
     host:     String,
     port:     u16,
     workers:  usize,
@@ -314,7 +314,7 @@ For enums, `@derive(FromToml)` generates a string-based deserializer: the TOML s
 
 ```ferrum
 @derive(FromToml)
-type DatabaseConfig {
+struct DatabaseConfig {
     /// Map TOML key "database_url" to field `url`.
     @toml(rename = "database_url")
     url: String,
@@ -365,7 +365,7 @@ The following standard `FromToml` implementations are provided:
 ```ferrum
 /// An error during typed deserialization: what went wrong and where.
 @derive(Debug)]
-type TomlDeserError {
+struct TomlDeserError {
     /// A human-readable description of the error.
     message: String,
 
@@ -410,7 +410,7 @@ trait ToTomlTable {
 
 ```ferrum
 @derive(ToToml)
-type ServerConfig {
+struct ServerConfig {
     host:    String,
     port:    u16,
     workers: usize,
@@ -482,7 +482,7 @@ use extlib.toml.{self, Value, Table}
 use extlib.toml.ToTomlTable
 
 @derive(FromToml, ToToml)
-type ServerConfig {
+struct ServerConfig {
     host:         String,
     port:         u16,
     workers:      usize,
@@ -524,7 +524,7 @@ For programs that expose config files to end users, schema validation provides e
 
 ```ferrum
 /// A schema describing the expected structure of a TOML document.
-type TomlSchema {
+struct TomlSchema {
     /// The fields expected at the top level of the document.
     fields: Vec[SchemaField],
 
@@ -534,7 +534,7 @@ type TomlSchema {
 }
 
 /// A single field declaration within a schema.
-type SchemaField {
+struct SchemaField {
     /// The TOML key name.
     key: String,
 
@@ -701,13 +701,13 @@ use extlib.toml.FromToml
 use std.fs
 
 @derive(Debug, FromToml)]
-type TlsConfig {
+struct TlsConfig {
     cert_path: String,
     key_path:  String,
 }
 
 @derive(Debug, FromToml)]
-type ServerConfig {
+struct ServerConfig {
     host:    String,
 
     @toml(default = "8080")

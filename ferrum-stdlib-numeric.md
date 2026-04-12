@@ -25,7 +25,7 @@ Key design decisions:
 ## 1. alloc.bigint — Arbitrary Precision Integers
 
 ```ferrum
-type BigInt  given [A: Allocator] {
+struct BigInt  given [A: Allocator] {
     // Stored as sign + magnitude (Vec[u64] limbs, little-endian)
 }
 
@@ -147,7 +147,7 @@ impl Clone for BigInt
 impl Default for BigInt  // zero
 
 // BigUint — unsigned arbitrary precision integer
-type BigUint  given [A: Allocator] {
+struct BigUint  given [A: Allocator] {
     // Stored as Vec[u64] limbs, little-endian
 }
 
@@ -172,7 +172,7 @@ Implements the IEEE 754-2008 and General Decimal Arithmetic specifications.
 ```ferrum
 /// Controls precision, rounding, and error handling for decimal arithmetic.
 /// Used via `given` to provide ambient context.
-type ArithmeticContext {
+struct ArithmeticContext {
     /// Maximum number of significant digits.
     /// Operations round to this precision.
     prec: u32,
@@ -275,7 +275,7 @@ bitflags type SignalFlags: u16 {
 ```ferrum
 /// Arbitrary precision decimal floating-point number.
 /// Stored as coefficient × 10^exponent where coefficient is a BigInt.
-type BigDecimal  given [A: Allocator] {
+struct BigDecimal  given [A: Allocator] {
     // Internal: sign, coefficient (BigUint), exponent (i32)
     // Special values: Infinity, -Infinity, NaN, sNaN (signaling NaN)
 }
@@ -484,7 +484,7 @@ fn test_exact() {
 /// Exact rational number as numerator/denominator.
 /// Always stored in lowest terms (reduced by GCD).
 /// Denominator is always positive.
-type Rational  given [A: Allocator] {
+struct Rational  given [A: Allocator] {
     // Internal: numerator (BigInt), denominator (BigUint, always > 0)
 }
 
@@ -616,7 +616,7 @@ like `f64`, `Complex[T]` is stack-allocated and `Copy`.
 
 ```ferrum
 /// Complex number: real + imag*i
-type Complex[T: Num] {
+struct Complex[T: Num] {
     real: T,
     imag: T,
 }

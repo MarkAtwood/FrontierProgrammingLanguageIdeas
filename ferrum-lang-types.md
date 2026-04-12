@@ -75,7 +75,7 @@ with defined wrapping/overflow behavior.
 
 ```ferrum
 // u24 in a struct — stored as 3 consecutive bytes, no padding
-type AudioSample {
+struct AudioSample {
     left:  i24,
     right: i24,
 }
@@ -156,7 +156,7 @@ type FragmentOffset = @Int(false, 13)   // 13-bit offset
 
 // Layout packs to exact bits
 @layout
-type IPv4Flags {
+struct IPv4Flags {
     reserved:    u1,
     dont_frag:   u1,
     more_frags:  u1,
@@ -817,12 +817,12 @@ let f: Result[Percent] = (a + b).try_into()  // Err(ConstraintViolation) — no 
 
 **Product types (structs):**
 ```ferrum
-type Point {
+struct Point {
     x: f64,
     y: f64,
 }
 
-type Packet[T] {
+struct Packet[T] {
     header: Header,
     payload: T,
 }

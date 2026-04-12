@@ -243,7 +243,7 @@ where `x(t)` is position (0 = start, 1 = rest), `k` is stiffness, `d` is damping
 /// may exceed 1.0 for underdamped springs (overshoot) or go below 0.0
 /// for springs with large initial velocity away from the target.
 @derive(Debug, Clone, Copy)]
-type SpringSimulation {
+struct SpringSimulation {
     /// Restoring force per unit displacement. Higher = stiffer, faster.
     /// Must be positive.
     pub stiffness: f32,
@@ -472,7 +472,7 @@ impl[const N: usize] Animatable for [f32; N] {
 /// `Animated[T]` does not use a timer or callback. The caller is responsible
 /// for calling `value_at` at the appropriate rate (typically from the frame
 /// loop driven by `AnimationController`).
-type Animated[T: Animatable] {
+struct Animated[T: Animatable] {
     current:   T,
     target:    T,
     from:      T,
@@ -633,7 +633,7 @@ enum RepeatMode {
 ///
 /// Build with `Animation::new(from, to, duration)`, then chain modifiers.
 @derive(Debug, Clone)]
-type Animation[T: Animatable] {
+struct Animation[T: Animatable] {
     from:             T,
     to:               T,
     duration:         Duration,
@@ -749,7 +749,7 @@ The `AnimationController` is the central driver. It owns a set of running animat
 /// Used to cancel an animation or query its completion status.
 /// Dropping the handle does not cancel the animation: call `cancel` explicitly.
 @derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-type AnimationHandle {
+struct AnimationHandle {
     id: u64,
 }
 
@@ -775,7 +775,7 @@ impl AnimationHandle {
 ///
 /// Create one AnimationController per application (or per independently
 /// animated subsystem). All animations share the same timer tick.
-type AnimationController {
+struct AnimationController {
     runtime:    &Runtime,
     animations: Map[u64, BoxedAnimation],
     next_id:    u64,
@@ -874,7 +874,7 @@ enum SequenceStep {
 }
 
 /// Builds a Sequence by chaining steps.
-type SequenceBuilder {
+struct SequenceBuilder {
     steps: Vec[SequenceStep],
 }
 
@@ -915,7 +915,7 @@ impl SequenceBuilder {
     }
 }
 
-type Sequence {
+struct Sequence {
     steps: Vec[SequenceStep],
 }
 ```
@@ -943,7 +943,7 @@ A `ParallelGroup` runs a set of animations simultaneously. The group handle is d
 
 ```ferrum
 /// Builds a ParallelGroup by accumulating animations.
-type ParallelGroupBuilder {
+struct ParallelGroupBuilder {
     animations: Vec[BoxedParallelAnimation],
 }
 
@@ -970,7 +970,7 @@ impl ParallelGroupBuilder {
     }
 }
 
-type ParallelGroup {
+struct ParallelGroup {
     animations: Vec[BoxedParallelAnimation],
 }
 ```
@@ -1001,7 +1001,7 @@ Stagger is a specialized form of a parallel group where each item starts a fixed
 ///
 /// This is equivalent to a ParallelGroup where each animation after the
 /// first has an additional `i * delay` prepended to its own delay.
-type Stagger[T: Animatable] {
+struct Stagger[T: Animatable] {
     items: Vec[(Animation[T], Box[dyn Fn(T)])],
     delay: Duration,
 }
@@ -1078,7 +1078,7 @@ use std.sync.Arc
 use std.cell.Cell
 use std.time.Duration
 
-type ButtonState {
+struct ButtonState {
     background:  Arc[Cell[Color]],
     controller:  AnimationController,
     widget_id:   WidgetId,
@@ -1133,7 +1133,7 @@ For the common case of a single animated scalar property, the `AnimatedWidget` w
 ///
 /// This is a convenience type; it does not replace the full controller
 /// for multi-animation or sequenced use cases.
-type AnimatedWidget[T: Animatable] {
+struct AnimatedWidget[T: Animatable] {
     pub inner:   Box[dyn Widget],
     value:       Arc[Cell[T]],
     animated:    Animated[T],

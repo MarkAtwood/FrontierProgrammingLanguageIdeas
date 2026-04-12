@@ -67,7 +67,7 @@ let nan = f64.NAN
 
 // Attributes use @ not #[]
 @derive(Clone, Debug)
-type Point { x: f64, y: f64 }
+struct Point { x: f64, y: f64 }
 
 // Lifetimes use 'a syntax
 fn longest<'a>(a: &'a str, b: &'a str): &'a str

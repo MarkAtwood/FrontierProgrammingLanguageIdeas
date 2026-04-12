@@ -127,7 +127,7 @@ the child can be any size.
 /// All values are in logical pixels. min values are >= 0.0.
 /// max values are >= min values, or f32::INFINITY for unconstrained.
 @derive(Debug, Clone, Copy, PartialEq)
-pub type Constraints {
+pub struct Constraints {
     pub min_width:  f32,
     pub max_width:  f32,
     pub min_height: f32,
@@ -204,7 +204,7 @@ events at a given point.
 ```ferrum
 /// The result of a hit test: the widget that owns a point.
 @derive(Debug, Clone)]
-pub type HitTestEntry {
+pub struct HitTestEntry {
     pub widget_id: WidgetId,
     /// Position of the hit point in the widget's own local coordinate space.
     pub local_point: Point,
@@ -279,7 +279,7 @@ children. It encapsulates the constraint-passing protocol and layout caching.
 /// Context available to a widget's layout method.
 ///
 /// Provides child measurement and layout caching.
-pub type LayoutCtx { ... }
+pub struct LayoutCtx { ... }
 
 impl LayoutCtx {
     /// Lay out a child widget and return its measured size.
@@ -313,7 +313,7 @@ the coordinate origin so the child paints at `(0,0)` in its own space.
 /// Context available to a widget's paint method.
 ///
 /// Wraps a DrawContext with widget-local coordinates and damage tracking.
-pub type PaintCtx { ... }
+pub struct PaintCtx { ... }
 
 impl PaintCtx {
     /// The underlying draw context. Widget-local coordinates: origin is the
@@ -356,7 +356,7 @@ fixed-size children have been measured.
 ```ferrum
 /// Linear layout along a main axis with optional flex distribution.
 @derive(Debug)]
-pub type Flex {
+pub struct Flex {
     pub direction:             Axis,
     pub children:              Vec[FlexChild],
     pub main_axis_alignment:   MainAxisAlignment,
@@ -366,7 +366,7 @@ pub type Flex {
 
 /// A single child in a Flex layout.
 @derive(Debug)]
-pub type FlexChild {
+pub struct FlexChild {
     pub widget: Arc[dyn Widget],
     /// Flex factor. 0.0 means the child is sized by its intrinsic content.
     /// Values > 0.0 receive a share of remaining main-axis space proportional
@@ -453,7 +453,7 @@ left unpositioned, in which case they are aligned by the `alignment` field.
 ```ferrum
 /// Z-order layering of children.
 @derive(Debug)]
-pub type Stack {
+pub struct Stack {
     pub children:  Vec[StackChild],
     pub alignment: Alignment,
     pub fit:       StackFit,
@@ -461,7 +461,7 @@ pub type Stack {
 
 /// A single child in a Stack.
 @derive(Debug)]
-pub type StackChild {
+pub struct StackChild {
     pub widget:     Arc[dyn Widget],
     /// When Some, this child is positioned absolutely. When None, the child
     /// is an "unpositioned" child sized and aligned by the stack's rules.
@@ -473,7 +473,7 @@ pub type StackChild {
 /// At most one of each axis pair (top/bottom, left/right) should be set.
 /// If both are set, width/height is ignored and the child fills between them.
 @derive(Debug, Clone, Copy)]
-pub type Positioned {
+pub struct Positioned {
     pub top:    Option[f32],
     pub right:  Option[f32],
     pub bottom: Option[f32],
@@ -502,7 +502,7 @@ the parent's constraints and the ones specified here.
 ```ferrum
 /// Apply additional constraints to a child.
 @derive(Debug)]
-pub type Constrained {
+pub struct Constrained {
     pub constraints: Constraints,
     pub child:       Arc[dyn Widget],
 }
@@ -520,14 +520,14 @@ the `Padded` widget reports a size equal to the child's size plus the padding.
 ```ferrum
 /// Add padding (insets) around a child.
 @derive(Debug)]
-pub type Padded {
+pub struct Padded {
     pub padding: EdgeInsets,
     pub child:   Arc[dyn Widget],
 }
 
 /// Axis-aligned insets.
 @derive(Debug, Clone, Copy, PartialEq)]
-pub type EdgeInsets {
+pub struct EdgeInsets {
     pub top:    f32,
     pub right:  f32,
     pub bottom: f32,
@@ -566,7 +566,7 @@ fills all available parent space.
 ```ferrum
 /// Fill remaining flex space in a Flex, or all parent space outside one.
 @derive(Debug)]
-pub type Expanded {
+pub struct Expanded {
     /// Flex factor. Must be > 0.0. Defaults to 1.0.
     pub flex:  f32,
     pub child: Arc[dyn Widget],
@@ -582,7 +582,7 @@ child's size if unconstrained) and places the child at the given alignment.
 ```ferrum
 /// Position a child within allocated space by alignment.
 @derive(Debug)]
-pub type Aligned {
+pub struct Aligned {
     pub alignment: Alignment,
     pub child:     Arc[dyn Widget],
 }
@@ -594,7 +594,7 @@ pub type Aligned {
 /// (x= 1, y= 1) is the bottom-right corner.
 /// Intermediate values interpolate linearly.
 @derive(Debug, Clone, Copy, PartialEq)]
-pub type Alignment {
+pub struct Alignment {
     pub x: f32,
     pub y: f32,
 }
@@ -629,7 +629,7 @@ creates empty space (a spacer).
 ```ferrum
 /// Force a specific size, or create empty space.
 @derive(Debug)]
-pub type SizedBox {
+pub struct SizedBox {
     /// If Some, the child (or empty box) is constrained to exactly this width.
     pub width:  Option[f32],
     /// If Some, the child (or empty box) is constrained to exactly this height.
@@ -665,7 +665,7 @@ and the width is recomputed.
 ```ferrum
 /// Maintain a fixed width/height aspect ratio.
 @derive(Debug)]
-pub type AspectRatio {
+pub struct AspectRatio {
     /// Width divided by height. For example, 16.0/9.0 for widescreen.
     pub ratio: f32,
     pub child: Arc[dyn Widget],
@@ -681,7 +681,7 @@ CSS `flex-wrap: wrap`.
 ```ferrum
 /// Flow layout with wrapping runs.
 @derive(Debug)]
-pub type Wrap {
+pub struct Wrap {
     pub direction:   Axis,
     /// Space between children on the main axis within a run.
     pub spacing:     f32,
@@ -715,7 +715,7 @@ cross axis, allowing it to be larger than the viewport.
 ```ferrum
 /// A scrollable viewport over a single child.
 @derive(Debug)]
-pub type Scrollable {
+pub struct Scrollable {
     pub axis:       Axis,
     pub controller: Arc[RefCell[ScrollController]],
     pub child:      Arc[dyn Widget],
@@ -726,7 +726,7 @@ pub type Scrollable {
 ///
 /// This is not a widget — it is the mutable state that lives outside the
 /// widget tree and drives scroll position.
-pub type ScrollController {
+pub struct ScrollController {
     /// Current scroll offset in logical pixels along the scroll axis.
     pub offset:            f32,
     /// Maximum valid offset, set by WidgetTree after child layout.
@@ -757,7 +757,7 @@ impl ScrollController {
 
 /// Visual style for the scrollbar overlay.
 @derive(Debug, Clone, Copy)]
-pub type ScrollbarStyle {
+pub struct ScrollbarStyle {
     /// Width of the scrollbar track and thumb in logical pixels.
     pub width:       f32,
     pub thumb_color: Color,
@@ -809,7 +809,7 @@ use extlib.ccsp.text_layout.{ AttributedString, ParagraphStyle, ParagraphLayout,
 
 /// Render shaped text.
 @derive(Debug)]
-pub type TextWidget {
+pub struct TextWidget {
     pub text:   AttributedString,
     pub style:  ParagraphStyle,
     pub shaper: Arc[Shaper],
@@ -832,7 +832,7 @@ use extlib.ccsp.draw.ImageRef
 
 /// Render an image with a fit mode.
 @derive(Debug)]
-pub type Image {
+pub struct Image {
     pub data:      ImageRef,
     pub fit:       ImageFit,
     pub alignment: Alignment,
@@ -866,7 +866,7 @@ laid out with the same constraints and painted on top.
 ```ferrum
 /// A filled colored rectangle, optionally containing a child.
 @derive(Debug)]
-pub type ColoredBox {
+pub struct ColoredBox {
     pub color: Color,
     pub child: Option[Arc[dyn Widget]],
 }
@@ -881,7 +881,7 @@ painter closure returns.
 
 ```ferrum
 /// Custom drawing via a closure. Use sparingly; prefer composition.
-pub type CustomPaint {
+pub struct CustomPaint {
     pub painter: Box[dyn Fn(&mut DrawContext, Size)],
     pub child:   Option[Arc[dyn Widget]],
 }
@@ -900,7 +900,7 @@ the conflict by eliminating all but the highest-priority winner.
 
 ```ferrum
 /// Wrap any widget with gesture recognition.
-pub type GestureDetector {
+pub struct GestureDetector {
     pub child:    Arc[dyn Widget],
     pub gestures: GestureRecognizers,
 }
@@ -913,7 +913,7 @@ pub type GestureDetector {
 ///
 /// Unset callbacks are not registered in the gesture arena; the arena only
 /// arbitrates between actually competing recognizers.
-pub type GestureRecognizers {
+pub struct GestureRecognizers {
     pub on_tap:          Option[Box[dyn Fn(TapDetails)]],
     pub on_double_tap:   Option[Box[dyn Fn(TapDetails)]],
     pub on_long_press:   Option[Box[dyn Fn(TapDetails)]],
@@ -950,7 +950,7 @@ impl GestureRecognizers {
 ```ferrum
 /// A completed tap or double-tap or long-press.
 @derive(Debug, Clone, Copy)]
-pub type TapDetails {
+pub struct TapDetails {
     /// Position in the widget's local coordinate space.
     pub position:        Point,
     /// Position in the root widget's coordinate space (screen-local).
@@ -959,14 +959,14 @@ pub type TapDetails {
 
 /// Drag sequence started.
 @derive(Debug, Clone, Copy)]
-pub type DragStartDetails {
+pub struct DragStartDetails {
     pub position:        Point,
     pub global_position: Point,
 }
 
 /// Drag moved.
 @derive(Debug, Clone, Copy)]
-pub type DragUpdateDetails {
+pub struct DragUpdateDetails {
     /// Motion delta since the last update, in logical pixels.
     pub delta:           Point,
     pub position:        Point,
@@ -976,27 +976,27 @@ pub type DragUpdateDetails {
 
 /// Drag released.
 @derive(Debug, Clone, Copy)]
-pub type DragEndDetails {
+pub struct DragEndDetails {
     /// Final velocity at release, in logical pixels per second.
     pub velocity: Point,
 }
 
 /// Pointer entered, moved within, or is hovering over the widget.
 @derive(Debug, Clone, Copy)]
-pub type HoverDetails {
+pub struct HoverDetails {
     pub position:        Point,
     pub global_position: Point,
 }
 
 /// Scale/pinch gesture started.
 @derive(Debug, Clone, Copy)]
-pub type ScaleStartDetails {
+pub struct ScaleStartDetails {
     pub focal_point: Point,
 }
 
 /// Scale/pinch gesture updated.
 @derive(Debug, Clone, Copy)]
-pub type ScaleUpdateDetails {
+pub struct ScaleUpdateDetails {
     /// Current scale factor relative to the gesture start (1.0 = no change).
     pub scale:       f32,
     /// Rotation in radians relative to the gesture start.
@@ -1006,7 +1006,7 @@ pub type ScaleUpdateDetails {
 
 /// Scale/pinch gesture ended.
 @derive(Debug, Clone, Copy)]
-pub type ScaleEndDetails {
+pub struct ScaleEndDetails {
     pub velocity: Point,
 }
 ```
@@ -1105,7 +1105,7 @@ use extlib.ccsp.input.{ InputEvent, EventResponse }
 ///
 /// Owns the root widget, the draw backend, and all per-frame state.
 /// One WidgetTree per window.
-pub type WidgetTree { ... }
+pub struct WidgetTree { ... }
 
 impl WidgetTree {
     /// Construct a WidgetTree with a root widget and a draw backend.
@@ -1202,7 +1202,7 @@ use extlib.ccsp.a11y.{ A11yRole, A11yAction }
 /// Each call to node, set_*, and add_action contributes to the node currently
 /// being built. The tree is assembled from the order of calls across the
 /// widget traversal.
-pub type A11yCtx { ... }
+pub struct A11yCtx { ... }
 
 impl A11yCtx {
     /// Add an accessibility node for the current widget.
@@ -1260,7 +1260,7 @@ use alloc.sync.{ Arc, Mutex }
 use alloc.cell.RefCell
 
 // 1. Define your state as a plain struct.
-type CounterState {
+struct CounterState {
     count: i32,
 }
 
@@ -1341,7 +1341,7 @@ use extlib.ccsp.draw.Color
 use alloc.sync.Arc
 use alloc.cell.RefCell
 
-type AppState {
+struct AppState {
     press_count: u32,
 }
 
@@ -1432,7 +1432,7 @@ Text input is a `CustomPaint` leaf plus a `GestureDetector` to handle focus
 and tap-to-position. The cursor position is external state.
 
 ```ferrum
-type TextFieldState {
+struct TextFieldState {
     text:        String,
     cursor:      usize,     // byte offset into text
     focused:     bool,

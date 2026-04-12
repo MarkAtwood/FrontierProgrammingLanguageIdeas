@@ -172,7 +172,7 @@ one of these eight cases.
 /// any button is held. For stylus input, `pressure` is the physical pen
 /// pressure in [0.0, 1.0].
 @derive(Debug, Clone)]
-pub type PointerEvent {
+pub struct PointerEvent {
     /// What happened.
     pub kind:            PointerEventKind,
 
@@ -269,7 +269,7 @@ pub enum MouseButton {
 /// `super_` is true when either MetaLeft or MetaRight is held
 /// (the Windows key on PC keyboards, Command on macOS keyboards).
 @derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub type Modifiers {
+pub struct Modifiers {
     pub shift:     bool,
     pub control:   bool,
     pub alt:       bool,
@@ -313,7 +313,7 @@ impl Modifiers {
 /// Do NOT use KeyboardEvent to obtain text. Use TextInputEvent instead.
 /// `KeyboardEvent` has no character field by design.
 @derive(Debug, Clone)]
-pub type KeyboardEvent {
+pub struct KeyboardEvent {
     /// Whether the key was pressed or released.
     pub kind:      KeyEventKind,
 
@@ -445,7 +445,7 @@ pub enum KeyCode {
 /// Commit events automatically. No special handling is required for the
 /// common ASCII case; the same code handles ASCII and CJK correctly.
 @derive(Debug, Clone)]
-pub type TextInputEvent {
+pub struct TextInputEvent {
     pub kind: TextInputKind,
 }
 ```
@@ -526,7 +526,7 @@ handles `Commit { text: "a" }` handles `Commit { text: "は" }` without modifica
 /// `position` and `global_position` are in logical pixels, matching the
 /// coordinate system of extlib.ccsp.draw and PointerEvent.
 @derive(Debug, Clone)]
-pub type TouchEvent {
+pub struct TouchEvent {
     /// What happened to this contact point.
     pub kind:            TouchEventKind,
 
@@ -600,7 +600,7 @@ within an active sequence, not across sequences.
 /// do not have meaningful phase information and deliver MayBegin / Changed
 /// for each detent click.
 @derive(Debug, Clone)]
-pub type ScrollEvent {
+pub struct ScrollEvent {
     /// Pointer position at the time of the scroll, in logical widget-space coordinates.
     pub position:  Point,
 
@@ -703,7 +703,7 @@ next user input.
 /// - Re-read clipboard availability if it depends on focus
 /// - Resume any paused animations
 @derive(Debug, Clone)]
-pub type FocusEvent {
+pub struct FocusEvent {
     pub kind: FocusKind,
 }
 ```
@@ -1178,7 +1178,7 @@ interrupts the touch stream.
 use extlib::ccsp::input::{InputEvent, TouchEvent, TouchEventKind}
 use stdlib::collections::HashMap
 
-type TapRecognizer {
+struct TapRecognizer {
     active: HashMap[u64, Point],
 }
 

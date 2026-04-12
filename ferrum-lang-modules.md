@@ -35,8 +35,8 @@ import std.prelude.*                  // glob import (discouraged outside prelud
 pub fn public_function() { ... }     // visible outside the module
 fn private_function() { ... }        // module-private (default)
 
-pub type PublicType { ... }
-type PrivateType { ... }
+pub struct PublicType { ... }
+struct PrivateType { ... }
 
 pub(crate) fn crate_visible() { ... }  // visible within the package
 pub(super) fn parent_visible() { ... } // visible in parent module

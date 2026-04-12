@@ -171,7 +171,7 @@ impl Certificate {
 ### 3.2 Validity
 
 ```ferrum
-type Validity {
+struct Validity {
     pub not_before: Timestamp,
     pub not_after:  Timestamp,
 }
@@ -187,17 +187,17 @@ impl Validity {
 `DistinguishedName` is an ordered list of typed attribute-value pairs. All string values are decoded to UTF-8: UTF8String and IA5String are passed through; PrintableString and TeletexString are decoded according to their character set mappings. Values that cannot be decoded to valid UTF-8 yield `CertParseError.NonUtf8String`.
 
 ```ferrum
-type DistinguishedName {
+struct DistinguishedName {
     // Ordered list of relative distinguished names, each containing
     // one or more type-value pairs.
     pub rdns: Vec[RelativeDistinguishedName],
 }
 
-type RelativeDistinguishedName {
+struct RelativeDistinguishedName {
     pub attrs: Vec[AttributeTypeAndValue],
 }
 
-type AttributeTypeAndValue {
+struct AttributeTypeAndValue {
     pub oid:   Oid,
     pub value: String,   // always UTF-8
 }
@@ -252,13 +252,13 @@ enum GeneralName {
 ### 3.5 SubjectPublicKeyInfo
 
 ```ferrum
-type SubjectPublicKeyInfo {
+struct SubjectPublicKeyInfo {
     pub algorithm: AlgorithmIdentifier,
     // Raw public key bytes (BIT STRING contents, decoded).
     pub key_bytes: Vec[u8],
 }
 
-type AlgorithmIdentifier {
+struct AlgorithmIdentifier {
     pub oid:        Oid,
     // DER encoding of the parameters field, or empty if absent.
     pub parameters: Vec[u8],
@@ -268,14 +268,14 @@ type AlgorithmIdentifier {
 ### 3.6 Extensions
 
 ```ferrum
-type BasicConstraints {
+struct BasicConstraints {
     pub is_ca:              bool,
     // Maximum number of non-self-issued intermediate certificates that may
     // follow in a valid certification path. None means unconstrained.
     pub path_len_constraint: Option[u32],
 }
 
-type KeyUsage {
+struct KeyUsage {
     pub digital_signature:  bool,
     pub content_commitment: bool,   // formerly non_repudiation
     pub key_encipherment:   bool,
@@ -287,12 +287,12 @@ type KeyUsage {
     pub decipher_only:      bool,
 }
 
-type NameConstraints {
+struct NameConstraints {
     pub permitted_subtrees: Vec[GeneralSubtree],
     pub excluded_subtrees:  Vec[GeneralSubtree],
 }
 
-type GeneralSubtree {
+struct GeneralSubtree {
     pub base:    GeneralName,
     // minimum and maximum are present in the ASN.1 but RFC 5280 requires
     // them to be absent (minimum = 0, maximum absent). They are decoded
@@ -302,12 +302,12 @@ type GeneralSubtree {
     pub maximum: Option[u32],   // always None in compliant certificates
 }
 
-type AccessDescription {
+struct AccessDescription {
     pub access_method:   Oid,     // id-ad-ocsp or id-ad-caIssuers
     pub access_location: GeneralName,
 }
 
-type CrlDistributionPoint {
+struct CrlDistributionPoint {
     pub distribution_point: Option[DistributionPointName],
     pub reasons:            Option[ReasonFlags],
     pub crl_issuer:         Vec[GeneralName],
@@ -318,7 +318,7 @@ enum DistributionPointName {
     NameRelativeToCRLIssuer(RelativeDistinguishedName),
 }
 
-type ReasonFlags {
+struct ReasonFlags {
     pub unused:           bool,
     pub key_compromise:   bool,
     pub ca_compromise:    bool,
@@ -330,14 +330,14 @@ type ReasonFlags {
     pub aa_compromise:    bool,
 }
 
-type TlsaData {
+struct TlsaData {
     pub usage:     u8,
     pub selector:  u8,
     pub matching:  u8,
     pub cert_data: Vec[u8],
 }
 
-type CaaRecord {
+struct CaaRecord {
     pub flags: u8,
     pub tag:   String,
     pub value: String,
@@ -479,7 +479,7 @@ enum RevocationMode {
 Returned on successful validation. Carries the ordered chain and metadata about what was validated.
 
 ```ferrum
-type ValidatedChain {
+struct ValidatedChain {
     // Ordered chain: [0] is the end-entity, [last] is the certificate
     // immediately issued by the trust anchor.
     pub chain:        Vec[Arc[Certificate]],
@@ -498,7 +498,7 @@ type ValidatedChain {
     pub revocation:   Option[ChainRevocationStatus],
 }
 
-type ChainRevocationStatus {
+struct ChainRevocationStatus {
     // Per-certificate revocation status, parallel to ValidatedChain.chain.
     pub statuses: Vec[RevocationStatus],
 }
@@ -673,7 +673,7 @@ trait RevocationCache: Send + Sync {
     )
 }
 
-type CachedRevocationEntry {
+struct CachedRevocationEntry {
     pub status:     RevocationStatus,
     pub expires_at: Timestamp,     // from OCSP nextUpdate or CRL nextUpdate
     pub source:     RevocationSource,
@@ -775,7 +775,7 @@ DANE (DNS-based Authentication of Named Entities, RFC 6698) allows a TLSA DNS re
 
 ```ferrum
 // A parsed TLSA record from DNS (typically provided by extlib.dns_secure).
-type TlsaRecord {
+struct TlsaRecord {
     pub usage:     TlsaUsage,
     pub selector:  TlsaSelector,
     pub matching:  TlsaMatching,

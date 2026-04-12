@@ -21,7 +21,7 @@ You only write allocator annotations when you need custom allocation — arenas,
 ### 4.1 alloc.vec
 
 ```ferrum
-type Vec[T]  given [A: Allocator] {
+struct Vec[T]  given [A: Allocator] {
     // ...
     invariant self.len <= self.cap
 }
@@ -359,7 +359,7 @@ impl[K: Eq + Hash, V] MultiMap[K, V] {
 
 ```ferrum
 // CString — owned null-terminated C string (like String but for C)
-type CString  given [A: Allocator] {
+struct CString  given [A: Allocator] {
     inner: Vec[u8],   // includes null terminator
     invariant inner.last() == Some(0) and !inner[..inner.len()-1].contains(&0)
 }
@@ -408,18 +408,18 @@ impl From[&str] for CString {
         // Panics if s contains interior nulls
 }
 
-type NulError {
+struct NulError {
     fn nul_position(&self): usize
     fn into_vec(self): Vec[u8]   // recover the original data
 }
 
-type IntoStringError {
+struct IntoStringError {
     fn utf8_error(&self): Utf8Error
     fn into_cstring(self): CString   // recover the CString
 }
 
 // OsString — owned platform-native string
-type OsString  given [A: Allocator] {
+struct OsString  given [A: Allocator] {
     inner: Vec[u8],   // WTF-8 on Windows, bytes on Unix
 }
 
@@ -632,13 +632,13 @@ Non-thread-safe reference-counted pointers for shared ownership.
 // Rc — single-threaded reference-counted pointer
 // For thread-safe version, see sync.Arc
 
-type Rc[T]  given [A: Allocator] {
+struct Rc[T]  given [A: Allocator] {
     ptr: NonNull[RcBox[T]],
     phantom: PhantomData[RcBox[T]],
     alloc: A,
 }
 
-type RcBox[T] {
+struct RcBox[T] {
     strong: Cell[usize],
     weak: Cell[usize],      // +1 for all strong refs
     value: T,
@@ -739,7 +739,7 @@ impl[T] !Send for Rc[T]
 impl[T] !Sync for Rc[T]
 
 // Weak — non-owning reference that can be upgraded
-type Weak[T]  given [A: Allocator] {
+struct Weak[T]  given [A: Allocator] {
     ptr: NonNull[RcBox[T]],
     alloc: A,
 }
@@ -810,7 +810,7 @@ impl[T] !Sync for Weak[T]
 // - Need Send + Sync
 
 // Example: Tree with parent references
-type TreeNode {
+struct TreeNode {
     value: i32,
     parent: Weak[TreeNode],
     children: Vec[Rc[TreeNode]],

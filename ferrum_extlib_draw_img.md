@@ -63,7 +63,7 @@ impl ImageBackend {
 
 ```ferrum
 /// Full configuration for ImageBackend construction.
-type ImageBackendConfig {
+struct ImageBackendConfig {
     width:             u32,
     height:            u32,
     /// Initial background color. Default: transparent black.
@@ -282,7 +282,7 @@ pub fn to_image_data(backend: &ImageBackend): extlib.draw.ImageData
 
 ```ferrum
 /// Metadata embedded in the PDF document information dictionary.
-type PdfMetadata {
+struct PdfMetadata {
     /// Document title (optional).
     title:   Option[String],
     /// Author name (optional).
@@ -343,7 +343,7 @@ pub fn diff(
 ): Result[ImageDiff, ImgError]
 
 /// The result of a pixel-by-pixel comparison.
-type ImageDiff {
+struct ImageDiff {
     /// Maximum delta across all pixels and channels (0.0 = identical, 1.0 = maximally different).
     max_delta:         f32,
     /// Mean delta across all pixels and channels.
@@ -473,7 +473,7 @@ render_to_file(draw_gradient_button, Path.new("gradient_button.png"), 200, 60)?
 ///
 /// Frames are added sequentially. Each frame must have the same dimensions
 /// as the first frame.
-type AnimatedPngWriter { ... }
+struct AnimatedPngWriter { ... }
 
 impl AnimatedPngWriter {
     /// Create a new APNG writer.
@@ -549,7 +549,7 @@ All loaders produce:
 ```ferrum
 use extlib.draw.{ImageData, PixelFormat}
 
-type ImageData {
+struct ImageData {
     width:  u32,
     height: u32,
     /// Always Rgba8Unorm after loading. The 8-bit values are linear-light, not sRGB.

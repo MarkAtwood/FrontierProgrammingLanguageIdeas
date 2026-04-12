@@ -54,7 +54,7 @@ This separation keeps each module small and focused. A backend that renders to a
 /// gamma-encoded values produces incorrect results (the "dark halo" artifact).
 /// All arithmetic on Color values assumes linear light.
 @derive(Debug, Clone, Copy, PartialEq)
-type Color {
+struct Color {
     r: f32,
     g: f32,
     b: f32,
@@ -151,7 +151,7 @@ OKLCh is the cylindrical form of OKLab: L (lightness, 0..1), C (chroma, 0..~0.4)
 /// h: hue angle in degrees, range [0.0, 360.0)
 /// a: alpha, linear, range [0.0, 1.0]
 @derive(Debug, Clone, Copy, PartialEq)
-type OklchColor {
+struct OklchColor {
     l: f32,
     c: f32,
     h: f32,
@@ -213,7 +213,7 @@ All geometry uses `f32` in logical (device-independent) coordinates. The backend
 ```ferrum
 /// A 2D point in logical coordinates.
 @derive(Debug, Clone, Copy, PartialEq)
-type Point {
+struct Point {
     x: f32,
     y: f32,
 }
@@ -234,7 +234,7 @@ impl Point {
 
 /// A 2D size in logical coordinates.
 @derive(Debug, Clone, Copy, PartialEq)
-type Size {
+struct Size {
     width:  f32,
     height: f32,
 }
@@ -253,7 +253,7 @@ impl Size {
 ///
 /// Origin is the top-left corner. Positive y is downward (screen convention).
 @derive(Debug, Clone, Copy, PartialEq)
-type Rect {
+struct Rect {
     origin: Point,
     size:   Size,
 }
@@ -347,7 +347,7 @@ impl Rect {
 ///
 /// This encodes translation (m4, m5), scale (m0, m3), rotation, and skew.
 @derive(Debug, Clone, Copy, PartialEq)
-type Transform {
+struct Transform {
     m: [f32; 6],
 }
 
@@ -444,7 +444,7 @@ impl From[Color] for Paint {
 /// Color stops are interpolated through OKLab (via Color::mix), producing
 /// perceptually correct gradients without desaturated midpoints.
 @derive(Debug, Clone)
-type LinearGradient {
+struct LinearGradient {
     /// Start point of the gradient axis.
     start: Point,
     /// End point of the gradient axis.
@@ -469,7 +469,7 @@ impl LinearGradient {
 /// At the circle's edge (radius), the gradient has the color of the last stop.
 /// Colors between stops are interpolated through OKLab.
 @derive(Debug, Clone)
-type RadialGradient {
+struct RadialGradient {
     center: Point,
     radius: f32,
     stops:  Vec[ColorStop],
@@ -487,7 +487,7 @@ impl RadialGradient {
 ```ferrum
 /// A single color stop within a gradient.
 @derive(Debug, Clone, Copy)]
-type ColorStop {
+struct ColorStop {
     /// Position within the gradient, in [0.0, 1.0].
     /// 0.0 is the start (center for radial). 1.0 is the end (edge for radial).
     offset: f32,
@@ -509,7 +509,7 @@ impl ColorStop {
 ```ferrum
 /// An opaque handle to a backend-owned image used as a paint source.
 /// Obtained from DrawContext::create_image. Not Clone (backend manages lifetime).
-type PatternRef { ... }
+struct PatternRef { ... }
 ```
 
 ---
@@ -595,7 +595,7 @@ The clip parameter on every drawing operation, rather than a separate `set_clip`
 ///
 /// Callers interact with DrawContext, not DrawBackend directly.
 /// DrawContext manages frame lifecycle and provides scoped transform/clip helpers.
-type DrawContext {
+struct DrawContext {
     backend: Box[dyn DrawBackend],
     // Internal clip stack and current transform are tracked here.
     // Details are implementation-private.
@@ -712,7 +712,7 @@ Paths describe arbitrary 2D shapes composed of line segments and curves. Paths a
 ///
 /// A PathBuilder is open (has no Fill or Stroke) — it describes geometry only.
 /// Call build() to produce an immutable Path.
-type PathBuilder {
+struct PathBuilder {
     // Internal segment list; implementation-private.
 }
 
@@ -757,7 +757,7 @@ impl PathBuilder {
 /// Paths are cheap to clone (the segment list is reference-counted).
 /// Paths are backend-agnostic; the backend tessellates or strokes them.
 @derive(Debug, Clone)
-type Path { ... }
+struct Path { ... }
 ```
 
 ### 7.2 Convenience Constructors
@@ -815,7 +815,7 @@ enum FillRule {
 ```ferrum
 /// A complete stroke style.
 @derive(Debug, Clone)
-type Stroke {
+struct Stroke {
     /// The fill used for the stroke itself (usually a solid color).
     paint:       Paint,
     /// Width of the stroke in logical coordinates.
@@ -869,7 +869,7 @@ enum LineJoin {
 
 /// A dash pattern for stroked paths.
 @derive(Debug, Clone)
-type DashPattern {
+struct DashPattern {
     /// Alternating lengths of dashes and gaps, in logical coordinates.
     /// Must be non-empty. [5.0, 3.0] means: 5 units on, 3 units off.
     lengths: Vec[f32],
@@ -888,7 +888,7 @@ Images flow through two types: `ImageData` holds CPU-side pixels; `ImageRef` is 
 
 ```ferrum
 /// CPU-side pixel data, ready for upload to a backend.
-type ImageData {
+struct ImageData {
     width:  u32,
     height: u32,
     format: PixelFormat,
@@ -942,7 +942,7 @@ impl PixelFormat {
 /// Obtained from DrawContext::create_image. Dropping an ImageRef releases
 /// the backend-side resource (texture, shared memory segment, etc.).
 /// ImageRef is not Clone; use Arc[ImageRef] for shared ownership.
-type ImageRef { ... }
+struct ImageRef { ... }
 ```
 
 ---
@@ -957,7 +957,7 @@ type ImageRef { ... }
 /// Produced by extlib.ccsp.text after Unicode shaping, kerning, and font selection.
 /// The drawing layer renders positioned glyphs; it does not reshape or re-kern.
 @derive(Debug, Clone)
-type GlyphRun {
+struct GlyphRun {
     /// Identifies the font face. Opaque to the drawing layer; the backend
     /// resolves this to its internal font representation.
     font_id: FontId,
@@ -971,7 +971,7 @@ type GlyphRun {
 
 /// A single glyph instance within a GlyphRun.
 @derive(Debug, Clone, Copy)
-type GlyphInstance {
+struct GlyphInstance {
     /// Backend-specific glyph identifier within the font face.
     glyph_id: u32,
 
@@ -984,7 +984,7 @@ type GlyphInstance {
 
 /// An opaque font face identifier. Produced by extlib.ccsp.text.
 @derive(Debug, Clone, Copy, PartialEq, Eq, Hash)
-type FontId { id: u32 }
+struct FontId { id: u32 }
 ```
 
 **Layering invariant:** No code in `extlib.ccsp.draw` loads fonts, applies Unicode BiDi, selects typeface variants, applies kerning pairs, or resolves font fallback chains. All of that happens in `extlib.ccsp.text`. The drawing layer receives the fully resolved glyph list and renders it. This invariant keeps the drawing layer portable across font systems (FreeType, CoreText, DirectWrite, web fonts) without any change to the drawing API.

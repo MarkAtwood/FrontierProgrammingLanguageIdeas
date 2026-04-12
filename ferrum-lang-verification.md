@@ -35,7 +35,7 @@ fn pop(xs: &mut Vec[T]): T
 Declared on the type, enforced at visibility boundaries:
 
 ```ferrum
-type BoundedQueue[T] {
+struct BoundedQueue[T] {
     data:  Vec[T],
     limit: usize,
 
@@ -492,7 +492,7 @@ Binary layout declarations provide:
 
 ```ferrum
 // Logical type
-type EthernetFrame {
+struct EthernetFrame {
     dst_mac:  [u8; 6],
     src_mac:  [u8; 6],
     ethertype: u16,
@@ -557,7 +557,7 @@ at bytes N..M, bits B..B — bit range within a byte range
 The logical field type must be wide enough for the declared bit range. The natural pairing is the sub-byte integer type that matches exactly:
 
 ```ferrum
-type DeviceStatus {
+struct DeviceStatus {
     ready:    bool,
     mode:     u3,     // 3-bit field — u3 is the exact type
     reserved: u4,
@@ -590,7 +590,7 @@ For fields that span a byte boundary, bit indices count from bit 0 of the first 
 // 10-bit ADC reading split across two bytes (common in I2C sensors)
 // Byte 0: bits 7..0 = high 8 bits of reading
 // Byte 1: bits 7..6 = low 2 bits of reading
-type AdcSample {
+struct AdcSample {
     reading: u10,
     _pad:    u6,
 }
@@ -661,7 +661,7 @@ A single logical type may have multiple layout declarations, each named:
 // Value constraint lives in the type system, not the layout
 type Nanoseconds = u32 where value < 1_000_000_000
 
-type Timestamp {
+struct Timestamp {
     seconds:     u32,
     nanoseconds: Nanoseconds,   // constraint enforced by the type, not the layout
 }

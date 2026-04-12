@@ -182,7 +182,7 @@ let label = Encoding.Utf8.canonical_label()    // "UTF-8"
 Detection is best-effort. There is no algorithm that can determine encoding with certainty from bytes alone — a byte sequence that is valid UTF-8 might have been intended as Windows-1252 and happened to also be valid UTF-8. Detection returns a confidence score so callers can decide whether to trust it, prompt the user, or fall back to a default.
 
 ```ferrum
-pub type DetectionResult {
+pub struct DetectionResult {
     pub encoding:   Encoding,
     pub confidence: f32,          // 0.0 (no confidence) to 1.0 (certain)
     pub language:   Option[&'static str],  // BCP 47 language tag if detected, e.g. "ja", "zh-Hans"
@@ -260,7 +260,7 @@ for chunk in chunks {
 For large inputs that should not be fully buffered, or for data that arrives in pieces (network streams, chunked file reads), the streaming decoder maintains state across calls.
 
 ```ferrum
-pub type Decoder {
+pub struct Decoder {
     // opaque fields
 }
 
@@ -370,7 +370,7 @@ fs.write("output.txt", &bytes)?
 ### Streaming Encoder
 
 ```ferrum
-pub type Encoder {
+pub struct Encoder {
     // opaque fields
 }
 
@@ -503,7 +503,7 @@ Note: `to_uppercase` and `to_lowercase` without a locale are provided by Ferrum'
 
 ```ferrum
 /// Error returned when bytes cannot be decoded in the stated encoding.
-pub type DecodeError {
+pub struct DecodeError {
     pub encoding:    Encoding,
     pub byte_offset: usize,            // offset of the first invalid byte in the input
     pub sequence:    [u8; 4],          // the offending byte(s), zero-padded
@@ -522,7 +522,7 @@ impl Display for DecodeError {
 impl Error for DecodeError {}
 
 /// Error returned when a Unicode character cannot be encoded in the target encoding.
-pub type EncodeError {
+pub struct EncodeError {
     pub encoding:    Encoding,
     pub char_value:  char,             // the Unicode code point that could not be encoded
     pub char_offset: usize,           // byte offset within the source UTF-8 string
@@ -542,7 +542,7 @@ impl Error for EncodeError {}
 
 /// Error returned by ICU-backed transliteration.
 #[cfg(feature = "icu")]
-pub type TranslitError {
+pub struct TranslitError {
     pub transliterator_id: String,
     pub message:           String,
 }

@@ -67,7 +67,7 @@ impl Runtime {
         // Set this runtime as the ambient runtime for the current thread
 }
 
-type RuntimeBuilder {
+struct RuntimeBuilder {
     fn worker_threads(&mut self, n: usize): &mut Self
     fn blocking_threads(&mut self, n: usize): &mut Self
     fn thread_stack_size(&mut self, size: usize): &mut Self
@@ -93,8 +93,8 @@ enum Poll[T] {
 }
 
 // Context carries the waker
-type Context { ... }
-type Waker   { ... }
+struct Context { ... }
+struct Waker   { ... }
 
 // fn with ! Async desugars to a state machine implementing Future
 // await desugars to poll + yield-if-pending
@@ -175,7 +175,7 @@ fn timeout[T](duration: Duration, f: impl Future[Output=T])
 
 // Interval — fires at regular intervals
 fn interval(period: Duration): Interval ! Async
-type Interval {
+struct Interval {
     fn tick(&mut self): impl Future[Output=Instant]
     fn reset(&mut self)
     fn reset_at(&mut self, deadline: Instant)
@@ -201,7 +201,7 @@ fn select_all[T](
 fn async_channel[T](capacity: usize): (AsyncSender[T], AsyncReceiver[T])
 fn async_broadcast[T: Clone](capacity: usize): (BroadcastSender[T], BroadcastReceiver[T])
 
-type AsyncSender[T] {
+struct AsyncSender[T] {
     fn send(&self, val: T): impl Future[Output=Result[(), SendError[T]]]
     fn try_send(&self, val: T): Result[(), TrySendError[T]]
     fn closed(&self): impl Future[Output=()]  // resolves when receiver dropped
@@ -210,7 +210,7 @@ type AsyncSender[T] {
     fn capacity(&self): Option[usize]
 }
 
-type AsyncReceiver[T] {
+struct AsyncReceiver[T] {
     fn recv(&mut self): impl Future[Output=Option[T]]
     fn try_recv(&mut self): Result[T, TryRecvError]
     fn len(&self): usize
@@ -269,7 +269,7 @@ impl Ipv4Addr {
     fn octets(&self): [u8; 4]
 }
 
-type SocketAddr {
+struct SocketAddr {
     ip:   IpAddr,
     port: Port,
 }
@@ -394,7 +394,7 @@ impl Resolver {
     fn lookup_ip_async(&self, host: &str): impl Future[Output=Result[LookupIp, ResolveError]]
 }
 
-type ResolverConfig {
+struct ResolverConfig {
     servers:     Vec[SocketAddr],
     transport:   DnsTransport,          // UDP, TCP, DoT, DoH
     dnssec:      DnssecMode,            // Off, Validate, Require
@@ -417,20 +417,20 @@ enum DnssecMode {
     Require,   // Reject responses that fail validation
 }
 
-type LookupIp {
+struct LookupIp {
     fn iter(&self): impl Iterator[Item=IpAddr]
     fn query_name(&self): &Name
     fn ttl(&self): Duration
     fn dnssec_validated(&self): bool    // True if DNSSEC chain validated
 }
 
-type LookupTlsa {
+struct LookupTlsa {
     fn iter(&self): impl Iterator[Item=TlsaRecord]
     fn dnssec_validated(&self): bool
 }
 
 // DANE — certificate validation via DNS
-type TlsaRecord {
+struct TlsaRecord {
     usage:        TlsaUsage,            // CA, EE, Trust Anchor, Domain Issued
     selector:     TlsaSelector,         // Full cert or SubjectPublicKeyInfo
     matching:     TlsaMatching,         // Exact, SHA-256, SHA-512
@@ -564,7 +564,7 @@ impl Uri {
 ### 11.3 Request and Response
 
 ```ferrum
-type Request  given [A: Allocator] {
+struct Request  given [A: Allocator] {
     pub method:  Method,
     pub uri:     Uri,
     pub version: Version,
@@ -582,7 +582,7 @@ impl Request {
     fn into_body(self): Body
 }
 
-type RequestBuilder {
+struct RequestBuilder {
     fn method(self, method: Method): Self
     fn uri(self, uri: impl TryInto[Uri]): Self
     fn header(self, name: HeaderName, value: impl IntoHeaderValue): Self
@@ -592,7 +592,7 @@ type RequestBuilder {
     fn multipart(self, form: Multipart): Result[Request, HttpError]
 }
 
-type Response  given [A: Allocator] {
+struct Response  given [A: Allocator] {
     pub status:  StatusCode,
     pub version: Version,
     pub headers: HeaderMap,
@@ -653,7 +653,7 @@ impl Client {
         : impl Future[Output=Result[R, HttpError]]  ! Net
 }
 
-type ClientBuilder {
+struct ClientBuilder {
     fn timeout(&mut self, timeout: Duration): &mut Self
     fn connect_timeout(&mut self, timeout: Duration): &mut Self
     fn user_agent(&mut self, val: impl IntoHeaderValue): &mut Self
@@ -688,7 +688,7 @@ impl Server {
     fn bind(addr: SocketAddr): ServerBuilder ! Net
 }
 
-type ServerBuilder {
+struct ServerBuilder {
     fn handler(self, handler: impl Handler): Self
     fn timeout(self, timeout: Duration): Self
     fn max_connections(self, n: usize): Self
@@ -777,7 +777,7 @@ fn json_response[T: Serialize](status: StatusCode, body: &T): Result[Response, H
 fn websocket_upgrade(req: Request, handler: fn(WebSocket): impl Future[Output=()])
     : Response  ! Net
 
-type WebSocket {
+struct WebSocket {
     fn recv(&mut self): impl Future[Output=Option[Result[Message, WsError]]]
     fn send(&mut self, msg: Message): impl Future[Output=Result[(), WsError]]
     fn close(&mut self, code: Option[CloseCode]): impl Future[Output=Result[(), WsError]]
@@ -815,7 +815,7 @@ trait Pollable {
 
 // PollToken — opaque handle for polling
 // Represents a "subscription" to a pollable event
-type PollToken {
+struct PollToken {
     id: u64,
     pollable: &dyn Pollable,
 }
@@ -840,7 +840,7 @@ fn poll_list_ready(pollables: &[&dyn Pollable]): Vec[usize]
 // Standard pollable implementations
 
 // Timer pollable
-type TimerPollable {
+struct TimerPollable {
     deadline: Instant,
 }
 
@@ -870,7 +870,7 @@ impl Pollable for TimerPollable {
 }
 
 // IO pollable wrapper
-type IoPollable[T: AsRawFd] {
+struct IoPollable[T: AsRawFd] {
     inner: T,
     interest: Interest,
 }
@@ -1057,7 +1057,7 @@ This eliminates the buffer overflow vulnerability class by construction — the 
 
 ```ferrum
 // Protocol schema — declarative, not imperative
-type LineProtoSchema {
+struct LineProtoSchema {
     commands:     Vec[CommandDef],
     states:       Vec[StateDef],
     max_line_len: usize,            // hard limit, default 8192
@@ -1066,7 +1066,7 @@ type LineProtoSchema {
     starttls:     Option[&str],     // command that triggers TLS upgrade
 }
 
-type CommandDef {
+struct CommandDef {
     verb:           &str,           // e.g., "HELO", "MAIL", "RCPT"
     arg_type:       ArgType,        // None, Single, List, Remainder
     allowed_states: StateSet,       // which states allow this command
@@ -1075,7 +1075,7 @@ type CommandDef {
 
 enum ArgType { None, Single, List, Remainder }
 
-type StateDef {
+struct StateDef {
     id:       u32,
     name:     &str,
     timeout:  Duration,
@@ -1084,7 +1084,7 @@ type StateDef {
 }
 
 // The protocol engine
-type LineProto[S: Send] {
+struct LineProto[S: Send] {
     schema:  &LineProtoSchema,
     state:   u32,
     user:    S,                     // user-defined session state
@@ -1125,7 +1125,7 @@ const SMTP_SCHEMA: LineProtoSchema = LineProtoSchema {
 Framework for datagram protocols with built-in amplification protection. Prevents DNS/NTP/SSDP amplification attack patterns through the API surface.
 
 ```ferrum
-type DatagramSchema {
+struct DatagramSchema {
     handlers:              Vec[DatagramHandler],
     max_dgram_size:        usize,          // drop oversized, default 65535
     max_response_multiple: f32,            // response <= N * request, default 1.0
@@ -1134,7 +1134,7 @@ type DatagramSchema {
     source_validation:     SourceValidation,
 }
 
-type DatagramHandler {
+struct DatagramHandler {
     opcode:       u8,                      // or range, or matcher
     handler:      fn(ctx: &mut DgramContext, req: &[u8]): Result[Vec[u8], DgramError],
 }
@@ -1145,7 +1145,7 @@ type DatagramHandler {
 // 2. Dropped with WARN log (if not truncatable)
 // The handler cannot bypass this — it's enforced at the framework level
 
-type DgramServer {
+struct DgramServer {
     schema: &DatagramSchema,
     socket: UdpSocket,
 }
@@ -1156,7 +1156,7 @@ impl DgramServer {
 }
 
 // Client side: correlation, retransmission, timeout
-type DgramClient {
+struct DgramClient {
     socket:     UdpSocket,
     timeout:    Duration,
     max_retry:  u8,
@@ -1174,7 +1174,7 @@ enum BackoffStrategy {
 }
 
 // Rate limiting
-type RateLimit {
+struct RateLimit {
     requests: u32,
     per:      Duration,
 }
@@ -1212,7 +1212,7 @@ enum CborValue {
 }
 
 // Streaming encoder
-type CborEncoder[W: Write] {
+struct CborEncoder[W: Write] {
     fn new(writer: W): Self
     fn write_u64(&mut self, v: u64): Result[(), IoError]
     fn write_i64(&mut self, v: i64): Result[(), IoError]

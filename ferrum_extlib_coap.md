@@ -44,7 +44,7 @@ enum CoapScheme {
     Coaps,  // coaps:// — DTLS, port 5684 by default
 }
 
-type CoapUri {
+struct CoapUri {
     scheme:  CoapScheme,
     host:    String,
     port:    u16,
@@ -91,7 +91,7 @@ enum CoapTransport {
     Dtls(DtlsConfig),       // DTLS from extlib.ccsp.dtls; use for coaps:// URIs
 }
 
-type CoapClientConfig {
+struct CoapClientConfig {
     pub transport:          CoapTransport,
     pub timeout:            Duration,          // per-request deadline; default 30s
     pub max_retransmit:     u8,                // RFC 7252 §4.8; default 4
@@ -172,7 +172,7 @@ impl CoapClient {
     ): Result[Vec[CoapResponse], CoapError] ! Async + Net
 }
 
-type CoapResponse {
+struct CoapResponse {
     pub code:    CoapCode,
     pub token:   Vec[u8],
     pub options: Vec[CoapOption],
@@ -192,7 +192,7 @@ impl CoapResponse {
 ## 4. Server
 
 ```ferrum
-type CoapServerConfig {
+struct CoapServerConfig {
     pub transport:        CoapTransport,
     pub max_payload_size: usize,   // largest payload accepted in a single message; default 1024
     pub max_block_size:   usize,   // maximum reassembled body via block-wise; default 64 KiB
@@ -250,7 +250,7 @@ where
     Fut: Future[Output=CoapResponse] + Send,
 { ... }
 
-type CoapRequest {
+struct CoapRequest {
     pub code:           CoapCode,
     pub token:          Vec[u8],
     pub options:        Vec[CoapOption],
@@ -273,7 +273,7 @@ impl CoapRequest {
 ## 5. Messages
 
 ```ferrum
-type CoapMessage {
+struct CoapMessage {
     pub type_:      MessageType,
     pub code:       CoapCode,
     pub message_id: u16,
@@ -372,7 +372,7 @@ enum CoapOption {
 }
 
 // Block option encoding: NUM | M | SZX (three fields packed into 1–3 bytes)
-type BlockOption {
+struct BlockOption {
     pub num:  u32,    // block number (zero-based)
     pub more: bool,   // M bit — more blocks follow
     pub szx:  u8,     // size exponent: actual size = 2^(szx+4), range 16–1024
@@ -471,7 +471,7 @@ impl AsyncIterator for CoapObserver {
     type Item = CoapObservation
 }
 
-type CoapObservation {
+struct CoapObservation {
     pub sequence: u32,          // Observe option value — monotonically increasing
     pub code:     CoapCode,     // typically 2.05 Content
     pub options:  Vec[CoapOption],
@@ -543,7 +543,7 @@ fn multicast(
 ): Result[Vec[CoapResponse], CoapError] ! Async + Net
 
 // Multicast responses include the sender address
-type CoapResponse {
+struct CoapResponse {
     // ... (fields from §3) ...
     pub peer: Option[SocketAddr],   // Some for multicast responses, None for unicast
 }
@@ -687,7 +687,7 @@ use std.time.Duration
 use std.sync.Arc
 use std.sync.Mutex
 
-type TemperatureSensor {
+struct TemperatureSensor {
     // In real code: reads from hardware ADC
     current_celsius: Mutex[f32],
 }

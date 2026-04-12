@@ -556,7 +556,7 @@ Ferrum structs don't have the same memory layout as C structs. Ferrum can reorde
 
 ```ferrum
 @repr(C)
-type Point {
+struct Point {
     x: f64,
     y: f64,
 }
@@ -601,7 +601,7 @@ struct stat {
 
 ```ferrum
 @repr(C)
-type Stat {
+struct Stat {
     st_dev:   c_ulong,
     st_ino:   c_ulong,
     st_mode:  c_uint,
@@ -635,7 +635,7 @@ If you forget `@repr(C)`, you get undefined behavior:
 
 ```ferrum
 // BUG: Missing @repr(C)
-type BadPoint {
+struct BadPoint {
     x: f64,
     y: f64,
 }
@@ -663,7 +663,7 @@ For hardware registers, network protocols, or file formats where you need exact 
 
 ```ferrum
 @layout
-type TcpHeader {
+struct TcpHeader {
     source_port:      u16,
     dest_port:        u16,
     sequence_num:     u32,
@@ -690,7 +690,7 @@ Sometimes C code requires specific alignment:
 ```ferrum
 @repr(C)
 @align(16)
-type SIMDVector {
+struct SIMDVector {
     data: [f32; 4],
 }
 ```
@@ -813,7 +813,7 @@ import core.ffi.{c_int, c_void, c_size_t}
 /// Opaque type representing xxHash state.
 /// We don't know (or care) what's inside; the C library manages it.
 @repr(C)
-pub type XXH64State {
+pub struct XXH64State {
     _opaque: [u8; 0],  // zero-sized, prevents direct instantiation
 }
 
@@ -896,7 +896,7 @@ pub fn hash64(data: &[u8], seed: u64 = 0): u64 {
 /// hasher.update(b"world")?
 /// let hash = hasher.finish()
 /// ```
-pub type XxHash64 {
+pub struct XxHash64 {
     state: *mut XXH64State,
 }
 
@@ -1064,7 +1064,7 @@ extern(c) fn my_callback(user_data: *mut c_void, event: c_int) {
     handler.on_event(event as i32)
 }
 
-type EventHandler {
+struct EventHandler {
     name: String,
     count: i32,
 }
@@ -1111,7 +1111,7 @@ Keep the data alive by boxing it and ensuring it won't move:
 import core.pin.Pin
 import alloc.boxed.Box
 
-type CallbackState {
+struct CallbackState {
     handler: Pin[Box[EventHandler]],
 }
 
@@ -1265,7 +1265,7 @@ You can generate C header files for your Ferrum types:
 ```ferrum
 @repr(C)
 @export_c_header
-type MyStruct {
+struct MyStruct {
     value: c_int,
     data: *mut c_void,
 }
@@ -1306,7 +1306,7 @@ import collections.HashMap
 
 /// Opaque handle to a key-value store.
 /// C code only sees a pointer; they can't inspect the contents.
-pub type KvStore {
+pub struct KvStore {
     data: HashMap[String, String],
 }
 
@@ -1523,7 +1523,7 @@ fn transfer_ownership() -> *const c_char {
 **Fix:**
 ```ferrum
 // Wrap in Mutex
-type ThreadSafeWrapper {
+struct ThreadSafeWrapper {
     inner: Mutex[UnsafeHandle],
 }
 
@@ -1626,10 +1626,10 @@ extern(c) fn callable_from_c(args): return_type {
 
 ```ferrum
 @repr(C)                    // C-compatible layout
-type MyCStruct { ... }
+struct MyCStruct { ... }
 
 @layout                     // bit-level control
-type MyBitFields { ... }
+struct MyBitFields { ... }
 ```
 
 ### Pointer Operations

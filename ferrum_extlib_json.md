@@ -196,7 +196,7 @@ fn parse_reader(reader: &mut impl Read, config: &ParseConfig): Result[Value, Jso
 
 ```ferrum
 @derive(Debug, Clone)
-type ParseConfig {
+struct ParseConfig {
     // Maximum nesting depth of arrays and objects.
     // Each opening '[' or '{' increments the depth counter.
     // Exceeding this limit returns JsonError immediately.
@@ -249,7 +249,7 @@ impl ParseConfig {
 
 ```ferrum
 @derive(Debug, Clone)
-type JsonError {
+struct JsonError {
     // Human-readable description of the parse failure.
     pub message: String,
     // 1-based line number of the offending character in the input.
@@ -369,7 +369,7 @@ fn from_value[T: FromJson](value: &Value): Result[T, JsonDeserError]
 
 ```ferrum
 @derive(FromJson)
-type User {
+struct User {
     pub id:    i64,
     pub name:  String,
     pub email: String,
@@ -383,7 +383,7 @@ type User {
 
 ```ferrum
 @derive(FromJson)
-type ApiResponse {
+struct ApiResponse {
     // Rename: the JSON key is "userId", the Ferrum field is user_id
     #[json(rename = "userId")]
     pub user_id: i64,
@@ -440,7 +440,7 @@ The default (no attribute) is externally tagged: `{"VariantName": {...payload...
 
 ```ferrum
 @derive(Debug, Clone)
-type JsonDeserError {
+struct JsonDeserError {
     // Human-readable description of the type mismatch or missing field.
     pub message: String,
     // JSONPath-style path to the failing location.
@@ -499,7 +499,7 @@ Value (identity)
 
 ```ferrum
 @derive(ToJson)
-type User {
+struct User {
     pub id:    i64,
     pub name:  String,
     pub email: String,
@@ -829,7 +829,7 @@ impl fmt.Display for JsonPointer {
 }
 
 @derive(Debug, Clone)]
-type JsonPointerError {
+struct JsonPointerError {
     pub message: String,
     pub offset:  usize,   // byte offset in the pointer string where parsing failed
 }
@@ -969,7 +969,7 @@ fn main() ! IO {
 use extlib.ccsp.json.{from_str, to_string}
 
 @derive(FromJson, ToJson, Debug)
-type GithubRepo {
+struct GithubRepo {
     pub id:          i64,
     #[json(rename = "full_name")]
     pub full_name:   String,
@@ -1054,7 +1054,7 @@ fn sum_amounts(path: &str): Result[i64, JsonError] ! IO {
 use extlib.ccsp.json.JsonSerializer
 use std.io.StringWriter
 
-type HealthStatus {
+struct HealthStatus {
     pub service: String,
     pub ok:      bool,
     pub latency_ms: i64,

@@ -243,7 +243,7 @@ pub enum X11Depth {
 
 ```ferrum
 @derive(Clone, Copy, Debug)
-pub type X11EventMask {
+pub struct X11EventMask {
     bits: u32,
 }
 
@@ -383,7 +383,7 @@ impl XRenderPicture {
 
 // 16-bit-per-channel ARGB color as used by XRender.
 // Scale: 0x0000 = 0.0, 0xffff = 1.0 (pre-multiplied alpha).
-pub type XRenderColor {
+pub struct XRenderColor {
     pub red:   u16,
     pub green: u16,
     pub blue:  u16,
@@ -455,7 +455,7 @@ impl GlyphSet {
     ) ! IO
 }
 
-pub type GlyphInfo {
+pub struct GlyphInfo {
     pub width:   u16,
     pub height:  u16,
     pub x_off:   i16,   // bearing x
@@ -481,7 +481,7 @@ operations on a remote connection returns `X11Error::ExtensionNotFound { name: "
 ```ferrum
 // A pixel buffer in shared memory.  The server can read pixels from this
 // buffer with a single protocol message instead of a data transfer.
-pub type ShmImage {
+pub struct ShmImage {
     pub width:  u32,
     pub height: u32,
     // Direct, mutable access to the pixel buffer.
@@ -760,7 +760,7 @@ pub enum X11Event {
 
 ```ferrum
 @derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub type Modifiers {
+pub struct Modifiers {
     pub shift:    bool,
     pub control:  bool,
     pub alt:      bool,    // Mod1
@@ -954,7 +954,7 @@ Panel applications (docks, taskbars) use `_NET_WM_STRUT_PARTIAL` to reserve spac
 at a screen edge, preventing other windows from overlapping the panel area.
 
 ```ferrum
-pub type WmStrut {
+pub struct WmStrut {
     // Reserved pixels on each screen edge (0 = no reservation).
     pub left:   u32,
     pub right:  u32,

@@ -111,7 +111,7 @@ Variable fonts expose named design axes — weight, width, optical size, and cus
 /// `value` is within the axis range declared in the font's `fvar` table.
 /// Out-of-range values are clamped to the declared minimum or maximum.
 @derive(Debug, Clone, Copy, PartialEq)]
-pub type VariationAxisValue {
+pub struct VariationAxisValue {
     /// Four-byte OpenType axis tag. ASCII characters only.
     pub tag: [u8; 4],
 
@@ -129,7 +129,7 @@ pub type VariationAxisValue {
 /// that have no explicit style inherit the AttributedString's base style.
 /// All fields contribute to font selection, glyph shaping, and rendering.
 @derive(Debug, Clone, PartialEq)]
-pub type TextStyle {
+pub struct TextStyle {
     /// Font family name, e.g. "Noto Sans", "Helvetica Neue", "Source Serif 4".
     ///
     /// The font collection is queried for a face matching this family, the
@@ -229,7 +229,7 @@ impl TextStyle {
 ///
 /// An AttributedString is immutable after construction via the builder
 /// methods. Pass it to Shaper::shape to begin layout.
-pub type AttributedString { ... }
+pub struct AttributedString { ... }
 
 impl AttributedString {
     /// Construct an attributed string from a UTF-8 string slice.
@@ -363,7 +363,7 @@ pub enum Script {
 /// cluster may have no corresponding glyph (deleted characters). Always
 /// iterate clusters via ShapedRun::glyph_clusters, not raw glyph indices.
 @derive(Debug, Clone, Copy)]
-pub type ShapedGlyph {
+pub struct ShapedGlyph {
     /// The glyph index in the font face.
     pub glyph_id: GlyphId,
 
@@ -397,7 +397,7 @@ pub type ShapedGlyph {
 /// for LTR runs, right-to-left for RTL runs. The run's position in a LayoutLine
 /// is determined by paragraph layout and bidi reordering.
 @derive(Debug, Clone)]
-pub type ShapedRun {
+pub struct ShapedRun {
     /// The font face used for every glyph in this run.
     pub font_face: Arc[FontFace],
 
@@ -447,7 +447,7 @@ impl ShapedRun {
 /// Contains all runs in logical order. Paragraph layout (Paragraph::layout)
 /// distributes these runs into LayoutLines at legal break points.
 @derive(Debug)]
-pub type ShapedText {
+pub struct ShapedText {
     /// All shaped runs, in logical (not visual) order.
     pub runs: Vec[ShapedRun],
 
@@ -467,7 +467,7 @@ pub type ShapedText {
 ///
 /// Shaping is the most computationally expensive step in text layout.
 /// Cache ShapedText results when the input AttributedString has not changed.
-pub type Shaper { ... }
+pub struct Shaper { ... }
 
 impl Shaper {
     /// Construct a new Shaper backed by the given font collection.
@@ -548,7 +548,7 @@ pub enum Direction {
 /// reordering. Run 0 is the first run in logical order; its visual_order value
 /// is its index in a left-to-right visual sequence.
 @derive(Debug, Clone)]
-pub type BidiResult {
+pub struct BidiResult {
     /// Per-byte embedding level. Parallel to the input string's bytes.
     ///
     /// Not all byte positions are the start of a character; levels for
@@ -570,7 +570,7 @@ pub type BidiResult {
 ///
 /// Shaper::shape calls BidiAnalyzer internally. Direct use is for callers
 /// that need raw bidi data independent of shaping.
-pub type BidiAnalyzer { ... }
+pub struct BidiAnalyzer { ... }
 
 impl BidiAnalyzer {
     /// Construct a new BidiAnalyzer.
@@ -619,7 +619,7 @@ pub enum BreakOpportunity {
 /// after which the break opportunity exists. A break at this position
 /// means the line ends before the character at `byte_offset`.
 @derive(Debug, Clone, Copy)]
-pub type LineBreakOpportunity {
+pub struct LineBreakOpportunity {
     /// Byte offset in the source string of this opportunity.
     pub byte_offset: usize,
 
@@ -635,7 +635,7 @@ pub type LineBreakOpportunity {
 ///
 /// Paragraph::layout calls LineBreaker internally. Direct use is for
 /// callers implementing custom wrapping logic.
-pub type LineBreaker { ... }
+pub struct LineBreaker { ... }
 
 impl LineBreaker {
     /// Construct a new LineBreaker.
@@ -728,7 +728,7 @@ pub enum TextOverflow {
 /// ParagraphStyle controls how ShapedText is distributed into lines,
 /// how lines are aligned, and what happens when content overflows.
 @derive(Debug, Clone)]
-pub type ParagraphStyle {
+pub struct ParagraphStyle {
     /// Horizontal alignment of lines in the paragraph.
     pub alignment: TextAlignment,
 
@@ -763,7 +763,7 @@ impl ParagraphStyle {
 ```ferrum
 /// A glyph run placed at an absolute position within a LayoutLine.
 @derive(Debug, Clone)]
-pub type PositionedRun {
+pub struct PositionedRun {
     /// The shaped run to render.
     pub run: ShapedRun,
 
@@ -785,7 +785,7 @@ pub type PositionedRun {
 /// Runs are in visual (display) order: run[0] is the leftmost visible run
 /// regardless of the logical direction of the text.
 @derive(Debug, Clone)]
-pub type LayoutLine {
+pub struct LayoutLine {
     /// Runs in visual (left-to-right display) order.
     pub runs: Vec[PositionedRun],
 
@@ -818,7 +818,7 @@ impl LayoutLine {
 
 /// A fully laid-out paragraph ready for rendering and hit testing.
 @derive(Debug)]
-pub type ParagraphLayout {
+pub struct ParagraphLayout {
     /// Lines in top-to-bottom order.
     pub lines: Vec[LayoutLine],
 
@@ -841,7 +841,7 @@ pub type ParagraphLayout {
 /// Paragraph holds a LineBreaker and performs line breaking, bidi reordering,
 /// alignment, and overflow handling. It is stateless between calls; create one
 /// Paragraph and reuse it across multiple layout operations.
-pub type Paragraph { ... }
+pub struct Paragraph { ... }
 
 impl Paragraph {
     /// Construct a new Paragraph layout engine.
@@ -916,7 +916,7 @@ pub enum TextAffinity {
 
 /// The result of a hit test at a display coordinate.
 @derive(Debug, Clone, Copy)]
-pub type HitTestResult {
+pub struct HitTestResult {
     /// Byte offset in the source text of the character nearest the hit point.
     pub byte_offset: usize,
 
@@ -936,7 +936,7 @@ pub type HitTestResult {
 
 /// The display rectangle for a text insertion caret.
 @derive(Debug, Clone, Copy)]
-pub type CaretPosition {
+pub struct CaretPosition {
     /// Horizontal position of the caret, in paragraph-local logical units.
     pub x: f32,
 
@@ -1081,7 +1081,7 @@ A text editor or input method must move the cursor by grapheme clusters, not by 
 ///
 /// Implements UAX #29 grapheme cluster boundaries. Operates on a UTF-8
 /// string slice. All byte offsets refer to positions in that string.
-pub type GraphemeCursor { ... }
+pub struct GraphemeCursor { ... }
 
 impl GraphemeCursor {
     /// Construct a cursor for `text`.
@@ -1114,7 +1114,7 @@ impl GraphemeCursor {
 /// Word boundary utilities.
 ///
 /// Word boundaries follow UAX #29 word break rules.
-pub type WordBreaker { ... }
+pub struct WordBreaker { ... }
 
 impl WordBreaker {
     /// Construct a new WordBreaker.

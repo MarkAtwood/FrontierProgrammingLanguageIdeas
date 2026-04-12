@@ -179,16 +179,16 @@ Think of it like an interface, but more flexible:
 Let's build this up from scratch. Say you're building a graphics program and you have different shapes:
 
 ```ferrum
-type Circle {
+struct Circle {
     radius: f64,
 }
 
-type Rectangle {
+struct Rectangle {
     width: f64,
     height: f64,
 }
 
-type Triangle {
+struct Triangle {
     base: f64,
     height: f64,
 }
@@ -247,7 +247,7 @@ print_area(&Triangle { base: 6.0, height: 2.0 });
 **What happens if you forget to implement the trait?**
 
 ```ferrum
-type Hexagon {
+struct Hexagon {
     side: f64,
 }
 
@@ -415,7 +415,7 @@ This says: "Any `Vec[T]` implements `ToJson`, as long as T does." A `Vec[i32]` i
 Now implement it for your application types:
 
 ```ferrum
-type User {
+struct User {
     id: i64,
     name: String,
     active: bool,
@@ -448,7 +448,7 @@ println("{}", users.to_json());
 **What if you forget to implement ToJson for a field?**
 
 ```ferrum
-type Post {
+struct Post {
     id: i64,
     author: User,
     metadata: SomeThirdPartyType,  // Doesn't implement ToJson
@@ -695,7 +695,7 @@ trait Iterator {
 When you implement `Iterator`, you write one method (`next`), and you get `count`, `skip`, `take`, `map`, `filter`, `fold`, `collect`, and dozens more for free.
 
 ```ferrum
-type Countdown {
+struct Countdown {
     current: i32,
 }
 
@@ -908,7 +908,7 @@ fn save_to_file[T: Serialize](data: &T, path: &Path) ! IO {
     File.write(path, &bytes)?;
 }
 
-type Config {
+struct Config {
     name: String,
     value: i32,
 }

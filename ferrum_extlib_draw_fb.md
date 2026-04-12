@@ -69,7 +69,7 @@ The type owns the back buffer (`Vec[u8]` in RGBA8888 working format) and, for th
 On Linux, the kernel exposes two info structures via ioctl. `FBIOGET_VSCREENINFO` returns the virtual screen geometry and pixel format. `FBIOGET_FSCREENINFO` returns physical memory layout including `line_length`. This module queries both at `open()` time and exposes the result as `FbInfo`.
 
 ```ferrum
-pub type FbInfo {
+pub struct FbInfo {
     pub width:          u32,   // visible pixel columns
     pub height:         u32,   // visible pixel rows
     pub virtual_width:  u32,   // virtual framebuffer columns (>= width; used for panning)
@@ -176,7 +176,7 @@ For custom and embedded targets, the flush callback is the only path from pixel 
 
 ```ferrum
 // Configuration for a custom/embedded framebuffer target.
-pub type RawFbConfig {
+pub struct RawFbConfig {
     pub width:  u32,
     pub height: u32,
     pub format: PixelFormat,
@@ -194,7 +194,7 @@ pub type RawFbConfig {
 
 // A rectangle of changed pixels, in display coordinates.
 // x, y are the top-left corner; width and height are the extent.
-pub type DirtyRect {
+pub struct DirtyRect {
     pub x:      u32,
     pub y:      u32,
     pub width:  u32,
@@ -326,7 +326,7 @@ Full-screen framebuffer applications need to manage the terminal: hide the curso
 // Returns FbError.DeviceOpen if no controlling terminal is available.
 pub fn FbTerminal::acquire(): Result[FbTerminal, FbError] ! IO
 
-pub type FbTerminal { ... }   // owns the saved termios state; restores on drop
+pub struct FbTerminal { ... }   // owns the saved termios state; restores on drop
 
 impl FbTerminal {
     // Switch to virtual terminal n (1-based, e.g. n=1 for VT1).
@@ -470,7 +470,7 @@ For 1-bit displays, the `Grayscale1` conversion from RGBA8888 applies a configur
 ```ferrum
 // Configures the RGBA8888 -> Grayscale1 conversion used when
 // PixelFormat.Grayscale1 is selected.
-pub type MonochromeConfig {
+pub struct MonochromeConfig {
     // Threshold in the range [0.0, 1.0]. Pixels with luminance above
     // this value become white (1); pixels at or below become black (0).
     // Default: 0.5

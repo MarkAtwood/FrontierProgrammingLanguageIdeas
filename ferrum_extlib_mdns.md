@@ -134,7 +134,7 @@ impl Drop for MdnsResponder {
 
 ```ferrum
 /// Configuration for an MdnsResponder.
-type MdnsConfig {
+struct MdnsConfig {
     /// Network interfaces to bind and join multicast groups on.
     /// Pass an empty Vec to bind on all available interfaces.
     interfaces: Vec[NetworkInterface],
@@ -246,7 +246,7 @@ impl MdnsResponder {
 }
 
 /// Describes a service to register.
-type ServiceRecord {
+struct ServiceRecord {
     /// Service type in DNS-SD form: "_http._tcp" or "_printer._tcp".
     /// Must not include ".local" — the module appends it.
     service_type: String,
@@ -275,7 +275,7 @@ impl ServiceRecord {
 
 /// A live service registration. The service remains announced for as
 /// long as this handle is alive. Drop to send goodbye packets.
-type ServiceHandle {
+struct ServiceHandle {
     /// The full DNS instance name as announced on the network.
     /// Example: "My HP LaserJet._printer._tcp.local"
     pub instance_fqdn: String,
@@ -316,7 +316,7 @@ impl Drop for ServiceHandle {
 ///   "key=value" or "key" (boolean present/absent flag).
 ///
 /// Maximum wire size: 8900 bytes (one DNS message worth).
-type TxtRecord {
+struct TxtRecord {
     entries: Vec[TxtEntry],
 }
 
@@ -368,7 +368,7 @@ use extlib.mdns { browse, BrowseConfig, ServiceBrowser, ServiceEvent,
                   DiscoveredService, ResolvedService }
 
 /// Configuration for browsing/resolving (no announcement).
-type BrowseConfig {
+struct BrowseConfig {
     /// Interfaces to listen on. Empty = all interfaces.
     interfaces: Vec[NetworkInterface],
     /// How long to wait for initial responses before the first item
@@ -442,7 +442,7 @@ enum ServiceEvent {
 
 /// An mDNS service instance whose existence is known but whose
 /// host/port/TXT records have not yet been fetched.
-type DiscoveredService {
+struct DiscoveredService {
     /// DNS-SD instance name. Example: "My HP LaserJet"
     pub instance_name: String,
     /// Service type. Example: "_printer._tcp"
@@ -454,7 +454,7 @@ type DiscoveredService {
 }
 
 /// A fully resolved mDNS service instance.
-type ResolvedService {
+struct ResolvedService {
     /// The discovered service record this was resolved from.
     pub discovered: DiscoveredService,
     /// Hostname of the host providing the service. Example: "printserver.local"

@@ -370,13 +370,13 @@ use std.fs.Path
 ///
 /// Each file in the directory is one test case. Files are named by their
 /// SHA-256 hash (hex, lowercase) to deduplicate automatically.
-pub type FuzzCorpus {
+pub struct FuzzCorpus {
     dir: Path,
     target_name: String,
 }
 
 @derive(Debug)
-pub type MinimizeStats {
+pub struct MinimizeStats {
     /// Number of inputs in the corpus before minimization.
     pub before: usize,
     /// Number of inputs retained after minimization.
@@ -472,7 +472,7 @@ use extlib.fuzz.{FuzzTarget, FuzzError, CrashReport, Signal}
 
 /// A fully triaged crash report.
 @derive(Debug)
-pub type CrashReport {
+pub struct CrashReport {
     /// The original crashing input.
     pub input: Vec[u8],
     /// Stack trace captured at the crash point, formatted as a string.
@@ -576,7 +576,7 @@ use extlib.fuzz.{FuzzTarget, FuzzError, OssFuzzConfig}
 use std.fs.Path
 
 /// Configuration for an OSS-Fuzz project.
-pub type OssFuzzConfig {
+pub struct OssFuzzConfig {
     /// OSS-Fuzz project name (must match the project directory name in
     /// the OSS-Fuzz repository).
     pub project_name: &'static str,
@@ -681,7 +681,7 @@ available via `--fuzz-target=<name>`.
 ///
 /// Also checks that successfully decoded values round-trip: encode(decode(x)) == x
 /// for all inputs that parse successfully.
-pub type Asn1FuzzTarget {}
+pub struct Asn1FuzzTarget {}
 
 impl FuzzTarget for Asn1FuzzTarget {
     fn name(): &'static str { "asn1_der" }
@@ -709,7 +709,7 @@ a panic, which the fuzzer records as a finding.
 /// Checks: parse errors returned cleanly as Err, never as panic.
 ///         If parsing succeeds, validates internal consistency:
 ///         notBefore <= notAfter, signature algorithm matches TBSCertificate.
-pub type CertFuzzTarget {}
+pub struct CertFuzzTarget {}
 
 impl FuzzTarget for CertFuzzTarget {
     fn name(): &'static str { "cert_der" }
@@ -733,7 +733,7 @@ verifies they agree on whether the input is valid JSON. If one returns `Ok` and 
 returns `Err`, that is a finding.
 
 ```ferrum
-pub type JsonFuzzTarget { mode: JsonFuzzMode }
+pub struct JsonFuzzTarget { mode: JsonFuzzMode }
 
 pub enum JsonFuzzMode { Dom, Stream }
 
@@ -759,7 +759,7 @@ impl FuzzTarget for JsonFuzzTarget {
 ///   - Invalid TOML returns Err.
 ///   - Valid TOML round-trips: parse then serialize then parse again produces
 ///     an equivalent value tree.
-pub type TomlFuzzTarget {}
+pub struct TomlFuzzTarget {}
 ```
 
 ### `DnsFuzzTarget` — `dns_response`
@@ -771,7 +771,7 @@ pub type TomlFuzzTarget {}
 /// Checks: no panic on malformed responses. Malformed inputs return Err.
 ///         No compression pointer loop causes an infinite loop.
 ///         Name length limits (255 bytes per name, 63 bytes per label) enforced.
-pub type DnsFuzzTarget {}
+pub struct DnsFuzzTarget {}
 ```
 
 The compression pointer loop check is critical: DNS wire format allows name compression
@@ -787,7 +787,7 @@ using pointer offsets. A crafted packet with two pointers that point to each oth
 /// Checks: no panic on malformed records. Content type, version, and length
 ///         fields are fully untrusted. Length fields exceeding TLS record
 ///         size limits (16384 + 256 bytes per RFC 8449) are rejected as Err.
-pub type TlsRecordFuzzTarget {}
+pub struct TlsRecordFuzzTarget {}
 ```
 
 ### `TlsHandshakeFuzzTarget` — `tls_handshake`
@@ -799,7 +799,7 @@ pub type TlsRecordFuzzTarget {}
 ///         record layer header — starts at HandshakeType byte).
 /// Checks: no panic on any input. All extension types handled. Unknown
 ///         extensions return Err rather than panic.
-pub type TlsHandshakeFuzzTarget {}
+pub struct TlsHandshakeFuzzTarget {}
 ```
 
 ### `RegexFuzzTarget` — `regex_compile` and `regex_match`
@@ -819,7 +819,7 @@ This target's timeout check is its primary value: if the fuzzer's per-input time
 the NFA guarantee has been violated.
 
 ```ferrum
-pub type RegexFuzzTarget { mode: RegexFuzzMode }
+pub struct RegexFuzzTarget { mode: RegexFuzzMode }
 
 pub enum RegexFuzzMode {
     Compile,
@@ -847,7 +847,7 @@ pub enum RegexFuzzMode {
 /// This target primarily checks that the authentication tag verification path
 /// is panic-free for arbitrary ciphertext. It does not find AEAD correctness
 /// bugs (those belong in property tests with known test vectors).
-pub type AeadFuzzTarget {}
+pub struct AeadFuzzTarget {}
 ```
 
 ### `CborFuzzTarget` — `cbor`
@@ -859,7 +859,7 @@ pub type AeadFuzzTarget {}
 /// Checks: no panic. Indefinite-length items bounded. Nested structure
 ///         depth limited (default: 64). Map keys deduplicated check:
 ///         if a map decodes successfully, no duplicate keys are present.
-pub type CborFuzzTarget {}
+pub struct CborFuzzTarget {}
 ```
 
 ### `HttpRequestFuzzTarget` — `http_request`
@@ -872,7 +872,7 @@ pub type CborFuzzTarget {}
 /// Checks: no panic. Request-line parsing rejects inputs that exceed
 ///         configurable URI length limits. Header count and total header
 ///         size limits enforced before allocation.
-pub type HttpRequestFuzzTarget {}
+pub struct HttpRequestFuzzTarget {}
 ```
 
 ### `HttpResponseFuzzTarget` — `http_response`
@@ -885,7 +885,7 @@ pub type HttpRequestFuzzTarget {}
 /// Checks: no panic. Chunked encoding extension parsing does not loop.
 ///         Content-Length value is not trusted for pre-allocation beyond
 ///         a configured limit.
-pub type HttpResponseFuzzTarget {}
+pub struct HttpResponseFuzzTarget {}
 ```
 
 ### `SmtpFuzzTarget` — `smtp_command`
@@ -897,7 +897,7 @@ pub type HttpResponseFuzzTarget {}
 ///         RCPT TO, DATA, etc.) including CRLF terminator.
 /// Checks: no panic. RFC 5321 line length limit (1000 bytes including CRLF)
 ///         enforced. Address parsing does not allocate unboundedly.
-pub type SmtpFuzzTarget {}
+pub struct SmtpFuzzTarget {}
 ```
 
 ### `ImapFuzzTarget` — `imap_response`
@@ -909,7 +909,7 @@ pub type SmtpFuzzTarget {}
 /// Checks: no panic. Literal size field (e.g., {12345}) not trusted for
 ///         pre-allocation beyond configured limit. Parenthesized list
 ///         nesting depth limited.
-pub type ImapFuzzTarget {}
+pub struct ImapFuzzTarget {}
 ```
 
 ### `PkiFuzzTarget` — `pki_import`
@@ -926,7 +926,7 @@ pub type ImapFuzzTarget {}
 ///
 /// Checks: no panic. PKCS#12 MAC verification failure returned as Err.
 ///         Deeply nested SafeContents structures do not overflow the stack.
-pub type PkiFuzzTarget {}
+pub struct PkiFuzzTarget {}
 ```
 
 ### Summary Table
@@ -964,7 +964,7 @@ where both accept but produce different output (a correctness bug).
 use extlib.fuzz.{FuzzTarget, DiffFuzzTarget, DiffFinding}
 
 /// A fuzz target that runs two implementations on each input and compares outcomes.
-pub type DiffFuzzTarget {
+pub struct DiffFuzzTarget {
     target_name: &'static str,
     target_description: &'static str,
     a: Box[dyn FuzzTarget],
@@ -981,7 +981,7 @@ pub enum FuzzOutcome {
 
 /// A disagreement between the two implementations on one input.
 @derive(Debug)]
-pub type DiffFinding {
+pub struct DiffFinding {
     pub input: Vec[u8],
     pub outcome_a: FuzzOutcome,
     pub outcome_b: FuzzOutcome,
@@ -1074,7 +1074,7 @@ use std.io.Write
 
 /// A source location (file, line, column).
 @derive(Debug, Clone, PartialEq)]
-pub type Location {
+pub struct Location {
     pub file: String,
     pub line: u32,
     pub column: u32,
@@ -1082,7 +1082,7 @@ pub type Location {
 
 /// Coverage summary from running a corpus through a target.
 @derive(Debug)]
-pub type CoverageReport {
+pub struct CoverageReport {
     /// Number of source lines executed by at least one input in the corpus.
     pub lines_covered: usize,
     /// Total number of instrumented source lines.
@@ -1262,7 +1262,7 @@ impl FuzzTarget for AeadFuzzTarget {
 use extlib.fuzz.{FuzzTarget, FuzzData}
 use extlib.asn1.{Any, DerDecode, DerEncode, Asn1Error}
 
-pub type Asn1FuzzTarget {}
+pub struct Asn1FuzzTarget {}
 
 impl FuzzTarget for Asn1FuzzTarget {
     fn name(): &'static str { "asn1_der" }

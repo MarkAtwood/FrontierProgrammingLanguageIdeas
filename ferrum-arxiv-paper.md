@@ -119,7 +119,7 @@ fn binary_search[T: Ord](arr: &[T], target: &T): Option[usize]
 Type invariants are declared inline:
 
 ```ferrum
-type SortedVec[T: Ord] {
+struct SortedVec[T: Ord] {
     data: Vec[T],
     invariant forall i, j where i < j => self.data[i] <= self.data[j]
 }

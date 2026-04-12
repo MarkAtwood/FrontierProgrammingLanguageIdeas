@@ -126,7 +126,7 @@ enum RsaBits {
 ```ferrum
 // A matched private/public key pair produced by generate_key_pair.
 // The algorithm field records what was generated for later use in CSR signing.
-type KeyPair {
+struct KeyPair {
     pub algorithm:   KeyAlgorithm,
     pub private_key: PrivateKey,
     pub public_key:  PublicKey,
@@ -193,7 +193,7 @@ impl Drop for PrivateKey {
 
 ```ferrum
 // A public key — freely copyable and loggable.
-type PublicKey {
+struct PublicKey {
     pub algorithm: KeyAlgorithm,
 }
 
@@ -290,7 +290,7 @@ enum GeneralName {
 // Ed25519 and ECDSA signing keys: DigitalSignature.
 // RSA encryption keys: KeyEncipherment.
 // CA keys: KeyCertSign + CrlSign.
-type KeyUsage {
+struct KeyUsage {
     pub digital_signature:  bool,   // bit 0
     pub content_commitment: bool,   // bit 1 (formerly nonRepudiation)
     pub key_encipherment:   bool,   // bit 2
@@ -556,7 +556,7 @@ impl Pkcs12Builder {
 
 ```ferrum
 // A decrypted and parsed PKCS#12 bundle.
-type Pkcs12 {
+struct Pkcs12 {
     pub cert:          Arc[Certificate],
     pub key:           PrivateKey,
     pub chain:         Vec[Arc[Certificate]],
@@ -757,7 +757,7 @@ enum DaneMatchingType {
 
 // A TLSA record ready for publication in DNS.
 // The caller is responsible for formatting this into a zone file or DNS API call.
-type TlsaRecord {
+struct TlsaRecord {
     pub usage:         DaneUsage,
     pub selector:      DaneSelector,
     pub matching_type: DaneMatchingType,

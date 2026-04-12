@@ -48,7 +48,7 @@ Text shaping (Unicode bidirectional algorithm, ligature substitution, mark posit
 ///
 /// Send + Sync: may be shared across threads. FreeType operations are
 /// serialized internally where required.
-pub type FontLibrary { ... }
+pub struct FontLibrary { ... }
 
 impl FontLibrary {
     /// Initialize the FreeType library.
@@ -123,7 +123,7 @@ impl FontLibrary {
 ///
 /// Wraps a FreeType FT_Face. Lifetime is tied to the FontLibrary that
 /// created it. Clone is O(1): the underlying face is reference-counted.
-pub type FontFace { ... }
+pub struct FontFace { ... }
 
 impl FontFace {
     /// The font family name as declared in the name table.
@@ -223,7 +223,7 @@ impl GlyphId {
 ///
 /// ScaledFont is lightweight. Creating multiple ScaledFonts from one
 /// FontFace at different sizes is inexpensive.
-pub type ScaledFont { ... }
+pub struct ScaledFont { ... }
 
 impl ScaledFont {
     /// Line-level metrics for this face at this size.
@@ -271,7 +271,7 @@ impl ScaledFont {
 /// Values follow typographic sign conventions: ascender is positive
 /// (above baseline), descender is negative (below baseline).
 @derive(Clone, Debug)
-pub type FontMetrics {
+pub struct FontMetrics {
     /// Distance from baseline to top of tallest glyph (positive).
     pub ascender: f32,
 
@@ -303,7 +303,7 @@ pub type FontMetrics {
 ///
 /// All values are in pixels at the ScaledFont's size.
 @derive(Clone, Debug)
-pub type GlyphMetrics {
+pub struct GlyphMetrics {
     /// Horizontal advance: cursor moves this far right after this glyph.
     pub advance_x: f32,
 
@@ -375,7 +375,7 @@ pub enum HintMode {
 /// (baseline, left edge of advance) to the top-left corner of this bitmap.
 /// These match the FreeType slot->bitmap_left / slot->bitmap_top convention.
 @derive(Debug)
-pub type GlyphBitmap {
+pub struct GlyphBitmap {
     /// Horizontal offset from cursor to left edge of bitmap (signed pixels).
     pub bearing_x: i32,
 
@@ -484,7 +484,7 @@ Variable fonts (OpenType Font Variations, ISO/IEC 14496-22) encode a continuous 
 ```ferrum
 /// A single variation axis defined in a variable font's fvar table.
 @derive(Clone, Debug)]
-pub type VariationAxis {
+pub struct VariationAxis {
     /// The four-byte OpenType axis tag.
     ///
     /// Well-known tags (as ASCII bytes):
@@ -514,7 +514,7 @@ pub type VariationAxis {
 ```ferrum
 /// A specific coordinate on one variation axis.
 @derive(Copy, Clone, Debug)
-pub type VariationAxisValue {
+pub struct VariationAxisValue {
     /// The four-byte axis tag this value applies to.
     pub tag: [u8; 4],
 
@@ -536,7 +536,7 @@ pub type VariationAxisValue {
 /// Using a named instance is equivalent to calling scale_with_axes with
 /// the instance's coordinates.
 @derive(Clone, Debug)
-pub type NamedInstance {
+pub struct NamedInstance {
     /// The name of this instance, from the font's name table.
     pub name: String,
 
@@ -579,7 +579,7 @@ The glyph atlas packs rasterized glyphs into a single large texture for efficien
 ///
 /// Not Send: intended for single-threaded use on the render thread.
 /// Create one atlas per render thread.
-pub type GlyphAtlas { ... }
+pub struct GlyphAtlas { ... }
 
 impl GlyphAtlas {
     /// Create a new empty atlas with the given pixel dimensions.
@@ -657,7 +657,7 @@ impl GlyphAtlas {
 /// bearing_x and bearing_y give the pen-relative offset for positioning the
 /// quad: same convention as GlyphBitmap bearings.
 @derive(Copy, Clone, Debug)
-pub type AtlasEntry {
+pub struct AtlasEntry {
     /// UV coordinates of this glyph's sub-region in the atlas texture.
     ///
     /// uv_rect.x, uv_rect.y: top-left corner (UV origin at top-left).
@@ -700,7 +700,7 @@ Real text rendering requires multiple faces: a primary Latin face, an emoji face
 ///
 /// Typical setup: primary typeface at priority 100, emoji font at priority 50,
 /// CJK fallback at priority 30, last-resort font at priority 0.
-pub type FontCollection { ... }
+pub struct FontCollection { ... }
 
 impl FontCollection {
     /// Create an empty font collection.
@@ -779,7 +779,7 @@ Platform-specific font discovery is exposed through `FontLibrary::system_fonts()
 /// Returned by system_fonts() and match_font(). To use the font,
 /// call FontLibrary::load_font_file_index(path, face_index).
 @derive(Clone, Debug)
-pub type FontFaceDesc {
+pub struct FontFaceDesc {
     /// Absolute path to the font file.
     pub path: PathBuf,
 
@@ -835,7 +835,7 @@ impl FontWeight {
 /// these criteria into the native matching API (fontconfig pattern,
 /// CoreText descriptor, DirectWrite font family query).
 @derive(Clone, Debug)
-pub type FontQuery {
+pub struct FontQuery {
     /// Preferred font family name, or None to match any family.
     pub family: Option[String],
 
@@ -1103,7 +1103,7 @@ When LRU eviction is enabled via `set_max_bytes`, eviction operates at the shelf
 ```ferrum
 // From extlib.draw — included here for reference.
 @derive(Copy, Clone, Debug)
-pub type Rect {
+pub struct Rect {
     pub x:      f32,
     pub y:      f32,
     pub width:  f32,

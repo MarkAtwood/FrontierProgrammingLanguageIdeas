@@ -58,7 +58,7 @@ An ASN.1 OBJECT IDENTIFIER is a sequence of non-negative integers (arcs) that un
 ///
 /// Stored as a compact arc sequence. Immutable after construction.
 /// Implements Eq, Hash, Display (dotted notation), Debug.
-pub type Oid { ... }
+pub struct Oid { ... }
 
 impl Oid {
     /// Parse from DER-encoded bytes (tag + length + value).
@@ -117,7 +117,7 @@ pub enum TagClass {
 }
 
 /// A fully-decoded ASN.1 tag.
-pub type Tag {
+pub struct Tag {
     pub class:       TagClass,
     pub constructed: bool,
     pub number:      u32,   // tag number; high-tag-number form supported
@@ -160,7 +160,7 @@ impl Display for Tag { ... }
 /// DER mandates definite-length encoding. Indefinite-length form (0x80)
 /// is rejected by DerReader and returned as Asn1Error::IndefiniteLength.
 /// BerReader accepts indefinite lengths.
-pub type Length {
+pub struct Length {
     value: usize,
 }
 
@@ -183,7 +183,7 @@ impl Length {
 /// is known, and to represent unknown extension values.
 ///
 /// Does not allocate. Lifetime is tied to the input buffer.
-pub type AnyRef['a] {
+pub struct AnyRef['a] {
     tag:   Tag,
     bytes: &'a [u8],    // full TLV (tag + length + value)
 }
@@ -213,7 +213,7 @@ impl['a] AnyRef['a] {
 /// TL (tag + length) envelope with the given context tag number.
 ///
 /// Example: [0] EXPLICIT INTEGER  →  Explicit[Integer, 0]
-pub type Explicit[T, const TAG: u8] {
+pub struct Explicit[T, const TAG: u8] {
     pub inner: T,
 }
 
@@ -233,7 +233,7 @@ impl['a, T: DerDecode['a], const TAG: u8] DerDecode['a] for Explicit[T, TAG] { .
 ///
 /// Note: implicit tagging of CHOICE or ANY is not permitted in ASN.1
 /// and will produce a compile-time error via trait bounds.
-pub type Implicit[T: ImplicitTaggable, const TAG: u8] {
+pub struct Implicit[T: ImplicitTaggable, const TAG: u8] {
     pub inner: T,
 }
 
@@ -291,7 +291,7 @@ The compiler can derive `DerEncode` and `DerDecode` for structs and enums that f
 ```ferrum
 /// A PKCS#10 CertificationRequestInfo as an example schema.
 #[derive(DerEncode, DerDecode)]
-pub type CertificationRequestInfo {
+pub struct CertificationRequestInfo {
     pub version:             Integer,
     pub subject:             Name,
     pub subject_public_key:  SubjectPublicKeyInfo,
@@ -331,12 +331,12 @@ All types in this section implement both `DerEncode` and `DerDecode`.
 /// ASN.1 BOOLEAN.
 /// DER requires 0xFF for TRUE and 0x00 for FALSE.
 /// BER accepts any non-zero byte for TRUE; NonCanonical error in DER mode.
-pub type Boolean { pub value: bool }
+pub struct Boolean { pub value: bool }
 
 /// ASN.1 INTEGER with arbitrary precision.
 /// Backed by extlib.bigint.BigInt. Can represent RSA moduli and exponents.
 /// DER requires minimal encoding (no unnecessary leading zero or 0xFF bytes).
-pub type Integer { inner: BigInt }
+pub struct Integer { inner: BigInt }
 
 impl Integer {
     pub fn from_i64(v: i64): Self
@@ -350,7 +350,7 @@ impl Integer {
 /// ASN.1 BIT STRING.
 /// Stores the unused-bits count and the byte content.
 /// DER requires unused bits to be zero.
-pub type BitString {
+pub struct BitString {
     pub unused_bits: u8,     // 0–7; number of unused bits in the final byte
     pub bytes:       Vec[u8],
 }
@@ -364,7 +364,7 @@ impl BitString {
 }
 
 /// ASN.1 OCTET STRING.
-pub type OctetString { pub bytes: Vec[u8] }
+pub struct OctetString { pub bytes: Vec[u8] }
 
 impl OctetString {
     pub fn new(bytes: Vec[u8]): Self
@@ -381,14 +381,14 @@ pub type Null
 ASN.1 defines many character string types, the legacy of an era when character encoding was not settled. All of them decode to `String` (Ferrum's UTF-8 type). Encoders produce the correct wire encoding from a `String`.
 
 ```ferrum
-pub type Utf8String      { pub value: String }   // Universal tag 12
-pub type PrintableString { pub value: String }   // Universal tag 19; subset of ASCII
-pub type Ia5String       { pub value: String }   // Universal tag 22; 7-bit ASCII
-pub type BmpString       { pub value: String }   // Universal tag 30; UCS-2 (UTF-16 BE)
-pub type UniversalString { pub value: String }   // Universal tag 28; UCS-4
-pub type VisibleString   { pub value: String }   // Universal tag 26; visible ASCII
-pub type GeneralString   { pub value: String }   // Universal tag 27; ISO 646
-pub type TeletexString   { pub value: String }   // Universal tag 20; T.61; legacy only
+pub struct Utf8String      { pub value: String }   // Universal tag 12
+pub struct PrintableString { pub value: String }   // Universal tag 19; subset of ASCII
+pub struct Ia5String       { pub value: String }   // Universal tag 22; 7-bit ASCII
+pub struct BmpString       { pub value: String }   // Universal tag 30; UCS-2 (UTF-16 BE)
+pub struct UniversalString { pub value: String }   // Universal tag 28; UCS-4
+pub struct VisibleString   { pub value: String }   // Universal tag 26; visible ASCII
+pub struct GeneralString   { pub value: String }   // Universal tag 27; ISO 646
+pub struct TeletexString   { pub value: String }   // Universal tag 20; T.61; legacy only
 ```
 
 Decoding notes:
@@ -406,11 +406,11 @@ use std.time.Timestamp
 /// ASN.1 UTCTime. Format: YYMMDDHHMMSSZ or with timezone offset.
 /// Years 00–49 are interpreted as 2000–2049; 50–99 as 1950–1999 (RFC 5280 §4.1.2.5.1).
 /// DER requires the Z (UTC) suffix.
-pub type UtcTime { pub value: Timestamp }
+pub struct UtcTime { pub value: Timestamp }
 
 /// ASN.1 GeneralizedTime. Format: YYYYMMDDHHMMSS[.fff]Z.
 /// DER prohibits fractional seconds and requires the Z suffix.
-pub type GeneralizedTime { pub value: Timestamp }
+pub struct GeneralizedTime { pub value: Timestamp }
 ```
 
 ### 4.4 Constructed Types
@@ -419,14 +419,14 @@ pub type GeneralizedTime { pub value: Timestamp }
 /// ASN.1 SEQUENCE — a fixed-ordered collection of fields.
 /// Use #[derive(DerDecode, DerEncode)] on structs for SEQUENCE schemas.
 /// This type is the generic SEQUENCE OF wrapper.
-pub type SequenceOf[T] { pub items: Vec[T] }
+pub struct SequenceOf[T] { pub items: Vec[T] }
 
 impl[T: DerEncode] DerEncode for SequenceOf[T] { ... }
 impl['a, T: DerDecode['a]] DerDecode['a] for SequenceOf[T] { ... }
 
 /// ASN.1 SET OF — like SEQUENCE OF, but DER requires elements sorted
 /// by encoded byte value (X.690 §11.6).
-pub type SetOf[T] { pub items: Vec[T] }
+pub struct SetOf[T] { pub items: Vec[T] }
 
 impl[T: DerEncode] DerEncode for SetOf[T] { ... }
 impl['a, T: DerDecode['a]] DerDecode['a] for SetOf[T] { ... }
@@ -452,7 +452,7 @@ pub type Optional[T] = Option[T]
 ///
 /// All methods reject indefinite-length encoding, non-canonical
 /// tag/length encodings, and out-of-bounds lengths.
-pub type DerReader['a] { ... }
+pub struct DerReader['a] { ... }
 
 impl['a] DerReader['a] {
     /// Construct a reader for the given bytes.
@@ -531,7 +531,7 @@ ASN.1's `ANY DEFINED BY` construct allows a value's type to be determined by ano
 ///
 /// `T` is the target type produced by each decoder.
 /// Built once and typically stored as a static.
-pub type OidDispatch[T] { ... }
+pub struct OidDispatch[T] { ... }
 
 impl[T] OidDispatch[T] {
     /// Construct a dispatch table from a slice of (OID, decoder) pairs.
@@ -654,7 +654,7 @@ BER parsing is available for interoperability with legacy systems that produce n
 ///
 /// BER is explicit opt-in. Accidentally using BerReader instead of
 /// DerReader is visible at the call site.
-pub type BerReader['a] { ... }
+pub struct BerReader['a] { ... }
 
 impl['a] BerReader['a] {
     pub fn new(input: &'a [u8]): Self
@@ -693,7 +693,7 @@ When `BerReader` successfully reads a value that DER would reject (non-minimal l
 
 ```ferrum
 /// A DER encoder that builds output into an internal buffer.
-pub type DerWriter { ... }
+pub struct DerWriter { ... }
 
 impl DerWriter {
     /// Construct an empty writer.
@@ -752,7 +752,7 @@ The following structures appear in nearly every PKI application. They are provid
 ///     parameters  ANY DEFINED BY algorithm OPTIONAL
 /// }
 #[derive(DerEncode, DerDecode)]
-pub type AlgorithmIdentifier['a] {
+pub struct AlgorithmIdentifier['a] {
     pub algorithm:  Oid,
     pub parameters: Option[AnyRef['a]],   // zero-copy; caller dispatches
 }
@@ -768,7 +768,7 @@ pub type AlgorithmIdentifier['a] {
 ///     subjectPublicKey   BIT STRING
 /// }
 #[derive(DerEncode, DerDecode)]
-pub type SubjectPublicKeyInfo['a] {
+pub struct SubjectPublicKeyInfo['a] {
     pub algorithm:          AlgorithmIdentifier['a],
     pub subject_public_key: BitString,
 }
@@ -790,7 +790,7 @@ pub type SubjectPublicKeyInfo['a] {
 /// The `private_key` field is an OCTET STRING whose content is key-type-specific.
 /// Use dispatch_any_defined_by with the algorithm OID to decode it.
 #[derive(DerEncode, DerDecode)]
-pub type PrivateKeyInfo['a] {
+pub struct PrivateKeyInfo['a] {
     pub version:               Integer,
     pub private_key_algorithm: AlgorithmIdentifier['a],
     pub private_key:           OctetString,
@@ -809,7 +809,7 @@ pub type PrivateKeyInfo['a] {
 ///     digest           OCTET STRING
 /// }
 #[derive(DerEncode, DerDecode)]
-pub type DigestInfo['a] {
+pub struct DigestInfo['a] {
     pub digest_algorithm: AlgorithmIdentifier['a],
     pub digest:           OctetString,
 }
@@ -934,7 +934,7 @@ enum CertTime {
     Generalized(GeneralizedTime),
 }
 
-type Validity {
+struct Validity {
     not_before: CertTime,
     not_after:  CertTime,
 }
@@ -950,7 +950,7 @@ fn decode_cert_time(r: &mut DerReader): Result[CertTime, Asn1Error] {
     }
 }
 
-type TbsCertificate['a] {
+struct TbsCertificate['a] {
     pub version:               Option[i64],          // [0] EXPLICIT INTEGER DEFAULT 0
     pub serial_number:         Integer,
     pub signature:             AlgorithmIdentifier['a],

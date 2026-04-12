@@ -132,7 +132,7 @@ Types that implement `Copy` are duplicated on assignment rather than moved.
 
 // Derive Copy explicitly:
 @derive(Copy, Clone)
-type Point { x: f32, y: f32 }
+struct Point { x: f32, y: f32 }
 ```
 
 A type may only implement `Copy` if all its fields are `Copy` and it has no destructor.
@@ -142,7 +142,7 @@ A type may only implement `Copy` if all its fields are `Copy` and it has no dest
 Self-referential types use `pinned` to guarantee they are never moved after construction:
 
 ```ferrum
-pinned type RingBuffer[T] {
+pinned struct RingBuffer[T] {
     data: [T; 256],
     head: *const T,   // interior pointer into data
     tail: *const T,

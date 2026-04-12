@@ -32,7 +32,7 @@ let m = std.collections.HashMap.new()
 
 // Attributes: @ not #[]
 @derive(Clone, Debug)
-type Point { x: f64, y: f64 }
+struct Point { x: f64, y: f64 }
 
 // Effects appended with !
 pub fn read_file(path: &str): Result[String] ! IO
@@ -176,7 +176,7 @@ fn choose[T]<'a, 'b>(x: &'a T, y: &'b T, use_x: bool): &'a T
 For self-referential types:
 
 ```ferrum
-pinned type RingBuffer[T] {
+pinned struct RingBuffer[T] {
     data: [T; 256],
     head: *const T,
     tail: *const T,
@@ -483,7 +483,7 @@ fn pop(xs: &mut Vec[T]): T
     xs.remove(xs.len() - 1)
 }
 
-type SortedVec[T: Ord] {
+struct SortedVec[T: Ord] {
     data: Vec[T],
     invariant forall i, j where i < j => self.data[i] <= self.data[j]
 }
@@ -567,7 +567,7 @@ unsafe fn raw_code() { ... }
 For protocol work requiring exact bit-level field placement:
 
 ```ferrum
-type EthernetFrame {
+struct EthernetFrame {
     dst_mac:   [u8; 6],
     src_mac:   [u8; 6],
     ethertype: u16,

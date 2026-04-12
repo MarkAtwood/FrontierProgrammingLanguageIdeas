@@ -438,7 +438,7 @@ fn zeroed[T](): T  ! Unsafe    // returns zero-bit-pattern value
 fn forget[T](val: T)             // does not run destructor
 
 // MaybeUninit — safe uninitialized memory
-type MaybeUninit[T] { ... }
+struct MaybeUninit[T] { ... }
 impl[T] MaybeUninit[T] {
     fn uninit(): Self
     fn new(val: T): Self
@@ -581,7 +581,7 @@ A string with compile-time maximum capacity. No heap allocation, stack-friendly,
 ```ferrum
 /// A string with a compile-time maximum capacity.
 /// Stored inline, no heap allocation.
-type BoundedString[const N: usize] {
+struct BoundedString[const N: usize] {
     data: [u8; N],
     len: usize,
 
@@ -749,7 +749,7 @@ C interop requires types that bridge Ferrum's UTF-8 strings and C's null-termina
 ```ferrum
 // CStr — borrowed null-terminated C string (like &str but for C)
 // Lives in core because it doesn't allocate
-type CStr {
+struct CStr {
     // Unsized, always behind a reference
     // Invariant: ends with null byte, contains no interior nulls
 }
@@ -797,7 +797,7 @@ const GREETING: &CStr = c"Hello, World!"
 // Desugars to a static byte array with null terminator
 
 // Error types
-type FromBytesWithNulError {
+struct FromBytesWithNulError {
     fn kind(&self): FromBytesWithNulErrorKind
 }
 
@@ -806,7 +806,7 @@ enum FromBytesWithNulErrorKind {
     NotNulTerminated,
 }
 
-type FromBytesUntilNulError {
+struct FromBytesUntilNulError {
     // No null found in slice
 }
 
@@ -837,7 +837,7 @@ type c_long = i32
 type c_ulong = u32
 
 // OsStr — borrowed platform-native string
-type OsStr {
+struct OsStr {
     // Unsized, always behind a reference
     // On Unix: arbitrary bytes (usually UTF-8 but not guaranteed)
     // On Windows: potentially ill-formed UTF-16
@@ -886,7 +886,7 @@ Safe interior mutability patterns that allow mutation through shared references.
 // UnsafeCell — the primitive for interior mutability
 // This is the ONLY way to get &T -> &mut T legally.
 // All other cell types are built on this.
-type UnsafeCell[T] {
+struct UnsafeCell[T] {
     value: T,
 }
 
@@ -908,7 +908,7 @@ impl[T] UnsafeCell[T] {
 impl[T] !Sync for UnsafeCell[T]
 
 // Cell — single-threaded interior mutability for Copy types
-type Cell[T] {
+struct Cell[T] {
     value: UnsafeCell[T],
 }
 
@@ -947,7 +947,7 @@ impl[T] Cell[T] {
 impl[T] !Sync for Cell[T]
 
 // RefCell — single-threaded interior mutability with runtime borrow checking
-type RefCell[T] {
+struct RefCell[T] {
     borrow: Cell[BorrowFlag],
     value: UnsafeCell[T],
 }
@@ -997,7 +997,7 @@ impl[T] RefCell[T] {
 impl[T] !Sync for RefCell[T]
 
 // Ref — shared borrow guard for RefCell
-type Ref[T] {
+struct Ref[T] {
     // ... internal fields
 }
 
@@ -1023,7 +1023,7 @@ impl[T] Deref for Ref[T] {
 }
 
 // RefMut — mutable borrow guard for RefCell
-type RefMut[T] {
+struct RefMut[T] {
     // ... internal fields
 }
 
@@ -1041,16 +1041,16 @@ impl[T] Deref for RefMut[T] {
 impl[T] DerefMut for RefMut[T]
 
 // Errors
-type BorrowError {
+struct BorrowError {
     // Attempted to borrow while mutably borrowed
 }
 
-type BorrowMutError {
+struct BorrowMutError {
     // Attempted to mutably borrow while borrowed
 }
 
 // OnceCell — single-assignment cell (can be set once, then immutable)
-type OnceCell[T] {
+struct OnceCell[T] {
     inner: UnsafeCell[Option[T]],
 }
 
@@ -1075,7 +1075,7 @@ impl[T] OnceCell[T] {
 }
 
 // LazyCell — lazily initialized value
-type LazyCell[T, F = fn(): T] {
+struct LazyCell[T, F = fn(): T] {
     cell: OnceCell[T],
     init: Cell[Option[F]],
 }
@@ -1109,7 +1109,7 @@ Pinning prevents a value from being moved, enabling self-referential structures 
 // - Intrusive data structures
 // - FFI with pinned data
 
-type Pin[P] {
+struct Pin[P] {
     pointer: P,
 }
 
@@ -1172,7 +1172,7 @@ impl[T] Pin[&mut T] {
 auto trait Unpin {}
 
 // PhantomPinned — marker to make a type !Unpin
-type PhantomPinned {
+struct PhantomPinned {
     _marker: (),
 }
 
@@ -1184,7 +1184,7 @@ fn pin[T](value: T): Pin[Box[T]]  given [A: Allocator]
 
 // Pin projection — use @pin attribute on struct fields
 @derive(PinProject)
-type MyFuture {
+struct MyFuture {
     @pin              // this field is structurally pinned
     inner: InnerFuture,
     not_pinned: u32,  // this field is not pinned
@@ -1214,7 +1214,7 @@ fn example() {
 }
 
 // The compiler generates a state machine struct like:
-type ExampleFuture {
+struct ExampleFuture {
     state: u8,
     data: Vec[i32],
     reference: *const i32,  // points into data!
@@ -1254,7 +1254,7 @@ trait Error: Debug + Display {
 // dyn Error + Send + Sync + 'static is the universal error type
 
 // Request — for type-based error introspection (like Any but for errors)
-type Request {
+struct Request {
     // Internal implementation
 }
 
@@ -1281,7 +1281,7 @@ impl From[String] for Box[dyn Error + Send + Sync]
 
 // Helper for creating simple error types
 @derive(Debug)
-type SimpleError {
+struct SimpleError {
     message: String,
 }
 
@@ -1299,7 +1299,7 @@ impl Error for SimpleError {}
 
 // Error Derive Macro
 @derive(Debug, Error)
-type MyError {
+struct MyError {
     @source                    // marks the source field
     source: IoError,
 
@@ -1312,7 +1312,7 @@ type MyError {
 // Display can be derived from a format string
 @derive(Debug, Error)
 @error("failed to process {filename}: {source}")
-type ProcessError {
+struct ProcessError {
     filename: String,
 
     @source
@@ -1495,7 +1495,7 @@ size_of(Result[NonZeroU32, ()])   // 4 bytes (Err = 0)
 // Useful for space-efficient data structures:
 type Handle(NonZeroU32)   // 0 is never a valid handle
 
-type Node {
+struct Node {
     value: i32,
     next: Option[NodeIndex],   // same size as NodeIndex!
 }

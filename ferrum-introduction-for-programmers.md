@@ -573,7 +573,7 @@ Ferrum's match is similar but with stronger compile-time guarantees.
 ## Structs
 
 ```ferrum
-type Point {
+struct Point {
     x: f64,
     y: f64,
 }
@@ -617,7 +617,7 @@ Ferrum's syntax is between C and Python — cleaner than C's `typedef struct`, s
 In C, you write functions that take a struct pointer. In Ferrum, you attach methods to types:
 
 ```ferrum
-type Circle {
+struct Circle {
     center: Point,
     radius: f64,
 }
@@ -1179,7 +1179,7 @@ let mut y = 10               // mutable variable
 const C: i32 = 100           // constant
 
 fn foo(x: i32): i32 { x }    // function
-type Point { x: f64, y: f64 } // struct
+struct Point { x: f64, y: f64 } // struct
 enum Color { Red, Green, Blue } // enum
 
 impl Point { ... }           // methods

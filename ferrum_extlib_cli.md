@@ -145,7 +145,7 @@ Values without a unit suffix are rejected. `"5"` is not a valid duration; `"5s"`
 /// The default value for a CLI option. Stored as the serialized string form
 /// so that it can be displayed in help text without type-specific formatting.
 @derive(Debug, Clone)]
-type CliDefault {
+struct CliDefault {
     /// The default value as it would appear on the command line.
     /// For Bool: "true" or "false". For Size: "10m". For Duration: "5s".
     display: &'static str,
@@ -156,7 +156,7 @@ type CliDefault {
 /// All fields are `'static` — schemas are defined at compile time as
 /// `static` constants and referenced by the parse functions.
 @derive(Debug)]
-type CliOption {
+struct CliOption {
     /// The long option name, without the -- prefix.
     /// Conventionally kebab-case: "log-level", "max-connections".
     name: &'static str,
@@ -228,7 +228,7 @@ static LOG_LEVEL_OPTION: CliOption = CliOption {
 /// Define as a `static` constant; pass a reference to `parse` or `parse_from`.
 /// All data is `'static` — no heap allocation at schema definition time.
 @derive(Debug)]
-type CliSchema {
+struct CliSchema {
     /// The options accepted by this program (or this subcommand).
     options: &'static [CliOption],
 
@@ -270,7 +270,7 @@ type CliSchema {
 ///
 /// Example: `git commit`, `cargo build`, `kubectl apply`
 @derive(Debug)]
-type CliSubcommand {
+struct CliSubcommand {
     /// The subcommand name as typed on the command line.
     name: &'static str,
 
@@ -357,7 +357,7 @@ Config file errors are fatal: a config file that exists but is unparseable retur
 
 ```ferrum
 /// The result of a successful parse. Holds all option values and their sources.
-type ParsedArgs { ... }
+struct ParsedArgs { ... }
 
 impl ParsedArgs {
     /// Returns the bool value for the named option.
@@ -517,7 +517,7 @@ pub trait FromArgs: Sized {
 ///   Vec[T]    ← List (T must be parseable from String)
 ///   u32       ← Count
 @derive(FromArgs)
-type ServerConfig {
+struct ServerConfig {
     host:      String,
     port:      u64,
     workers:   u64,
@@ -531,7 +531,7 @@ The generated implementation calls `get_*` on `ParsedArgs` for each field, using
 
 ```ferrum
 @derive(FromArgs)
-type AppConfig {
+struct AppConfig {
     /// Map CLI option "bind-address" to field `host`.
     @cli(name = "bind-address")
     host: String,
@@ -546,7 +546,7 @@ type AppConfig {
 }
 
 @derive(FromArgs)
-type TlsConfig {
+struct TlsConfig {
     /// Maps to option "tls-cert".
     @cli(name = "tls-cert")
     cert_path: std.fs.PathBuf,
@@ -940,7 +940,7 @@ use std.fs.PathBuf
 use std.time.Duration
 
 @derive(Debug, FromArgs)
-type ServerConfig {
+struct ServerConfig {
     host:    String,
     port:    u64,
     workers: u64,

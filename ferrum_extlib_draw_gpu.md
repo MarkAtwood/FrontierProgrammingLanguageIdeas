@@ -156,7 +156,7 @@ impl GpuBackend {
 ### 2.2 `GpuConfig`
 
 ```ferrum
-pub type GpuConfig {
+pub struct GpuConfig {
     // MSAA sample count. Must be a power of two. 1 = no MSAA.
     // Vulkan: checked against VkSampleCountFlags; unsupported values fall back
     // to the next lower supported count.
@@ -340,7 +340,7 @@ vertices sequentially. The buffer is sized to `GpuConfig`-derived capacity (defa
 4 MiB per frame-in-flight).
 
 ```ferrum
-pub type Vertex {
+pub struct Vertex {
     // Position in normalized device coordinates.
     pub pos:      [f32; 2],
 
@@ -374,7 +374,7 @@ Atlas updates (new glyph uploads) go through a staging buffer:
 
 ```ferrum
 // Conceptual internal structure — not public API
-type FrameSlot {
+struct FrameSlot {
     command_buffer: VkCommandBuffer,
     fence:          VkFence,          // signaled when GPU finishes this frame
     vertex_buffer:  MappedBuffer,
@@ -426,7 +426,7 @@ Glyph runs and arrays of axis-aligned rectangles are batched using instanced ren
 instance VBO:
 
 ```ferrum
-pub type GlyphInstance {
+pub struct GlyphInstance {
     // Top-left corner of the glyph quad in screen coordinates.
     pub screen_pos:  [f32; 2],
 
@@ -468,7 +468,7 @@ uploaded, all subsequent uses are pure GPU quad draws referencing UV coordinates
 the atlas.
 
 ```ferrum
-pub type GlyphAtlas {
+pub struct GlyphAtlas {
     // The GPU texture (opaque handle valid for the backend's lifetime).
     pub texture: GpuTexture,
 
@@ -482,14 +482,14 @@ pub type GlyphAtlas {
     used_bytes: u64,
 }
 
-pub type GlyphKey {
+pub struct GlyphKey {
     pub glyph_id:        u32,
     pub font_id:         u64,
     pub size_px:         u16,
     pub subpixel_offset: u8,   // 0..3, for subpixel positioning
 }
 
-pub type GlyphAtlasEntry {
+pub struct GlyphAtlasEntry {
     // UV rectangle within the atlas texture (normalized 0.0..1.0).
     pub uv_min: [f32; 2],
     pub uv_max: [f32; 2],
@@ -681,7 +681,7 @@ re-uploading on every frame. The cache is an LRU map from `ImageRef` (a referenc
 counted handle) to `GpuTexture`.
 
 ```ferrum
-pub type TextureCache {
+pub struct TextureCache {
     // LRU map: ImageRef → GpuTexture
     entries:      LruMap[ImageId, GpuTexture],
 
@@ -692,7 +692,7 @@ pub type TextureCache {
     max_bytes:    u64,
 }
 
-pub type GpuTexture {
+pub struct GpuTexture {
     // Opaque handle — either VkImage or GL texture name, depending on backend.
     pub handle:     TextureHandle,
     pub width:      u32,
@@ -745,7 +745,7 @@ re-upload cost; callers that drop it allow the memory to be reclaimed under pres
 ```ferrum
 pub type ImageRef = Arc[TextureCacheEntry]
 
-pub type TextureCacheEntry {
+pub struct TextureCacheEntry {
     pub id:      ImageId,
     pub texture: GpuTexture,
 }
@@ -853,14 +853,14 @@ pub mod surface {
     // A VkSurfaceKHR handle created by a platform backend.
     // Created by WaylandWindow::vulkan_surface() or Win32Window::vulkan_surface() etc.
     // The surface is valid as long as the originating window is alive.
-    pub type VulkanSurface {
+    pub struct VulkanSurface {
         pub instance: VkInstance,    // the VkInstance the surface belongs to
         pub surface:  VkSurfaceKHR,  // the platform-specific surface handle
     }
 
     // An EGL surface handle created by a platform backend.
     // Created by WaylandWindow::egl_surface() or similar.
-    pub type GlesSurface {
+    pub struct GlesSurface {
         pub display: EGLDisplay,
         pub surface: EGLSurface,
         pub context: EGLContext,
@@ -939,7 +939,7 @@ impl GpuBackend {
 ### 10.3 Frame statistics
 
 ```ferrum
-pub type FrameStats {
+pub struct FrameStats {
     // Number of GPU draw calls issued in this frame.
     pub draw_calls:        u32,
 
