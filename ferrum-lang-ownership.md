@@ -335,6 +335,85 @@ proof fn sorted(xs: &[i32]): bool  // no effects — pure and total
 
 ## 3. Capabilities and Implicit Parameters
 
+### 3.0 Effects vs. Capabilities — Why Two Systems?
+
+Ferrum has two constraint systems that both appear in function signatures. A function that allocates on an arena and does IO looks like:
+
+```ferrum
+fn process(data: &str): Vec[u8]  given [A: Allocator]  ! IO
+```
+
+This is deliberate. The two systems answer different questions and have different propagation rules. Understanding the distinction prevents confusion when both appear in the same signature.
+
+#### Effects answer: "what does this function *do*?"
+
+Effects describe **observable side effects** — actions visible to callers and the outside world. `! IO` means "this function reads or writes files, the console, or environment variables." `! Net` means "this function touches the network." `! Panic` means "this function might abort."
+
+Effects **propagate upward**: if a callee has `! IO`, the caller must also declare `! IO` (or suppress it with `@pure` if appropriate). They appear in the function's public contract. Callers use effect annotations to audit what a function can do without reading its implementation.
+
+#### Capabilities answer: "what does this function *need*?"
+
+Capabilities describe **ambient resources** the function requires but does not produce. `given [A: Allocator]` means "I need a memory allocator — you decide which one." The function is parameterized over the allocator; the caller (or an enclosing `with` block) injects it.
+
+Capabilities **propagate inward** via `with` injection, or fall back to a default. They are invisible at most call sites: `parse(src)` looks pure even though it allocates, because the allocator is ambient.
+
+#### The key distinction: `! Alloc` vs. `given [A: Allocator]`
+
+These two overlap conceptually but serve different purposes:
+
+| Annotation | Meaning | Caller control |
+|-----------|---------|----------------|
+| `! Alloc[Heap]` | this function allocates — always on the heap | none |
+| `given [A: Allocator]` | this function allocates — caller chooses where | full |
+| `given [A: Allocator]` + `! Alloc[A]` | allocates; allocator is caller-controlled and named in effect | full |
+| neither | no allocation | — |
+
+A function can hard-code `! Alloc[Heap]` without `given` when the allocator is not a caller concern. A library function uses `given [A: Allocator]` to let callers substitute an arena for performance or scoping.
+
+#### How they interact
+
+When a function has `given [A: Allocator]` and actually allocates, its effect set includes `! Alloc[A]`. The capability *determines which allocator* appears in the effect:
+
+```ferrum
+fn build_index(data: &[u8]): Index  given [A: Allocator]  ! Alloc[A] + IO
+// The allocator used for Index's memory is A — whatever the caller injected.
+// The IO effect is independent — it exists regardless of which allocator is used.
+```
+
+#### Error messages come from different subsystems — intentionally
+
+Effect violations look like:
+```
+error: function `process` calls `! IO` but its signature declares no IO effect
+```
+
+Capability violations look like:
+```
+error: no `Allocator` capability in scope
+  = help: add `with Arena.new() as alloc { ... }` or `with Heap as alloc { ... }`
+```
+
+They are different errors from different parts of the compiler, which is correct: missing an effect is a type error in the function's contract; missing a capability is a resource injection error.
+
+#### When a function has both
+
+```ferrum
+fn process(data: &str): Vec[u8]  given [A: Allocator]  ! IO
+```
+
+Read this as:
+- `given [A: Allocator]` — caller decides where the returned `Vec`'s memory lives
+- `! IO` — function reads from `data` (or logs) — this happens regardless of allocator choice
+
+The two annotations are independent and can be read separately. There is no interaction between them unless the function also allocates IO-related data, in which case both appear:
+
+```ferrum
+fn read_file(path: &str): Vec[u8]  given [A: Allocator]  ! IO + Alloc[A]
+// The Vec's memory uses A. The file read is IO. Both are explicit.
+```
+
+> **Design decision:** absorbing capabilities into the effect system (e.g. making `given [A: Allocator]` a form of `! Alloc[A]`) would unify the syntax, but `given` is a general mechanism for any ambient resource — not just allocators. Future capabilities (loggers, random sources, clocks) would all need effect-system representation, which would bloat the effect set with infrastructure concerns. Keeping them separate preserves the effect system's meaning: effects are about *observable side effects*, not about *which implementation of a resource is used*.
+
 ### 3.1 Overview
 
 Capabilities are ambient values that are threaded through the program automatically by the compiler. They are part of the type system but invisible at most call sites.
