@@ -349,8 +349,32 @@ No header files. No forward declarations.
 import std.collections.HashMap
 import std.io.{read_line, write_line}
 import std.net as network
-import std.prelude.*
+import std.prelude.*          // glob import (lint warning outside preludes — see below)
 ```
+
+### Glob Imports
+
+`import module.*` imports all currently-exported names. The compiler emits a lint warning when used outside prelude contexts:
+
+```
+warning: glob import outside prelude
+  --> src/lib.fe:3:1
+   |
+ 3 | import std.collections.*
+   | ^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: future versions of std.collections may add exports that silently shadow local names
+   = help: use explicit imports: `import std.collections.{HashMap, BTreeMap}`
+   = help: or suppress: `#[allow(glob_import, "reason")]`
+```
+
+`#[allow(glob_import, "reason")]` suppresses the warning. A reason string is required — the compiler emits a secondary warning if the string is empty. Legitimate uses:
+
+- Prelude modules: `import std.prelude.*`
+- Intrinsic namespaces: `import std.sys.arch.x86_64.*` (SIMD intrinsics — explicit listing is impractical)
+- Test helpers: `import testing.*` inside `#[test]` modules
+
+Libraries must not re-export a glob in their public API. A glob is resolved at import time in the importing module; it never propagates to downstream users.
 
 ### Visibility
 

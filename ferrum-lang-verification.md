@@ -759,6 +759,14 @@ Pick the **lowest level** that covers your situation. Higher levels have larger 
 
 **The invariant:** each level names a precise claim. `unchecked` says "I assert the aliasing is correct." `trusted` says "I assert this named precondition." `extern` says "this is an FFI boundary." `unsafe` says "I take full responsibility for memory correctness." Using a higher level to sidestep a lower-level check is a misuse — it makes the audit trail dishonest.
 
+**Why the wrong choice causes a different kind of bug:**
+
+- **`unsafe` instead of `unchecked`** — the compiler's full memory-safety verification is suspended. An auditor must now check every pointer operation in the block for validity, even ones that have nothing to do with the aliasing issue you were actually solving. Bugs introduced here can cause memory corruption; bugs in an `unchecked` block can only be logic errors (the aliasing rules are relaxed, but memory is still safe).
+
+- **`trusted` instead of `unchecked`** — `trusted` records a named logical precondition in the audit trail. If you use it for an aliasing claim ("these slices don't overlap"), the audit trail records a logical assertion, but reviewers looking for `trusted` blocks will spend time verifying a claim that isn't about values — it's about borrow scope. The mismatch between the annotated claim and the actual reason for the block makes the audit misleading.
+
+- **`unchecked` instead of `trusted`** — `unchecked` relaxes borrow-checker aliasing rules. If your real problem is that the compiler cannot prove a *value* invariant (e.g., "this pointer is valid and aligned"), `unchecked` doesn't help — the borrow checker doesn't track that. The code may compile only because the compiler happens not to check the thing you need, not because you've made a valid assertion. The invariant is unrecorded and unauditable.
+
 **Minimum blast radius:** prefer block-level scoping over function-level. A two-line `unchecked { }` block is easier to audit than an `unchecked fn` whose entire body escapes checking.
 
 ### 3.2 `unchecked`

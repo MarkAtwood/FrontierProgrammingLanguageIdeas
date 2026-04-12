@@ -615,7 +615,11 @@ let z: u32 = 200u8 as u32 // 200 (zero-extended)
 f64.NAN as i32           // 0 (defined, not UB)
 f64.INFINITY as i32      // i32.MAX (saturated)
 f64.NEG_INFINITY as i32  // i32.MIN (saturated)
+```
 
+> **Warning:** `as` casts from floats to integers lose the distinction between special values and ordinary values. `f64.NAN as i32` produces `0` — identical to `0.0 as i32`. `f64.INFINITY as i32` produces `i32.MAX` — identical to a very large finite float. Code that branches on the integer result cannot distinguish NaN-origin from zero-origin, or overflow-from-infinity from overflow-from-large-value. Use `try_into()` when the caller needs to detect these cases.
+
+```ferrum
 // Integer to float — rounds to nearest representable
 16777217i32 as f32        // 16777216.0 (rounded, can't represent exactly)
 i64.MAX as f64           // 9223372036854775808.0 (rounded)
@@ -811,6 +815,23 @@ let f: Result[Percent] = (a + b).try_into()  // Err(ConstraintViolation) — no 
 
 ### 1.4 Compound Types
 
+**Product types (structs):**
+```ferrum
+type Point {
+    x: f64,
+    y: f64,
+}
+
+type Packet[T] {
+    header: Header,
+    payload: T,
+}
+```
+
+Fields are private by default. `pub` makes a field externally readable; `pub(mut)` makes it externally mutable.
+
+> **Design decision:** the current spec uses `type` for product type definitions (`type Point { ... }`), type aliases (`type Meters = f64`), and constrained types (`type Percent = u8 where value <= 100`). This overloads one keyword for three distinct concepts. The intended direction is to use `struct` for product types (consistent with Rust, C, Swift, and most systems languages) and `type` only for aliases and constraints. The spec examples have not yet been updated throughout; `type Foo { }` and `struct Foo { }` should be read as equivalent in current spec text. A mechanical spec-wide update is tracked separately.
+
 **Tuple types:**
 ```ferrum
 let pair: (i32, str) = (1, "hello")
@@ -848,6 +869,25 @@ String    // owned UTF-8 string (heap-allocated by default, allocator-parameteri
 ```
 
 References are never null. Raw pointers are only accessible in `unsafe` or `trusted` blocks.
+
+`*const T` and `*mut T` are nullable — the type system does not distinguish null from non-null. For non-nullable raw pointers use `NonNull[T]` from the standard library:
+
+```ferrum
+NonNull[T]                    // non-null raw pointer (layout-equivalent to *mut T)
+NonNull[T]::new(ptr)          // Option[NonNull[T]] — None if ptr is null
+NonNull[T]::new_unchecked(ptr) // unsafe: panics in debug if null; UB in release
+NonNull[T]::dangling()        // non-null but invalid sentinel (not for dereferencing)
+```
+
+`NonNull[T]` is covariant over `T`. It does not imply exclusive ownership or aliasing guarantees — those come from `&mut T`. FFI functions documented as requiring non-null pointers should use `NonNull[T]` in their Ferrum signatures:
+
+```ferrum
+// correct: callers cannot pass null
+extern(c) fn process(buf: NonNull[u8], len: usize): i32  ! Unsafe
+
+// wrong: allows null callers, C function will likely crash
+extern(c) fn process(buf: *mut u8, len: usize): i32  ! Unsafe
+```
 
 ### 1.6 Function Types
 
