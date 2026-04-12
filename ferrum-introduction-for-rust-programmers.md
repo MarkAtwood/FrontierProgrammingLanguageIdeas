@@ -1266,28 +1266,29 @@ The leading `.` means "this package" (like Rust's `crate::`).
 
 ---
 
-## Async: Not Colored
+## Async: Effect-Based, Not Type-Based
 
-Rust async functions are "colored" — async and sync functions have different types and can't easily interoperate:
+Rust async functions are "colored" — `async fn` silently changes the return type to `Pin<Box<dyn Future<Output = T>>>` and forces callers into async as well:
 
 ```rust
 // Rust: two different worlds
 fn sync_read(path: &str) -> Result<String, Error> { ... }
 async fn async_read(path: &str) -> Result<String, Error> { ... }
+// async_read actually returns impl Future<Output = Result<String, Error>>
 
-// Can't call sync_read from async context without blocking the executor
 // Can't call async_read from sync context without a runtime
+// Async annotation spreads up the call stack
 ```
 
-Ferrum uses effects instead:
+Ferrum uses effects instead — no type transformation, no separate return type:
 
 ```ferrum
-// Ferrum: same signature, different effects
+// Ferrum: same signature shape, different effects
 fn sync_read(path: &str): Result[String, Error] ! IO { ... }
 fn async_read(path: &str): Result[String, Error] ! IO + Async { ... }
 ```
 
-The `Async` effect marks suspendable functions. You can call sync functions from async contexts freely:
+The `Async` effect marks suspendable functions. You can call sync functions from async contexts freely, and effect inference propagates `! Async` upward without manual annotation:
 
 ```ferrum
 fn process() ! IO + Async {
@@ -1296,6 +1297,8 @@ fn process() ! IO + Async {
     // ...
 }
 ```
+
+**The improvement over Rust:** No `Future<T>` wrapper in return types, no `async fn` keyword changing the signature, effect inference instead of manual propagation. **What remains:** Callers still write `.await` at suspension points — Ferrum reduces type-level coloring but does not eliminate call-site syntax. Go's goroutines (stack-swapping) are the alternative that removes `.await` entirely.
 
 ### Structured Concurrency
 

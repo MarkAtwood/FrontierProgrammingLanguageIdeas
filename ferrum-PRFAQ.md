@@ -168,7 +168,7 @@ C++ interop is handled through the C ABI boundary (same as Rust). There is no di
 
 **How does Ferrum handle async?**
 
-Structured concurrency via `scope.spawn()` and `scope.race()`, not async/await coloring. Async in Ferrum is an effect (`! Async`) rather than a syntactic transformation:
+Structured concurrency via `scope.spawn()` and `scope.race()`. Async in Ferrum is an effect (`! Async`) rather than a type-level transformation:
 
 ```ferrum
 fn fetch_all(urls: &[Url]): Vec[Response] ! Net + Async {
@@ -176,7 +176,7 @@ fn fetch_all(urls: &[Url]): Vec[Response] ! Net + Async {
 }
 ```
 
-There is no function color problem: async and sync code are distinguished by the `! Async` effect in the type, not by syntax. A function that awaits a value simply has `! Async` in its effect set. The runtime is structured; tasks have explicit scopes and cannot outlive them.
+Ferrum reduces the function color problem compared to Rust or Python: async functions don't have a different return type — `! Async` is an effect annotation, not a `Future<T>` wrapper. Callers still use `.await` at call sites, but intermediate functions that don't directly suspend gain `! Async` automatically via effect inference rather than requiring manual annotation. The true alternative to call-site `.await` syntax is stack-swapping (Go's goroutines); Ferrum is lighter than Rust's coloring but does not eliminate it entirely. The runtime is structured; tasks have explicit scopes and cannot outlive them.
 
 ---
 

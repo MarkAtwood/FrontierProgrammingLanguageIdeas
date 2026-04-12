@@ -219,7 +219,7 @@ Ferrum solves these problems with three ideas that work together:
 
 1. **Lightweight tasks** instead of threads — thousands of concurrent operations without memory bloat
 2. **Structured concurrency** — tasks can't escape their scope, so you always know what's running
-3. **Effects instead of colors** — the type system tracks what can suspend, not special syntax
+3. **Effects instead of types** — the type system tracks what can suspend via effects, not by splitting async/sync into separate function types
 
 Let's look at each.
 
@@ -537,22 +537,24 @@ In Python, `task.cancel()` raises `CancelledError` at the next await point, whic
 
 ---
 
-## No Colored Functions
+## Reduced Coloring: Effects Instead of Types
 
-Let's revisit Python's color problem and see how Ferrum avoids it.
+Let's revisit Python's color problem and see how Ferrum improves on it.
 
-Python:
+Python and Rust split functions into two distinct worlds — sync and async — with different types and syntax for each:
+
 ```python
-def sync_function():       # Can't use await
+def sync_function():        # Can't use await
     pass
 
-async def async_function(): # Must use await to call
+async def async_function(): # Must be awaited by callers
     pass
 
 # These are different "colors" — they don't mix easily
 ```
 
-Ferrum:
+Ferrum uses a single `fn` keyword for all functions; the difference is in the effect set, not the type:
+
 ```ferrum
 fn regular_function(): i32 {
     42
@@ -566,7 +568,7 @@ fn async_function(): Result[Response, Error] ! Net + Async {
     http.get(url).await
 }
 
-// All are `fn`. The difference is in the effects (! IO, ! Async, etc.)
+// All are `fn`. Effects (! IO, ! Async, etc.) track what they can do.
 ```
 
 The `! Effect` syntax declares what side effects a function can have:
@@ -575,6 +577,10 @@ The `! Effect` syntax declares what side effects a function can have:
 - `! Async` = can suspend (must be awaited or spawned)
 - `! Net` = can do network operations
 - `! IO + Async` = can do both
+
+**What Ferrum improves:** Async functions don't have a different return type — there is no `Future<T>` wrapper, no `async fn` keyword that transforms the signature. Effect inference means intermediate functions that don't directly suspend gain `! Async` automatically rather than requiring manual annotation up the call stack.
+
+**What Ferrum doesn't eliminate:** Callers still write `.await` at suspension points. The call-site syntax remains. The true alternative to call-site `.await` is stack-swapping — Go's goroutines, for example — where the scheduler handles suspension transparently. Ferrum is lighter than Rust's coloring, but it is not colorless in the Go sense.
 
 ### Calling Across Boundaries
 
@@ -838,7 +844,7 @@ If any request takes too long, we return `Error::Timeout`. All in-flight request
 | **Memory per task** | 1-8 MB (thread stack) | ~2 KB (coroutine) | Kilobytes (task state) |
 | **Thread safety** | Undefined behavior if you mess up | GIL prevents true parallelism | Compile-time checked (Send/Sync) |
 | **Task lifecycle** | Manual tracking, easy to leak | Fire-and-forget possible | Structured, scope-bounded |
-| **Function colors** | N/A | Yes (async def vs def) | No (effects system) |
+| **Function colors** | N/A | Yes (async def vs def) | Reduced (effects, not type-level; `.await` remains) |
 | **Blocking in async** | You manage it | Silent bug | Type system catches it |
 | **Cancellation** | Manual, error-prone | Tricky (CancelledError) | Automatic at scope exit |
 | **Cross-platform** | epoll/kqueue/IOCP split | Handled by asyncio | Handled by runtime |
