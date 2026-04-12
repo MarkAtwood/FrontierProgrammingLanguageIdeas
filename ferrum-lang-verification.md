@@ -375,6 +375,77 @@ at bytes N..M, bits B..B — bit range within a byte range
 - Total size matches `total_size` declaration.
 - Multi-byte fields on non-natural alignment require explicit `unaligned` marker.
 
+#### Bitfield Types
+
+The logical field type must be wide enough for the declared bit range. The natural pairing is the sub-byte integer type that matches exactly:
+
+```ferrum
+type DeviceStatus {
+    ready:    bool,
+    mode:     u3,     // 3-bit field — u3 is the exact type
+    reserved: u4,
+    error:    bool,
+    _pad:     u7,
+}
+
+layout DeviceStatus {
+    byte_order: little_endian,
+    bit_order:  lsb_first,
+    total_size: 16 bits,
+
+    ready    at byte 0, bits 0..0,
+    mode     at byte 0, bits 1..3,
+    reserved at byte 0, bits 4..7,
+    error    at byte 1, bits 0..0,
+    _pad     at byte 1, bits 1..7,
+}
+```
+
+Using a wider type (`u8` for a 3-bit field) is permitted but the upper bits must be zero on read and are zeroed on write.
+
+For signed bitfields, the extracted bits are sign-extended to fill the field type. A 3-bit signed field uses `i3`; the value range is -4..3.
+
+#### Cross-Byte Bitfields
+
+For fields that span a byte boundary, bit indices count from bit 0 of the first byte in the range. Under `bit_order: lsb_first`, bit 0 is the least-significant bit of the first byte; under `msb_first`, bit 0 is the most-significant bit.
+
+```ferrum
+// 10-bit ADC reading split across two bytes (common in I2C sensors)
+// Byte 0: bits 7..0 = high 8 bits of reading
+// Byte 1: bits 7..6 = low 2 bits of reading
+type AdcSample {
+    reading: u10,
+    _pad:    u6,
+}
+
+layout AdcSample {
+    byte_order: big_endian,
+    bit_order:  msb_first,
+    total_size: 16 bits,
+
+    reading at bytes 0..1, bits 0..9,    // bits 0..9 of the 16-bit region
+    _pad    at bytes 0..1, bits 10..15,
+}
+```
+
+Bit indices always refer to the logical bit position within the declared byte range, with numbering determined by `bit_order`.
+
+#### The `unaligned` Marker
+
+A multi-byte field at a non-natural alignment (e.g. a `u32` at byte offset 1) requires an explicit `unaligned` annotation. This is a compile-time assertion that the programmer acknowledges the platform may handle this with multiple accesses or a trap:
+
+```ferrum
+layout WeirdPacket {
+    byte_order: little_endian,
+    total_size: 40 bits,
+
+    tag    at byte 0,
+    value  at bytes 1..4 unaligned,   // u32 at odd offset — explicit acknowledgement
+}
+```
+
+Without `unaligned`, a naturally-misaligned multi-byte field is a compile error.
+
 ### 2.5 Padding
 
 Padding must be explicit. Implicit padding is a compile error.
