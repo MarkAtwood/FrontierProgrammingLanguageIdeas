@@ -395,6 +395,81 @@ extern(c) fn malloc(size: usize): *mut u8  ! Unsafe + Alloc[Heap]
 proof fn sorted(xs: &[i32]): bool  // no effects — pure and total
 ```
 
+### 2.7 `! Panic` — Sources and Inference
+
+`! Panic` tracks functions that may abort the process via an unwind. The effect is only useful if it is both **complete** (nothing that can panic lacks the annotation) and **narrow** (only functions that can genuinely panic carry it). Both properties depend on a precise definition of what generates `! Panic`.
+
+#### What generates `! Panic`
+
+| Source | Example | Effect |
+|--------|---------|--------|
+| `unwrap()` on `Result` or `Option` | `r.unwrap()` | `! Panic` |
+| `expect()` | `r.expect("msg")` | `! Panic` |
+| `panic!` macro | `panic!("unreachable")` | `! Panic` |
+| Explicit assertions | `assert!(x > 0)`, `assert_eq!(a, b)` | `! Panic` |
+| Array/slice indexing | `arr[i]` | `! Panic` (bounds check) |
+
+These are **explicit panic sources** — operations where the programmer has written something that may abort. The standard library declares all of them `! Panic`.
+
+#### What does NOT generate `! Panic`
+
+| Operation | Reason |
+|-----------|--------|
+| Integer arithmetic (`+`, `-`, `*`, `/`) | Wrapping semantics — overflow is defined, not a panic |
+| The `?` operator | Early return on `Err` — a return, not an abort |
+| `checked_add()`, `saturating_mul()`, etc. | Return `Option[T]` — no panic possible |
+| `get()` on a slice | Returns `Option[&T]` — no bounds panic |
+
+Integer arithmetic uses wrapping semantics in Ferrum. `a + b` on `i32` wraps on overflow — it does not panic. This is the critical decision that keeps `! Panic` from infecting every function that does arithmetic. Programs needing overflow detection use `checked_add()` and friends, which return `Option` and compose cleanly with `?`.
+
+#### Closures infer `! Panic` from their bodies
+
+Closures follow the same inference rule as private functions: the compiler infers effects from the body. A closure that calls something with `! Panic` has `! Panic` inferred automatically — no annotation required:
+
+```ferrum
+// closure body calls unwrap() — compiler infers ! Panic for the closure
+let parsed: Vec<u32> = strings.iter()
+    .map(|s| s.parse::<u32>().unwrap())  // closure: Fn(&str): u32 ! Panic
+    .collect();
+```
+
+This propagates correctly through iterator adapters via effect polymorphism (§2.5). `Iterator::map` has the signature:
+
+```ferrum
+fn map[B, F](self, f: F): Map[Self, F]
+    where F: Fn(Self::Item): B ! ?E
+    ! ?E
+```
+
+`?E` is inferred as `! Panic` at this call site, so `map` itself has `! Panic`, and the enclosing function infers `! Panic`. If that function is `pub`, it must declare `! Panic` explicitly.
+
+#### The full chain
+
+```ferrum
+// All effects inferred — no annotations needed internally
+fn parse_all(strings: &[&str]): Vec[u32] {
+    strings.iter()
+        .map(|s| s.parse::<u32>().unwrap())   // ! Panic inferred for closure
+        .collect()                              // ! Panic propagated through map
+}
+// Compiler infers: parse_all is ! Panic
+// If pub, must declare: pub fn parse_all(strings: &[&str]): Vec[u32] ! Panic
+
+// Contrast — no panic source, so no ! Panic
+fn sum_all(numbers: &[u32]): u32 {
+    numbers.iter().fold(0u32, |acc, &n| acc.wrapping_add(n))  // pure
+}
+// Compiler infers: sum_all is pure — no ! Panic
+```
+
+#### Contrast with other languages
+
+Swift's `rethrows` is the closest analogue — `map` propagates throwing closures to the call site, and non-throwing closures leave the call site non-throwing. The difference: Swift does not infer that a closure throws from its body; the closure type must be explicitly declared `(T) throws -> U`. Ferrum infers it, following Koka's model.
+
+Java's checked exceptions through streams were a failure: `Function<T,R>` in the streams API cannot declare checked exceptions, so thrown exceptions inside lambdas are rejected by the compiler. Ferrum avoids this because effect polymorphism (`?E`) is part of the type, not an afterthought.
+
+> **Design decision:** integer arithmetic uses wrapping semantics specifically to prevent `! Panic` from becoming noise. If `+` could panic on overflow, `! Panic` would appear on nearly every non-trivial function, making it useless as a distinguishing annotation. The alternatives — Ada-style `Constraint_Error` on overflow (very noisy), Koka-style bignum default (incompatible with systems-level layout control), Rust-style no tracking at all (loses the benefit entirely) — were all worse tradeoffs. Wrapping arithmetic is the only design that preserves `! Panic` as a meaningful, sparse annotation. Programmers who need overflow detection use the explicit checked/saturating/wrapping API.
+
 ---
 
 ## 3. Capabilities and Implicit Parameters
