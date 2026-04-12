@@ -776,20 +776,38 @@ type SafeQ16_16 = Q16_16 where value >= -1000.0 and value <= 1000.0
 // Constraints are checked:
 // - statically when the value is a constant
 // - by the SMT solver in proof mode
-// - as a runtime assertion in debug mode
-// - elided in release mode (unless annotated `safe`)
-//
-// Exception — 'as' casts to a constrained type: the constraint check is always
-// a runtime panic, in all build modes, and is never elided.
-// Rationale: 'as' is the direct construction syntax; eliding its check in
-// release would silently invalidate values that downstream code treats as
-// statically guaranteed. This is the only place where a constraint check is
-// unconditional. Use try_into() if you need to handle violation without panicking.
+// - as a runtime assertion in both debug and release builds
+// - elided only when the contract is proven via proven_by
 ```
 
 Constraint language supports: `==`, `!=`, `<`, `<=`, `>`, `>=`, `&&`, `||`,
 `!`, arithmetic expressions over `value` and constants, method calls like
 `is_nan()` and `is_finite()`, references to other constrained type parameters.
+
+#### Arithmetic on Constrained Types
+
+Arithmetic on constrained types is performed in the **base type**. The result has the base type, not the constrained type. The constraint check fires at the assignment boundary — when the result is stored into a variable declared as the constrained type.
+
+```ferrum
+type Percent = u8 where value <= 100
+
+let a: Percent = 60
+let b: Percent = 50
+
+let c: u8      = a + b   // fine — result is u8, value 110, no constraint check
+let d: Percent = a + b   // runtime check on assignment: 110 > 100, panics
+let e: Percent = 40u8 + b  // runtime check on assignment: 90 <= 100, ok
+```
+
+This is the Ada model: arithmetic is always in the base type, the constraint check fires exactly where the programmer named the constrained type. The caller chooses which they want by their declared result type.
+
+`try_into()` is available when you want to handle violation without panicking:
+
+```ferrum
+let f: Result[Percent] = (a + b).try_into()  // Err(ConstraintViolation) — no panic
+```
+
+> **Design decision:** arithmetic does not produce a constrained result type. `Percent + Percent` → `u8`, not `Percent`. This is correct because constrained types are value-level invariants, not mathematical domains closed under addition. Percentages are not closed under addition. Making arithmetic produce the constrained type would require the compiler to prove the result satisfies the constraint statically (usually impossible) or would panic on ordinary everyday inputs (surprising). Ada's model — arithmetic in the base type, check at the assignment boundary — is the right tradeoff: explicit, unsurprising, consistent with `as` cast semantics.
 
 ### 1.4 Compound Types
 
