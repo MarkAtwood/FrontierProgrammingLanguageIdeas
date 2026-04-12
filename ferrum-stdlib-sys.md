@@ -1,7 +1,7 @@
 # Ferrum Standard Library — sys, posix, windows
 
 **Part of:** [Ferrum Standard Library](ferrum-stdlib.md)
-**See also:** [Platform Abstraction Layer](ferrum-stdlib-platform.md) for platform traits, capability mapping, and detailed specs for Linux, BSD, WASI, Zephyr
+**See also:** [Platform Abstraction Layer](ferrum-stdlib-platform.md) for platform traits, capability mapping, and detailed specs for Linux, BSD, WASI, Zephyr · [Binding Authoring Guide](ferrum-binding-authoring.md) for the process of adding a new OS
 
 ---
 
@@ -12,20 +12,22 @@
 `sys` is the portability layer. Platform-specific behavior lives in sub-namespaces.
 
 ```
-std.sys               // cross-platform abstractions
-std.sys.posix         // POSIX-specific (opt-in)
-std.sys.linux         // Linux-specific (opt-in) — see platform spec
-std.sys.bsd           // BSD-specific (opt-in) — see platform spec
-std.sys.darwin        // macOS-specific (opt-in) — see platform spec
-std.sys.windows       // Windows-specific (opt-in)
-std.sys.fuchsia       // Fuchsia-specific (opt-in) — see platform spec
-std.sys.ohos          // OpenHarmony-specific (opt-in) — see platform spec
-std.sys.wasi          // WASI Preview 2 (opt-in) — see platform spec
-std.sys.zephyr        // Zephyr RTOS (opt-in) — see platform spec
-std.sys.jvm           // JVM platform (opt-in) — available when targeting JVM backend
+std.sys               // cross-platform abstractions; bare-metal (none) is always available
+std.sys.posix         // POSIX-specific (opt-in, platform crate)
+std.sys.linux         // Linux-specific (opt-in, platform crate) — see platform spec
+std.sys.bsd           // BSD-specific (opt-in, platform crate) — see platform spec
+std.sys.darwin        // macOS-specific (opt-in, platform crate) — see platform spec
+std.sys.windows       // Windows-specific (opt-in, platform crate)
+std.sys.fuchsia       // Fuchsia-specific (opt-in, platform crate) — see platform spec
+std.sys.ohos          // OpenHarmony-specific (opt-in, platform crate) — see platform spec
+std.sys.wasi          // WASI Preview 2 (opt-in, platform crate) — see platform spec
+std.sys.zephyr        // Zephyr RTOS (opt-in, platform crate) — see platform spec
+std.sys.jvm           // JVM platform (opt-in, platform crate) — available when targeting JVM backend
 std.sys.jvm.android   // Android ART specifics (opt-in, requires sys.jvm)
-std.sys.clr           // .NET CLR platform (opt-in) — available when targeting CLR backend
+std.sys.clr           // .NET CLR platform (opt-in, platform crate) — available when targeting CLR backend
 ```
+
+> **Architecture note:** The compiler's OS knowledge bottoms out at `none` — bare metal with no operating system. Every named platform above is defined in a platform crate, not compiled into the language core. The standard library ships platform crates for common targets, but a new OS or RTOS can be supported by adding a crate without modifying the compiler.
 
 This document covers the **cross-platform `sys` module** and the **POSIX/Windows threading APIs**.
 For platform-specific features (io_uring, kqueue, Landlock, Capsicum, WASI component model, Zephyr drivers),

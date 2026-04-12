@@ -2,6 +2,8 @@
 
 Foreign models describe the ecosystem at an FFI boundary. They are the principled replacement for ABI strings like `extern "C"`.
 
+**See also:** [Binding Authoring Guide](ferrum-binding-authoring.md) — the step-by-step process for creating a new foreign model or OS platform crate, with worked examples for every model listed here.
+
 ---
 
 ## The Problem with ABI Strings
@@ -34,7 +36,9 @@ The model name is an identifier, not a string. It refers to a registered foreign
 
 ---
 
-## Built-in Models
+## The Core Model: `c`
+
+The compiler has built-in knowledge of exactly one foreign model: `c`. It understands C calling conventions, C types, C name mangling (none), and C's object model (unmanaged). No other model is compiled into the language core.
 
 ### `c` — The C Foreign Model
 
@@ -100,6 +104,10 @@ extern(c.spirv) fn blur_kernel(src: *const u32, dst: *mut u32, w: u32, h: u32) !
 - Name mangling: none (symbol name is exactly the function name)
 
 ---
+
+## Standard Library Models
+
+The following models are defined using the same `foreign model` mechanism available to any crate (see [Registering a Custom Model](#registering-a-custom-model)). They ship with the standard library but are not part of the compiler core. A crate providing Fortran interop, Ruby interop, or a runtime that doesn't exist yet has exactly the same standing — the compiler imposes no privileged status on the models below.
 
 ### `jvm` — The JVM Foreign Model
 
@@ -510,12 +518,12 @@ fn call_js_sort(data: &[f64]): Vec[f64] ! IO {
 
 ## Registering a Custom Model
 
-For ecosystems not covered by the built-in models, a custom model can be declared in a library:
+All models above except `c` are implemented exactly this way — the stdlib ships `foreign model jvm { ... }`, `foreign model swift { ... }`, etc. as library declarations, not compiler magic. To define an additional model:
 
 ```ferrum
 foreign model python {
     object_model: ref_counted,           // Python uses reference counting + cycle collector
-    dispatch: dynamic,                   // Python dispatch is fully dynamic
+    dispatch: function_table,            // Ferrum functions exported as PyMethodDef entries
     exceptions: translate_to_result,     // PyErr → Result
     generics: none,
     abi: c,                              // CPython C API is the boundary
@@ -572,6 +580,8 @@ Each model specifies how Ferrum types map to foreign types at the boundary.
 - The dot notation (`c.stdcall`) makes hierarchy explicit: ecosystem first, variant second
 
 The string `"C"` in `extern "C"` was load-bearing information encoded as an opaque token. `extern(c)` encodes the same information as a name in the type system.
+
+One more property: the compiler knows exactly one model — `c`. Every other model in this document, and every model a user can write, uses the same `foreign model` declaration. There is no privileged set of "supported runtimes" baked into the compiler. The stdlib ships models for the common cases; everything else is a crate.
 
 ---
 

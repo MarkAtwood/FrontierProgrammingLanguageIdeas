@@ -3,6 +3,7 @@
 **Part of:** [Ferrum Standard Library](ferrum-stdlib.md)
 **Status:** Meta-specification for OS/runtime bindings
 **Scope:** POSIX, Linux, BSD, Windows, WASI, Zephyr, and future platforms
+**See also:** [Binding Authoring Guide](ferrum-binding-authoring.md) — step-by-step process for adding a new OS platform crate
 
 ---
 
@@ -45,6 +46,7 @@ Previous approaches and their failures:
 4. **Traits enable testing** — Mock any platform interface
 5. **Capabilities flow through** — Platform permissions map to Ferrum capabilities
 6. **Versions are explicit** — Platform APIs declare their version requirements
+7. **Platforms are defined, not mandated** — the compiler knows only `none` (bare metal). Every named OS is a platform crate. The compiler does not privilege any particular OS.
 
 ---
 
@@ -53,7 +55,10 @@ Previous approaches and their failures:
 ### 2.1 Compile-Time Detection
 
 ```ferrum
-// Built-in cfg attributes
+// The only core-baked-in OS target — always available, no platform crate required:
+@cfg(target_os = "none")        // bare metal, no OS
+
+// Defined by platform crates; available when the corresponding platform is targeted:
 @cfg(target_os = "linux")
 @cfg(target_os = "macos")
 @cfg(target_os = "windows")
@@ -64,7 +69,6 @@ Previous approaches and their failures:
 @cfg(target_os = "ohos")        // OpenHarmony
 @cfg(target_os = "wasi")
 @cfg(target_os = "zephyr")
-@cfg(target_os = "none")        // bare metal
 
 @cfg(target_family = "unix")    // POSIX-like
 @cfg(target_family = "windows")
