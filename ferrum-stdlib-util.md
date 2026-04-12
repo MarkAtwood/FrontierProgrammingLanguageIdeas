@@ -163,8 +163,8 @@ fn sleep_until(deadline: Instant): () ! IO
 fn sleep(duration: Duration): () ! IO
 
 // Async versions
-async fn sleep_until_async(deadline: Instant): () ! Async
-async fn sleep_async(duration: Duration): () ! Async
+fn sleep_until_async(deadline: Instant): () ! Async
+fn sleep_async(duration: Duration): () ! Async
 ```
 
 ### 20.1.2 PeriodicTimer — Drift-Free Periodic Tasks

@@ -711,7 +711,7 @@ impl ObservableResource for TemperatureSensor {
         &self,
         req: CoapRequest,
     ): impl Future[Output=CoapResponse] ! Async {
-        async {
+        {
             let temp = self.read_temperature()
             let payload = format!("{:.1}", temp).into_bytes()
             CoapResponse {
@@ -729,7 +729,7 @@ impl ObservableResource for TemperatureSensor {
     fn current_state(
         &self,
     ): impl Future[Output=CoapResponse] ! Async {
-        async {
+        {
             let temp = self.read_temperature()
             let payload = format!("{:.1}", temp).into_bytes()
             CoapResponse {
@@ -762,7 +762,7 @@ fn run_sensor_server(): Result[(), CoapError] ! Async + Net {
     scope s {
         // Simulate hardware sensor readings on a separate task
         let server_ref = &server
-        s.spawn(async {
+        s.spawn({
             let mut interval = std.async.interval(Duration.from_secs(5))
             loop {
                 interval.tick().await

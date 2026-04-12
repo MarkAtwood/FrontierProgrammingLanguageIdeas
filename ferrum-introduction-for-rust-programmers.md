@@ -1267,7 +1267,7 @@ fn async_read(path: &str): Result[String, Error] ! IO + Async { ... }
 The `Async` effect marks suspendable functions. You can call sync functions from async contexts freely:
 
 ```ferrum
-async fn process() ! IO + Async {
+fn process() ! IO + Async {
     let config = sync_read("config.toml")?   // sync IO, fine
     let data = async_read("data.txt").await? // async IO, fine
     // ...
@@ -1279,7 +1279,7 @@ async fn process() ! IO + Async {
 Ferrum enforces structured concurrency — spawned tasks cannot outlive their spawning scope:
 
 ```ferrum
-async fn fetch_all(urls: &[String]): Vec[Response] ! Net + Async {
+fn fetch_all(urls: &[String]): Vec[Response] ! Net + Async {
     scope |s| {
         let handles: Vec[Task[Response]] = urls.iter()
             .map(|url| s.spawn(|| http.get(url)))

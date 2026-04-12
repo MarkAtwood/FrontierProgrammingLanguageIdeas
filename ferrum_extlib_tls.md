@@ -889,7 +889,7 @@ use extlib.tls.{TlsClientConfigBuilder, TlsConnector, CertStore}
 use std.net.TcpStream
 use std.async.{AsyncReadExt, AsyncWriteExt}
 
-async fn https_get(host: &str, path: &str): Result[Vec[u8], TlsError] ! Async + Net + IO {
+fn https_get(host: &str, path: &str): Result[Vec[u8], TlsError] ! Async + Net + IO {
     // Build config — .server_name() is required; the builder enforces this
     // at the type level, so forgetting it is a compile error.
     let config = TlsClientConfigBuilder::new()
@@ -938,7 +938,7 @@ use std.net.{TcpListener, TcpStream}
 use std.async.{AsyncReadExt, AsyncWriteExt}
 use std.alloc.Arc
 
-async fn run_mtls_server(): Result[(), TlsError] ! Async + Net + IO {
+fn run_mtls_server(): Result[(), TlsError] ! Async + Net + IO {
     let cert_pem = std.fs::read_to_string("server.crt")?
     let key_pem  = std.fs::read_to_string("server.key")?
     let ca_pem   = std.fs::read_to_string("client-ca.crt")?
@@ -961,7 +961,7 @@ async fn run_mtls_server(): Result[(), TlsError] ! Async + Net + IO {
         let (tcp, peer_addr) = listener.accept().await?
         let acceptor = acceptor.clone()
 
-        runtime.spawn(async move {
+        runtime.spawn({
             match acceptor.accept(tcp).await {
                 Err(e) => {
                     log.warn("tls: handshake from {peer_addr} failed: {e}")
@@ -991,7 +991,7 @@ use extlib.cert.{Certificate, PrivateKey}
 use std.alloc.Arc
 use std.collections.HashMap
 
-async fn run_vhost_server(): Result[(), TlsError] ! Async + Net + IO {
+fn run_vhost_server(): Result[(), TlsError] ! Async + Net + IO {
     // Build per-vhost configs
     let mut vhosts: HashMap[String, TlsServerConfig] = HashMap::new()
 
@@ -1034,7 +1034,7 @@ async fn run_vhost_server(): Result[(), TlsError] ! Async + Net + IO {
     loop {
         let (tcp, _) = listener.accept().await?
         let acceptor = acceptor.clone()
-        runtime.spawn(async move {
+        runtime.spawn({
             if let Ok(tls) = acceptor.accept(tcp).await {
                 let sni = tls.handshake_data().sni_hostname.as_deref().unwrap_or("")
                 log.debug("serving vhost: {sni}")
@@ -1052,7 +1052,7 @@ async fn run_vhost_server(): Result[(), TlsError] ! Async + Net + IO {
 use extlib.tls.{TlsClientConfigBuilder, TlsConnector, CertStore}
 use std.net.TcpStream
 
-async fn pq_connect(host: &str): Result[TlsStream, TlsError] ! Async + Net + IO {
+fn pq_connect(host: &str): Result[TlsStream, TlsError] ! Async + Net + IO {
     let config = TlsClientConfigBuilder::new()
         .server_name(host)?
         .ca_certs(CertStore::system()?)

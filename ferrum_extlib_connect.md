@@ -417,7 +417,7 @@ fn connect_happy_eyeballs(
             // Stagger: first attempt starts immediately, each subsequent
             // attempt waits 250 ms * i before starting.
             let stagger = Duration::from_millis(250 * i as u64)
-            s.spawn(async {
+            s.spawn({
                 if stagger > Duration::ZERO {
                     sleep(stagger).await
                 }
@@ -677,7 +677,7 @@ use extlib::connect::{ConnectConfig, ConnectTransport}
 use extlib::tls::TlsConfig
 use stdlib::time::Duration
 
-async fn fetch_page(host: &str): Result[Vec[u8], ConnectError] ! Async + Net {
+fn fetch_page(host: &str): Result[Vec[u8], ConnectError] ! Async + Net {
     let tls = TlsConfig::default_https()
 
     let config = ConnectConfig::new()
@@ -721,7 +721,7 @@ async fn fetch_page(host: &str): Result[Vec[u8], ConnectError] ! Async + Net {
 use extlib::connect::{ConnectConfig, DanePolicy}
 use extlib::tls::TlsConfig
 
-async fn xmpp_connect(domain: &str): Result[Connection, ConnectError] ! Async + Net {
+fn xmpp_connect(domain: &str): Result[Connection, ConnectError] ! Async + Net {
     let tls = TlsConfig::builder()
         .alpn(&["xmpp-client"])
         .build()?
@@ -746,7 +746,7 @@ async fn xmpp_connect(domain: &str): Result[Connection, ConnectError] ! Async + 
 ### Plaintext TCP with happy eyeballs only (no TLS, no DANE)
 
 ```ferrum
-async fn tcp_connect(host: &str, port: u16): Result[Connection, ConnectError] ! Async + Net {
+fn tcp_connect(host: &str, port: u16): Result[Connection, ConnectError] ! Async + Net {
     let config = ConnectConfig::new()
         .host(host)
         .port(port)
@@ -764,7 +764,7 @@ async fn tcp_connect(host: &str, port: u16): Result[Connection, ConnectError] ! 
 ```ferrum
 use stdlib::net::SocketAddr
 
-async fn raw_connect(addr: SocketAddr): Result[Connection, ConnectError] ! Async + Net {
+fn raw_connect(addr: SocketAddr): Result[Connection, ConnectError] ! Async + Net {
     // .addr() bypasses DNS, SRV, HTTPS/SVCB, and DANE.
     // Happy eyeballs still applies if addr is an IPv6 address (single candidate,
     // so stagger logic is a no-op).

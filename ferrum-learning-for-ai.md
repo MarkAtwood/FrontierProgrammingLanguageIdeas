@@ -603,11 +603,11 @@ Ferrum uses structured concurrency with scoped tasks:
 
 ```ferrum
 scope s {
-    s.spawn(async {
+    s.spawn({
         let data = fetch(url).await?
         process(data)
     })
-    s.spawn(async {
+    s.spawn({
         let data = fetch(other_url).await?
         process(data)
     })
@@ -615,7 +615,7 @@ scope s {
 // both tasks complete (or one panics) before scope exits
 ```
 
-Async/await works without "function coloring" — a pure fn can call an async fn in an async context; the runtime handles scheduling.
+Ferrum has no function coloring. All functions are `fn`; suspendable functions carry the `! Async` effect in their signature. There is no `async fn` keyword and no `async { }` block syntax.
 
 Effect `Sync` is added to any function that acquires a synchronization primitive.
 

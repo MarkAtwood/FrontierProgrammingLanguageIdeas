@@ -96,7 +96,7 @@ enum Poll[T] {
 type Context { ... }
 type Waker   { ... }
 
-// async fn desugars to a state machine implementing Future
+// fn with ! Async desugars to a state machine implementing Future
 // await desugars to poll + yield-if-pending
 ```
 
@@ -933,7 +933,7 @@ impl[T] Pollable for Sender[T] {
 
 ```ferrum
 // Select first ready from multiple sources
-async fn handle_events(
+fn handle_events(
     socket: &TcpStream,
     timer: &TimerPollable,
     shutdown: &Receiver[()],
@@ -970,7 +970,7 @@ async fn handle_events(
 }
 
 // Timeout wrapper
-async fn read_with_timeout(
+fn read_with_timeout(
     reader: &mut impl Read,
     buf: &mut [u8],
     timeout: Duration,
@@ -988,7 +988,7 @@ async fn read_with_timeout(
 }
 
 // Fan-in from multiple channels
-async fn merge_channels[T](
+fn merge_channels[T](
     receivers: &[Receiver[T]],
 ): impl Stream[Item = T] ! Async {
     stream! {

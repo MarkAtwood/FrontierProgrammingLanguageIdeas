@@ -1052,7 +1052,7 @@ fn build_validator(): Result[CertValidator, CertError] ! IO {
 }
 
 // At TLS handshake completion: validate the peer chain.
-async fn validate_peer_chain(
+fn validate_peer_chain(
     validator:      &CertValidator,
     chain_der:      Vec[Vec[u8]>,    // DER bytes per cert, leaf first
     hostname:       &str,

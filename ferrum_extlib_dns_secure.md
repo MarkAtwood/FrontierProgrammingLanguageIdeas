@@ -1080,7 +1080,7 @@ pub fn query_with_timeout(
 
     scope s {
         let query  = s.spawn(resolver.query(name, rtype))
-        let watcher = s.spawn(async {
+        let watcher = s.spawn({
             sleep(limit).await
             token.cancel()
         })

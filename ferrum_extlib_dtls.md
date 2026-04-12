@@ -660,7 +660,7 @@ fn load_server_config(): Result[DtlsConfig, DtlsError] ! IO {
         .build()
 }
 
-async fn handle_session(mut session: DtlsSession): Result[(), DtlsError] ! Async + Net {
+fn handle_session(mut session: DtlsSession): Result[(), DtlsError] ! Async + Net {
     let peer = session.peer_addr()
     let suite = session.cipher_suite()
     let cert  = session.peer_cert()
@@ -687,7 +687,7 @@ async fn handle_session(mut session: DtlsSession): Result[(), DtlsError] ! Async
     Ok(())
 }
 
-async fn run_server(): Result[(), DtlsError] ! Async + Net + IO {
+fn run_server(): Result[(), DtlsError] ! Async + Net + IO {
     let config = load_server_config()?
     let addr   = SocketAddr.from_str("0.0.0.0:5684")?  // coaps:// standard port
     let server = DtlsServer.bind(addr, config)?
@@ -719,7 +719,7 @@ use extlib.tls.{CaStore, CertChain, PrivateKey, ServerName}
 use std.net.SocketAddr
 use std.async.{AsyncReadExt, AsyncWriteExt}
 
-async fn radius_dtls_request(
+fn radius_dtls_request(
     server:  SocketAddr,
     request: &[u8],
 ): Result[Vec[u8], DtlsError] ! Async + Net + IO {
@@ -753,7 +753,7 @@ async fn radius_dtls_request(
 ### DTLS 1.3 with Key Update
 
 ```ferrum
-async fn long_running_session(
+fn long_running_session(
     mut session: DtlsSession,
 ): Result[(), DtlsError] ! Async + Net {
     let mut messages_sent: u64 = 0

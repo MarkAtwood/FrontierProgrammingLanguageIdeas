@@ -1298,7 +1298,7 @@ use extlib::imap::{
 use extlib::tls::TlsClientConfig
 use std::time::Duration
 
-async fn fetch_unread(
+fn fetch_unread(
     host:     &str,
     username: &str,
     password: &str,
@@ -1383,7 +1383,7 @@ use extlib::imap::{
     FetchItem, BodySection, IdleEvent, SequenceSet,
 }
 
-async fn watch_inbox(config: ImapConfig): Result[(), ImapError] ! Async + Net {
+fn watch_inbox(config: ImapConfig): Result[(), ImapError] ! Async + Net {
     let mut session = ImapClient::connect("mail.example.com", 993, config).await?
     let mut sel = session.select("INBOX").await?
 
@@ -1447,7 +1447,7 @@ use extlib::imap::{
     StoreOp, Flag, SequenceSet,
 }
 
-async fn archive_sender(
+fn archive_sender(
     config: ImapConfig,
     sender: &str,
     dest:   &str,
@@ -1495,7 +1495,7 @@ use extlib::imap::{
 use std::time::Date
 use std::io::AsyncReadExt
 
-async fn download_attachments_since(
+fn download_attachments_since(
     config: ImapConfig,
     sender: &str,
     since:  Date,
@@ -1562,7 +1562,7 @@ use extlib::tls::TlsServerConfig
 use std::net::SocketAddr
 use std::time::Timestamp
 
-async fn run_test_server(): Result[(), ImapError] ! Async + Net {
+fn run_test_server(): Result[(), ImapError] ! Async + Net {
     let mut backend = MemoryBackend::new()
 
     backend.add_mailbox("INBOX")

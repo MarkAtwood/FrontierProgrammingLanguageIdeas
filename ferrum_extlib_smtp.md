@@ -977,7 +977,7 @@ impl MessageHandler for CollectingHandler {
         _envelope: &Envelope,
         message: &Message,
     ): impl Future[Output=AcceptResult] ! Async {
-        async {
+        {
             self.received.lock().push(message.clone())
             AcceptResult::Accepted { queue_id: "test-001".to_string() }
         }

@@ -1203,7 +1203,7 @@ fn example() {
 ```ferrum
 // Without Pin, this async block could break:
 
-async fn example() {
+fn example() {
     let data = vec[1, 2, 3]
     let reference = &data[0]   // self-reference!
 

@@ -757,7 +757,7 @@ impl Error for MdnsError { ... }
 use extlib.mdns { MdnsResponder, MdnsConfig, ServiceRecord, TxtRecord, ConflictPolicy }
 use net { IpAddr, Ipv4Addr }
 
-async fn run_server(port: u16) ! Async + Net + IO {
+fn run_server(port: u16) ! Async + Net + IO {
     // Build a TXT record with HTTP metadata.
     let mut txt = TxtRecord.new()
     txt.insert("path", "/api/v1").unwrap()
@@ -796,7 +796,7 @@ async fn run_server(port: u16) ! Async + Net + IO {
 ```ferrum
 use extlib.mdns { browse, BrowseConfig, ServiceEvent }
 
-async fn find_printers() ! Async + Net + IO {
+fn find_printers() ! Async + Net + IO {
     let config = BrowseConfig.default()
     let mut browser = browse("_ipp._tcp", config)
 
@@ -839,7 +839,7 @@ async fn find_printers() ! Async + Net + IO {
 ```ferrum
 use extlib.mdns { resolve_host, BrowseConfig }
 
-async fn connect_to_device(hostname: &str) ! Async + Net {
+fn connect_to_device(hostname: &str) ! Async + Net {
     // hostname should end in ".local"
     let addrs = resolve_host(
         hostname,
@@ -865,7 +865,7 @@ async fn connect_to_device(hostname: &str) ! Async + Net {
 ```ferrum
 use extlib.mdns { MdnsResponder, MdnsConfig, ConflictPolicy, MdnsError }
 
-async fn start_with_conflict_handling() ! Async + Net + IO {
+fn start_with_conflict_handling() ! Async + Net + IO {
     let config = MdnsConfig {
         responder_name: "my-device".to_string(),
         conflict_resolution: ConflictPolicy.RenameWithSuffix { max_retries: 10 },

@@ -232,7 +232,7 @@ What the compiler does know:
 The compiler warns when a synchronization guard is live across a suspension point:
 
 ```ferrum
-async fn bad() {
+fn bad() {
     let guard = mutex.lock()
     something_async().await    // warning: MutexGuard live across await
     drop(guard)

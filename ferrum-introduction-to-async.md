@@ -233,7 +233,7 @@ Let's look at each.
 A `Future` represents a value that will be available later. When you call an async function, you get a Future. When you `.await` it, you either get the result immediately (if it's ready) or your task suspends until it is.
 
 ```ferrum
-async fn fetch(url: &str): Result[Response, HttpError] ! Net + Async {
+fn fetch(url: &str): Result[Response, HttpError] ! Net + Async {
     let response = http.get(url).await?
     Ok(response)
 }
@@ -261,7 +261,7 @@ fn read_config(): Result[Config, IoError] ! IO {
     fs.read_to_string("config.toml")  // Has IO effect. Might block briefly.
 }
 
-async fn fetch_data(): Result[Data, Error] ! Net + Async {
+fn fetch_data(): Result[Data, Error] ! Net + Async {
     http.get(url).await  // Has Net and Async effects. Will suspend.
 }
 ```
@@ -278,7 +278,7 @@ The runtime is the engine that drives async execution. It's not a hidden global 
 fn main() ! IO + Async {
     let runtime = Runtime.new()?
 
-    runtime.block_on(async {
+    runtime.block_on({
         let response = fetch("https://example.com").await?
         println("{}", response.text().await?)
         Ok(())
@@ -286,7 +286,7 @@ fn main() ! IO + Async {
 }
 ```
 
-`block_on` runs an async computation on the current thread, blocking until it completes. Inside the async block, `.await` suspends the task (not the thread). The runtime multiplexes tasks onto threads.
+`block_on` runs an async computation on the current thread, blocking until it completes. Inside the block, `.await` suspends the task (not the thread). The runtime multiplexes tasks onto threads.
 
 Think of it like this:
 - **Thread**: OS-managed, megabytes of memory, expensive to create
@@ -301,7 +301,7 @@ You might have 4 OS threads running 10,000 tasks. The runtime schedules which ta
 Use `spawn` to run multiple tasks concurrently. Here's a concrete example — fetching multiple URLs at once:
 
 ```ferrum
-async fn fetch_all_users(): Result[Vec[User], Error] ! Net + Async {
+fn fetch_all_users(): Result[Vec[User], Error] ! Net + Async {
     let urls = [
         "https://api.example.com/users/1",
         "https://api.example.com/users/2",
@@ -324,7 +324,7 @@ async fn fetch_all_users(): Result[Vec[User], Error] ! Net + Async {
     }
 }
 
-async fn fetch_user(url: &str): Result[User, Error] ! Net {
+fn fetch_user(url: &str): Result[User, Error] ! Net {
     let response = http.get(url).await?
     let user: User = response.json().await?
     Ok(user)
@@ -460,7 +460,7 @@ Or if you really need work to continue after returning, you make that explicit i
 
 ```ferrum
 // The caller spawns this and is responsible for it
-async fn background_order_processing(order: Order): Result[(), Error] ! DB + Net {
+fn background_order_processing(order: Order): Result[(), Error] ! DB + Net {
     send_confirmation_email(&order).await?
     update_inventory(&order).await?
     Ok(())
@@ -482,7 +482,7 @@ You can't accidentally orphan a task. You have to explicitly choose who owns it.
 When a scope exits early — via `return`, `break`, `?` propagation, or panic — it cancels all its tasks:
 
 ```ferrum
-async fn download_first(urls: &[String]): Result[Response, Error] ! Net + Async {
+fn download_first(urls: &[String]): Result[Response, Error] ! Net + Async {
     scope s {
         // Start downloading all URLs concurrently
         for url in urls {
@@ -535,7 +535,7 @@ fn io_function(): Result[String, IoError] ! IO {
     fs.read_to_string("file.txt")
 }
 
-async fn async_function(): Result[Response, Error] ! Net + Async {
+fn async_function(): Result[Response, Error] ! Net + Async {
     http.get(url).await
 }
 
@@ -570,7 +570,7 @@ fn process() ! IO {
 **Async calling non-async:** Just call it.
 
 ```ferrum
-async fn fetch_and_compute() ! Net + Async {
+fn fetch_and_compute() ! Net + Async {
     let response = http.get(url).await?
     let items: Vec[Item] = response.json().await?
     let total = compute_total(&items)  // Fine, it's sync and fast
@@ -594,7 +594,7 @@ fn main() ! IO {
 The difference from Python: in Ferrum, if you call a slow sync function from async code, the type system tells you. A function that takes 10 seconds of CPU time doesn't have `! Async` — it doesn't suspend, it just runs. You can see that in the signature and decide if you want to spawn it on a blocking thread pool:
 
 ```ferrum
-async fn process_with_heavy_compute() ! Async + IO {
+fn process_with_heavy_compute() ! Async + IO {
     let data = fetch_data().await?
 
     // This is CPU-bound, would block the async runtime
@@ -618,7 +618,7 @@ let (tx, rx) = Chan.bounded[Message](capacity: 32)
 
 scope s {
     // Producer task
-    s.spawn(async {
+    s.spawn({
         for i in 0..100 {
             tx.send(Message { id: i }).await?
         }
@@ -626,7 +626,7 @@ scope s {
     })
 
     // Consumer task
-    s.spawn(async {
+    s.spawn({
         while let Some(msg) = rx.recv().await {
             process_message(msg)
         }
@@ -639,7 +639,7 @@ scope s {
 Here's a pattern for processing work with limited concurrency — a worker pool:
 
 ```ferrum
-async fn process_urls_with_pool(
+fn process_urls_with_pool(
     urls: &[String],
     max_workers: usize
 ): Result[Vec[Page], Error] ! Net + Async {
@@ -651,7 +651,7 @@ async fn process_urls_with_pool(
         for _ in 0..max_workers {
             let work_rx = work_rx.clone()
             let result_tx = result_tx.clone()
-            s.spawn(async {
+            s.spawn({
                 while let Some(url) = work_rx.recv().await {
                     let result = fetch_and_parse(&url).await
                     result_tx.send(result).await.ok()
@@ -724,7 +724,7 @@ Compare to Python's `asyncio.wait()`:
 Here's a complete example — a server that accepts connections and echoes back whatever clients send:
 
 ```ferrum
-async fn run_server(addr: &str): Result[(), Error] ! Net + Async {
+fn run_server(addr: &str): Result[(), Error] ! Net + Async {
     let listener = TcpListener.bind(addr).await?
     println("Listening on {addr}")
 
@@ -738,7 +738,7 @@ async fn run_server(addr: &str): Result[(), Error] ! Net + Async {
     }
 }
 
-async fn handle_client(
+fn handle_client(
     mut socket: TcpStream,
     addr: SocketAddr
 ): Result[(), Error] ! Net {
@@ -770,7 +770,7 @@ Compare the same server in C with epoll — it would be 100+ lines of state mana
 A common pattern — make multiple requests, but give up if it takes too long:
 
 ```ferrum
-async fn fetch_with_timeout(
+fn fetch_with_timeout(
     urls: &[String],
     timeout_secs: u64
 ): Result[Vec[Response], Error] ! Net + Async {
@@ -833,7 +833,7 @@ If any request takes too long, we return `Error::Timeout`. All in-flight request
 let runtime = Runtime.new()?
 
 // Run async code from sync context
-runtime.block_on(async { ... })
+runtime.block_on({ ... })
 
 // Spawn concurrent tasks
 scope s {
@@ -855,7 +855,7 @@ select {
 // Effects in signatures
 fn sync_pure(): T { ... }
 fn sync_io(): T ! IO { ... }
-async fn async_net(): T ! Net + Async { ... }
+fn async_net(): T ! Net + Async { ... }
 ```
 
 ---

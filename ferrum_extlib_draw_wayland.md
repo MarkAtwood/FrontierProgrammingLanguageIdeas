@@ -1288,7 +1288,7 @@ impl IoPollable for WaylandConnection {
 In an async context, await on the connection directly:
 
 ```ferrum
-async fn run_async(
+fn run_async(
     conn: &mut WaylandConnection,
     window: &mut WaylandWindow,
 ): Result[(), WaylandError] ! Async + IO {
