@@ -86,7 +86,7 @@ std::io::stdout().write_all(b"hello")?;
 
 ```ferrum
 // Ferrum
-use std.collections.HashMap
+import std.collections.HashMap
 let map = HashMap[String, i32].new()
 std.io.stdout().write_all(b"hello")?
 ```
@@ -633,12 +633,12 @@ error: public function `api_function` has undeclared effects
 Higher-order functions can be polymorphic over effects:
 
 ```ferrum
-fn map[T, U, E][eff](f: fn(T): U ! eff, items: &[T]): Vec[U] ! eff {
+fn map[T, U](f: fn(T): U ! ?Eff, items: &[T]): Vec[U] ! ?Eff {
     items.iter().map(f).collect()
 }
 ```
 
-The `[eff]` parameter means "whatever effects `f` has, `map` has too." If you pass a pure function, you get a pure `map`. If you pass an `IO` function, you get an `IO` `map`.
+The `?Eff` effect variable means "whatever effects `f` has, `map` has too." If you pass a pure function, you get a pure `map`. If you pass an `IO` function, you get an `IO` `map`. Effect variables are declared by use — any identifier prefixed with `?` in an effect position is an effect variable, inferred from the argument types at each call site.
 
 This is how standard library functions like `map`, `filter`, and `fold` work — they're effect-polymorphic, so they don't artificially restrict what closures you can pass.
 
@@ -1248,7 +1248,7 @@ struct Baz { ... }               // private to this module
 
 Ferrum uses `pub(package)` where Rust uses `pub(crate)`. Same concept, different name. Ferrum calls compilation units "packages" rather than "crates."
 
-### use Syntax
+### Import Syntax
 
 ```rust
 // Rust
@@ -1258,8 +1258,8 @@ use crate::utils::helper;
 
 ```ferrum
 // Ferrum
-use std.collections.{HashMap, HashSet}
-use .utils.helper
+import std.collections.{HashMap, HashSet}
+import .utils.helper
 ```
 
 The leading `.` means "this package" (like Rust's `crate::`).

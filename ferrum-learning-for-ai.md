@@ -51,7 +51,7 @@ pub fn fetch_and_log(url: &str): Result[String] ! IO + Net
 | Return type | `fn f() -> T` | `fn f(): T` |
 | Path separator | `std::io` | `std.io` |
 | Attributes | `#[derive(...)]` | `@derive(...)` |
-| Struct syntax | `struct Foo { ... }` | `type Foo { ... }` |
+| Struct syntax | `struct Foo { ... }` | `struct Foo { ... }` |
 | Lifetime annotation | `'a` everywhere | rare; region inference handles most |
 | Macros | `println!("...")` | `println("...")` (compiler intrinsic) |
 | Effect tracking | none | `! IO`, `! Net`, `! Sync` |
@@ -244,13 +244,15 @@ pub fn process(path: &str): Result[Output] ! IO {
 ### Effect Polymorphism
 
 ```ferrum
-fn map_result[T, U, E][eff](f: fn(T): U ! eff, r: Result[T, E]): Result[U, E] ! eff {
+fn map_result[T, U, E](f: fn(T): U ! ?E, r: Result[T, E]): Result[U, E] ! ?E {
     match r {
         Ok(v)  => Ok(f(v)),
         Err(e) => Err(e),
     }
 }
 ```
+
+Effect variables (`?E`, `?Eff`, etc.) are declared by use — any identifier prefixed with `?` in an effect position is an effect variable. They are inferred from argument types at the call site; never written explicitly as type arguments.
 
 ---
 
@@ -761,7 +763,7 @@ tested_by(<spec_fn>)              — link fast impl to spec; debug builds compa
 proven_by(<proof_fn>)             — link fast impl to proof; compiler-verified for all inputs
 region r { ... }                  — arena lifetime scope
 unchecked / trusted / unsafe      — safety escape hatches
-pinned type                       — self-referential, non-moveable
+pinned struct                     — self-referential, non-moveable
 layout T { ... }                  — binary layout declaration
 @derive(...)                      — fixed set of derivable traits
 +% +|                             — wrapping / saturating arithmetic

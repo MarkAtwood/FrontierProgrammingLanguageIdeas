@@ -45,7 +45,7 @@ Key syntax differences from Haskell/OCaml:
 |---------|---------|-------|--------|
 | Generic params | `f a b` | `'a t` | `T[A, B]` |
 | Function return | `a -> b` | `a -> b` | `fn(a): b` |
-| Type definition | `data` / `newtype` | `type` | `type` / `enum` |
+| Type definition | `data` / `newtype` | `type` | `struct` / `enum` |
 | Module path | `.` | `.` | `.` |
 | Effect tracking | `IO a`, mtl | effects (5.0) | `! IO` annotation |
 | Pattern match | `case ... of` | `match ... with` | `match { ... }` |
@@ -58,7 +58,7 @@ Key syntax differences from Haskell/OCaml:
 
 ### Algebraic Data Types
 
-Ferrum's `enum` is the usual sum type. Product types are `type` (like a named record).
+Ferrum's `enum` is the usual sum type. Product types are `struct` (like a named record).
 
 ```ferrum
 // Sum type
@@ -267,14 +267,14 @@ pub fn log(msg: &str) ! IO
 pub fn spawn[T](f: fn(): T): Task[T] ! Sync + Alloc[Heap]
 
 // Effect-polymorphic — caller's effect leaks through
-fn with_timing[T][eff](f: fn(): T ! eff): (T, Duration) ! eff {
+fn with_timing[T](f: fn(): T ! ?Eff): (T, Duration) ! ?Eff {
     let t0 = Instant.now()
     let v  = f()
     (v, t0.elapsed())
 }
 ```
 
-The effect variable `eff` in `[eff]` is an effect parameter, not a type parameter. The function propagates whatever effects `f` has.
+The `?Eff` effect variable is declared by use — any identifier prefixed with `?` in an effect position is an effect variable, inferred from the argument types at each call site. The function propagates whatever effects `f` has.
 
 ### Comparison to Algebraic Effects (Koka, Frank, Eff)
 
@@ -284,7 +284,7 @@ Ferrum's effect system is structurally closer to algebraic effect systems (row-p
 |---------|------|--------|
 | Effect declaration | `effect state<s> { get : s; set : s -> () }` | built-in effects (no user-defined effects currently) |
 | Effect annotation | `: <state<int>, io> ()` | `! IO + Sync` |
-| Polymorphic effect | `<e>` row variable | `[eff]` effect parameter |
+| Polymorphic effect | `<e>` row variable | `?Eff` effect variable (declared by use) |
 | Pure function | `: <pure> a` | no `!` annotation |
 
 **What Ferrum lacks from algebraic effects:** user-defined effects and effect handlers. There's no equivalent of `handle { ... } with { ... }`. The built-in effects (`IO`, `Net`, `Sync`, etc.) are baked in. This is a current limitation acknowledged in the design; the compiler roadmap includes user-defined effects.
@@ -599,7 +599,7 @@ The borrow rules implement an affine type system (use at most once for owned val
 
 **Effects are row types without the row operations:**
 
-The `! IO + Net` effect annotation is a subset of a row type over a fixed set of built-in effect labels. Effect polymorphism (`[eff]`) is row polymorphism in this restricted sense. What's missing: you cannot introduce new labels, you cannot handle/catch specific effects (no algebraic effect handlers). This makes the system predictable and simple to reason about, at the cost of expressiveness.
+The `! IO + Net` effect annotation is a subset of a row type over a fixed set of built-in effect labels. Effect polymorphism (`?Eff`) is row polymorphism in this restricted sense. What's missing: you cannot introduce new labels, you cannot handle/catch specific effects (no algebraic effect handlers). This makes the system predictable and simple to reason about, at the cost of expressiveness.
 
 ---
 
@@ -609,7 +609,7 @@ The `! IO + Net` effect annotation is a subset of a row type over a fixed set of
 |----------------|--------|-------|
 | `data Maybe a = Nothing \| Just a` | `enum Option[T] { None, Some(T) }` | |
 | `data Either e a = Left e \| Right a` | `enum Result[T, E] { Ok(T), Err(E) }` | |
-| `newtype Foo = Foo Bar` | `type Foo { inner: Bar }` or `type Foo = Bar` | no zero-cost newtype yet |
+| `newtype Foo = Foo Bar` | `struct Foo { inner: Bar }` or `type Foo = Bar` | no zero-cost newtype yet |
 | `f <$> x` | `x.map(f)` | only on concrete types |
 | `f <*> x` | no direct analog | |
 | `x >>= f` | `x.and_then(f)` | only on `Option`/`Result` |

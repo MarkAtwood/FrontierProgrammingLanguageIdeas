@@ -9,7 +9,7 @@ The short answer for each, before the detail:
 | Lazy evaluation | **No** | Fundamental triple conflict: ownership + effects + no-hidden-costs |
 | Higher-kinded types | **Partial yes** | Already in compiler (stdlib uses it). Pure containers: go. IO monad pattern: architecturally blocked. |
 | OCaml-style functors | **Probably not worth it** | Marginal gain over capabilities + HKT; large complexity cost |
-| Implicit coercions | **Deref: yes / Numeric: no** | Deref coercions are zero-cost and safe. Numeric widening violates a core design principle. |
+| Implicit coercions | **No (currently)** | Non-goal: "implicit coercions of any kind." Deref coercions are technically feasible and zero-cost but deliberately excluded to keep the rule clean. Revisit if call-site friction becomes a real complaint. |
 | Currying | **Yes (sugar), with caveats** | `&mut` partial application gets subtle; owned/Copy cases are clean |
 | Rank-2 types | **Yes** | Feasible; primary use case already covered by `region` blocks |
 | Orphan instances | **Partial relaxation only** | Can relax at intra-crate level; full relaxation breaks ecosystem coherence |
@@ -78,7 +78,7 @@ trait Foldable[F[_]] {
 }
 ```
 
-`fmap` over `Option`, `Result`, `Vec`, or user-defined containers works. There's no conflict with the ownership system (you take `F[A]` by value, return `F[B]` by value — same as any other transformation) and no conflict with the effect system (the function `f` is pure here; you could make it effect-polymorphic: `fn fmap[A, B][eff](fa: F[A], f: fn(A): B ! eff): F[B] ! eff`).
+`fmap` over `Option`, `Result`, `Vec`, or user-defined containers works. There's no conflict with the ownership system (you take `F[A]` by value, return `F[B]` by value — same as any other transformation) and no conflict with the effect system (the function `f` is pure here; you could make it effect-polymorphic: `fn fmap[A, B](fa: F[A], f: fn(A): B ! ?Eff): F[B] ! ?Eff`).
 
 The `Applicative` hierarchy works for pure containers too. `Traversable` works if you define it over specific effect types rather than abstractly.
 
@@ -146,11 +146,11 @@ Given that capabilities handle the allocation/strategy parameterization case and
 
 ---
 
-## 4. Implicit Coercions — Deref Yes, Numeric No
+## 4. Implicit Coercions — No (Currently)
 
-These are two different questions that happen to share a name.
+**Current status:** The spec's non-goals list says "implicit coercions of any kind." This applies to both deref-style and numeric coercions. The analysis below explains the technical picture; the design decision is to keep the clean rule for now.
 
-### Deref coercions (e.g., `&String → &str`, `&Vec[T] → &[T]`): yes
+### Deref coercions (e.g., `&String → &str`, `&Vec[T] → &[T]`): technically feasible, deliberately excluded
 
 These are:
 - Zero-cost (same pointer, narrower type)
@@ -158,7 +158,9 @@ These are:
 - Already in Rust and well-understood
 - Direction-consistent (always from owned/wider to borrowed/narrower)
 
-They don't violate "no hidden costs" because there's no cost to hide. They don't interact badly with ownership because they're always on borrows. Adding a `Deref` trait with implicit coercion at borrow sites is feasible and ergonomic.
+They don't violate "no hidden costs" because there's no cost to hide. They don't interact badly with ownership because they're always on borrows. Adding a `Deref` trait with implicit coercion at borrow sites would be ergonomic and technically clean.
+
+**Why they're excluded:** The non-goal is "implicit coercions of any kind." Deref coercions would be an exception to the rule, and any exception requires programmers to learn which coercions are implicit. The simpler rule — nothing is implicit — is easier to teach and audit. This could be revisited if call-site friction turns out to be a real complaint in practice.
 
 ### Numeric widening coercions (e.g., `i32 → i64` implicitly): no
 
@@ -269,7 +271,7 @@ In a large ecosystem, this scales catastrophically. The Haskell ecosystem has ex
 
 - **Option 1: Explicit orphan with warning.** `@allow(orphan) impl Trait for Type { ... }`. Compiles with a warning. If two crates define conflicting orphan impls and are linked together, the linker error is local and fixable by the linker, not by the trait or type authors.
 - **Option 2: Intra-crate orphans.** Within a single crate, orphan impls are allowed. At crate boundaries, coherence is enforced. This prevents ecosystem collisions while allowing a crate to define impl glue between two external types it depends on.
-- **Option 3: Sealed traits.** A trait author can mark their trait `#[allow_orphan_impls]`, opting in to allowing external impls. The trait author owns the coherence risk.
+- **Option 3: Sealed traits.** A trait author can mark their trait `@allow_orphan_impls`, opting in to allowing external impls. The trait author owns the coherence risk.
 - **Option 4: Newtype requirement lifted for local types.** If the *type* is new (even if defined in another crate) you can implement any trait for it. Currently the rule requires you to own the trait or type; relaxing to "or the type is used only in your crate's public interface" covers some glue-code cases.
 
 Of these, options 2 (intra-crate orphans) and 3 (sealed traits) are the cleanest. Neither creates global coherence problems.

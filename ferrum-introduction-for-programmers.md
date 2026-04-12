@@ -584,7 +584,7 @@ fn main() {
 }
 ```
 
-**Note:** Ferrum uses `type` not `struct`. Think of it as "define a type" rather than "define a struct."
+**Note:** The keyword is `struct`, like C and Rust.
 
 **Comparing to C:**
 
@@ -816,10 +816,10 @@ fn sum(items: &[i32]): i32 {
 }
 
 let arr = [1, 2, 3]
-let vec = vec[4, 5, 6]
+let v = vec(4, 5, 6)
 
 sum(&arr)         // works with array
-sum(&vec)         // works with Vec
+sum(&v)           // works with Vec
 sum(&arr[0..2])   // works with partial slice
 ```
 
