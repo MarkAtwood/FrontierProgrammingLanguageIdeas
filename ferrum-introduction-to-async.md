@@ -118,13 +118,10 @@ Now one thread handles 10,000 connections. The `epoll_wait` call blocks until *a
 
 But you've traded one set of problems for another:
 
-**State machines everywhere.** In the threaded version, each connection's state is implicit in where the thread is executing. In the event loop version, you can't "wait" — the loop must keep running. So every multi-step operation becomes an explicit state machine: "I've received 3 bytes of the header, waiting for 5 more."
-
-**Callback spaghetti.** Logic that was sequential (read request, query database, send response) is now scattered across multiple event handler iterations. Following the flow of a single request through your code becomes a nightmare.
-
-**Manual cleanup.** You have to remember to remove file descriptors from epoll before closing them. Miss it and you get undefined behavior. You have to track which connections have which allocated buffers. It's all on you.
-
-**Platform lock-in.** `epoll` is Linux-only. macOS uses `kqueue`. Windows uses `IOCP`. They have different APIs and different semantics. Cross-platform code needs to abstract over all of them.
+- **State machines everywhere.** In the threaded version, each connection's state is implicit in where the thread is executing. In the event loop version, you can't "wait" — the loop must keep running. So every multi-step operation becomes an explicit state machine: "I've received 3 bytes of the header, waiting for 5 more."
+- **Callback spaghetti.** Logic that was sequential (read request, query database, send response) is now scattered across multiple event handler iterations. Following the flow of a single request through your code becomes a nightmare.
+- **Manual cleanup.** You have to remember to remove file descriptors from epoll before closing them. Miss it and you get undefined behavior. You have to track which connections have which allocated buffers. It's all on you.
+- **Platform lock-in.** `epoll` is Linux-only. macOS uses `kqueue`. Windows uses `IOCP`. They have different APIs and different semantics. Cross-platform code needs to abstract over all of them.
 
 ---
 
@@ -848,11 +845,9 @@ If any request takes too long, we return `Error::Timeout`. All in-flight request
 
 ### What You Get with Ferrum
 
-**C-level performance.** No garbage collector. Predictable memory usage. Tasks are cheap. The runtime uses modern OS primitives (epoll, kqueue, IOCP) under the hood.
-
-**Python-level ergonomics.** Sequential code that reads top-to-bottom. No callback spaghetti. No manual state machines.
-
-**Safety guarantees.** Data races caught at compile time. Tasks can't escape their scope. Cancellation is automatic and correct. No silent blocking bugs.
+- **C-level performance.** No garbage collector. Predictable memory usage. Tasks are cheap. The runtime uses modern OS primitives (epoll, kqueue, IOCP) under the hood.
+- **Python-level ergonomics.** Sequential code that reads top-to-bottom. No callback spaghetti. No manual state machines.
+- **Safety guarantees.** Data races caught at compile time. Tasks can't escape their scope. Cancellation is automatic and correct. No silent blocking bugs.
 
 ---
 

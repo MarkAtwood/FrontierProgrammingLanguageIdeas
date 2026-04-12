@@ -52,18 +52,18 @@ Proof term checking → verified
 
 Region inference is a constraint-based algorithm over the borrow graph.
 
-**Phase 1: Variable assignment.** Assign a fresh region variable `ρᵢ` to every reference type in the current function's signature and body.
+1. **Phase 1: Variable assignment.** Assign a fresh region variable `ρᵢ` to every reference type in the current function's signature and body.
 
-**Phase 2: Constraint generation.** Walk the function body generating:
-- `ρᵢ ⊇ ρⱼ` (region i outlives region j) from assignments `let x: &'ρᵢ T = y` where `y: &'ρⱼ T`
-- `ρᵢ ⊇ {s}` (region i contains scope s) from borrows `&expr` where `expr` is live in scope `s`
-- `ρᵢ ⊇ ρⱼ ∪ ρₖ` from control flow joins (if-else, loop back-edges)
+2. **Phase 2: Constraint generation.** Walk the function body generating:
+   - `ρᵢ ⊇ ρⱼ` (region i outlives region j) from assignments `let x: &'ρᵢ T = y` where `y: &'ρⱼ T`
+   - `ρᵢ ⊇ {s}` (region i contains scope s) from borrows `&expr` where `expr` is live in scope `s`
+   - `ρᵢ ⊇ ρⱼ ∪ ρₖ` from control flow joins (if-else, loop back-edges)
 
-**Phase 3: Constraint solving.** Solve the constraint system to the **minimal** valid assignment (smallest regions). Use a worklist algorithm. Cycles indicate self-referential borrows (allowed for `pinned` types, error otherwise).
+3. **Phase 3: Constraint solving.** Solve the constraint system to the **minimal** valid assignment (smallest regions). Use a worklist algorithm. Cycles indicate self-referential borrows (allowed for `pinned` types, error otherwise).
 
-**Phase 4: Error reporting.** If no valid assignment exists, report the specific constraint that is unsatisfiable. The error message should explain in terms of the user's code, not the constraint system internals.
+4. **Phase 4: Error reporting.** If no valid assignment exists, report the specific constraint that is unsatisfiable. The error message should explain in terms of the user's code, not the constraint system internals.
 
-**Phase 5: Annotation inference.** For `pub` functions, synthesize lifetime annotations from the solved regions to produce the canonical signature. These are the annotations a user would write if they were writing the function with explicit annotations.
+5. **Phase 5: Annotation inference.** For `pub` functions, synthesize lifetime annotations from the solved regions to produce the canonical signature. These are the annotations a user would write if they were writing the function with explicit annotations.
 
 **Annotation trigger:** The compiler requires explicit annotations when the solved region assignment for a return type is ambiguous — i.e., when the return region is not uniquely determined by a single input region. In this case the compiler reports: "cannot determine which input lifetime this return value borrows from; add explicit annotations."
 

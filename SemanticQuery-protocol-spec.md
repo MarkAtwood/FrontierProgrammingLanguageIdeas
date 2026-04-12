@@ -42,13 +42,10 @@ The protocol has five operations:
 
 ### 1.3 Design Principles
 
-**Language-agnostic protocol, language-specific data.** The JSON-RPC method names and request/response shapes are fixed across all implementations. The content of the `type` field, the `effects` field, the `borrow_state` field — these are language-specific. A Python implementation returns mypy-inferred types; a Rust implementation returns NLL region constraints. The protocol does not impose a single type theory.
-
-**Additive over LSP.** SemanticQuery is specified as LSP extension methods. It requires an LSP session but adds to it, not replaces it. An editor that supports LSP gets SemanticQuery on the same connection without additional infrastructure.
-
-**Counterfactual queries are the key operation.** Every other operation in this spec exists in some form in prior art. Point queries exist in Roslyn and ASIS. SMT export exists in GNATprove. Monitor-like behavior exists in sanitizers. What has not existed before is the ability to inject a hypothetical invariant and receive a structured verdict — without modifying source code. This is the operation that turns verification from a yes/no gate into a conversation.
-
-**The compiler's internal state is an asset.** A compiler that implements SemanticQuery makes its internal reasoning accessible to the ecosystem. Tools do not have to rebuild what the compiler already knows.
+- **Language-agnostic protocol, language-specific data.** The JSON-RPC method names and request/response shapes are fixed across all implementations. The content of the `type` field, the `effects` field, the `borrow_state` field — these are language-specific. A Python implementation returns mypy-inferred types; a Rust implementation returns NLL region constraints. The protocol does not impose a single type theory.
+- **Additive over LSP.** SemanticQuery is specified as LSP extension methods. It requires an LSP session but adds to it, not replaces it. An editor that supports LSP gets SemanticQuery on the same connection without additional infrastructure.
+- **Counterfactual queries are the key operation.** Every other operation in this spec exists in some form in prior art. Point queries exist in Roslyn and ASIS. SMT export exists in GNATprove. Monitor-like behavior exists in sanitizers. What has not existed before is the ability to inject a hypothetical invariant and receive a structured verdict — without modifying source code. This is the operation that turns verification from a yes/no gate into a conversation.
+- **The compiler's internal state is an asset.** A compiler that implements SemanticQuery makes its internal reasoning accessible to the ecosystem. Tools do not have to rebuild what the compiler already knows.
 
 ---
 

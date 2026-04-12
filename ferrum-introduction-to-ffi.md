@@ -14,13 +14,10 @@ That's what FFI is for: calling C code from Ferrum, and letting C code call Ferr
 
 ### Common Use Cases
 
-**Calling existing C libraries.** You want to use zlib for compression, OpenSSL for crypto, SQLite for an embedded database. These libraries work. They're tested. They're fast. Just call them.
-
-**Using OS APIs.** POSIX defines `open()`, `read()`, `write()`, `mmap()`. Windows has `CreateFile()`, `ReadFile()`. These are C functions. Every systems language needs to call them.
-
-**Gradual migration.** You have a C codebase. You want to write new code in Ferrum, but you can't rewrite everything at once. FFI lets you migrate piece by piece: wrap the C functions, call them from Ferrum, replace them one at a time as you go.
-
-**Performance-critical libraries.** Sometimes a heavily-optimized C library (BLAS, FFTW, video codecs) is faster than anything you could write. Use it.
+- **Calling existing C libraries.** You want to use zlib for compression, OpenSSL for crypto, SQLite for an embedded database. These libraries work. They're tested. They're fast. Just call them.
+- **Using OS APIs.** POSIX defines `open()`, `read()`, `write()`, `mmap()`. Windows has `CreateFile()`, `ReadFile()`. These are C functions. Every systems language needs to call them.
+- **Gradual migration.** You have a C codebase. You want to write new code in Ferrum, but you can't rewrite everything at once. FFI lets you migrate piece by piece: wrap the C functions, call them from Ferrum, replace them one at a time as you go.
+- **Performance-critical libraries.** Sometimes a heavily-optimized C library (BLAS, FFTW, video codecs) is faster than anything you could write. Use it.
 
 ---
 
@@ -340,9 +337,8 @@ C strings end with a null byte (`\0`). Ferrum strings don't have a null terminat
 
 Ferrum provides two types for C strings. Understanding when to use each is critical.
 
-**`CStr`** - Borrowed C string. Like `&str` for Ferrum strings. You don't own the memory; you're borrowing it from somewhere else.
-
-**`CString`** - Owned C string. Like `String` for Ferrum strings. You own the memory and are responsible for it (but Ferrum handles cleanup automatically via Drop).
+- **`CStr`** - Borrowed C string. Like `&str` for Ferrum strings. You don't own the memory; you're borrowing it from somewhere else.
+- **`CString`** - Owned C string. Like `String` for Ferrum strings. You own the memory and are responsible for it (but Ferrum handles cleanup automatically via Drop).
 
 ### Memory Ownership: Who Frees What?
 

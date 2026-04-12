@@ -225,20 +225,10 @@ tools and agents can query, instrument, and inject hypotheses into.
 
 SemanticQuery (specified in `ferrum-semanticquery.md`) exposes four operations:
 
-**Point Query.** Ask the compiler what it knows at any program point. Type, effects,
-regions, invariants, active contracts, borrow checker state.
-
-**Counterfactual Query.** Inject a proposed invariant and ask whether it closes a
-verification gap — without writing it into the source. "If I assert that this
-pointer is non-null here, does the rest of the function become verifiable?"
-
-**Monitor.** Place semantically-aware traps in the binary. Conditions expressed
-in Ferrum's type language that the compiler weaves into the binary correctly
-because it understands the type system.
-
-**Scaffolding.** Generate test scaffolding from what the compiler already knows.
-Every `requires` clause is a test precondition. Every `ensures` clause is a
-test oracle.
+- **Point Query.** Ask the compiler what it knows at any program point. Type, effects, regions, invariants, active contracts, borrow checker state.
+- **Counterfactual Query.** Inject a proposed invariant and ask whether it closes a verification gap — without writing it into the source. "If I assert that this pointer is non-null here, does the rest of the function become verifiable?"
+- **Monitor.** Place semantically-aware traps in the binary. Conditions expressed in Ferrum's type language that the compiler weaves into the binary correctly because it understands the type system.
+- **Scaffolding.** Generate test scaffolding from what the compiler already knows. Every `requires` clause is a test precondition. Every `ensures` clause is a test oracle.
 
 The agent workflow:
 

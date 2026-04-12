@@ -13,15 +13,15 @@ The framebuffer backend provides direct pixel access to a display without a wind
 
 ### When to Use the Framebuffer Backend
 
-**Embedded Linux.** A Raspberry Pi running a custom image, an industrial HMI, or an OpenWrt router with an attached LCD panel. The Linux kernel exposes `/dev/fb0`. No compositor is present, and spawning one is not an option. The framebuffer backend writes pixels directly.
+- **Embedded Linux.** A Raspberry Pi running a custom image, an industrial HMI, or an OpenWrt router with an attached LCD panel. The Linux kernel exposes `/dev/fb0`. No compositor is present, and spawning one is not an option. The framebuffer backend writes pixels directly.
 
-**Microcontrollers with custom displays.** A bare-metal or RTOS-based target with an SPI LCD or I2C OLED. There is no `/dev/fb0` at all. The flush-callback path in `FramebufferBackend::from_raw()` accepts any write function — SPI, MMIO, DMA — and drives it with the same drawing API as a Linux desktop backend.
+- **Microcontrollers with custom displays.** A bare-metal or RTOS-based target with an SPI LCD or I2C OLED. There is no `/dev/fb0` at all. The flush-callback path in `FramebufferBackend::from_raw()` accepts any write function — SPI, MMIO, DMA — and drives it with the same drawing API as a Linux desktop backend.
 
-**Kiosk and signage systems.** A full-screen application running as the only GUI process. The framebuffer backend occupies the virtual terminal and renders directly, eliminating the latency, memory, and attack surface of a compositor.
+- **Kiosk and signage systems.** A full-screen application running as the only GUI process. The framebuffer backend occupies the virtual terminal and renders directly, eliminating the latency, memory, and attack surface of a compositor.
 
-**Recovery and installer screens.** Early-boot environments where the display stack has not started. GRUB and many Linux installers use the framebuffer for exactly this reason. Ferrum code running in a recovery initramfs can draw UI without a running systemd or display manager.
+- **Recovery and installer screens.** Early-boot environments where the display stack has not started. GRUB and many Linux installers use the framebuffer for exactly this reason. Ferrum code running in a recovery initramfs can draw UI without a running systemd or display manager.
 
-**Headless rendering and testing.** The `from_raw()` constructor with a no-op flush callback runs the software rasterizer entirely in memory with no hardware dependency. Integration tests can render scenes and compare pixel output without a display.
+- **Headless rendering and testing.** The `from_raw()` constructor with a no-op flush callback runs the software rasterizer entirely in memory with no hardware dependency. Integration tests can render scenes and compare pixel output without a display.
 
 ### No Windowing System Required
 

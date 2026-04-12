@@ -30,25 +30,25 @@
 
 The Ferrum standard library (`std`) covers the primitives every program needs: memory allocation, async I/O, TCP/UDP sockets, and low-level cryptographic building blocks (AEAD ciphers, hash functions, HMAC, key derivation). A full TLS stack sits above this baseline for several reasons:
 
-**Binary size and embedded targets.** A TLS implementation — certificate parsing, X.509 chain validation, ECDH key agreement, the full handshake state machine — adds substantial code to any binary that links it. An embedded controller managing a CAN bus, a bootloader verifying a firmware signature, or a bare-metal sensor node running over a proprietary radio protocol does not need TLS. Placing TLS in stdlib would impose its cost on every Ferrum program. The extended library is opt-in.
+- **Binary size and embedded targets.** A TLS implementation — certificate parsing, X.509 chain validation, ECDH key agreement, the full handshake state machine — adds substantial code to any binary that links it. An embedded controller managing a CAN bus, a bootloader verifying a firmware signature, or a bare-metal sensor node running over a proprietary radio protocol does not need TLS. Placing TLS in stdlib would impose its cost on every Ferrum program. The extended library is opt-in.
 
-**Dependency cycle risk.** The standard library's DNS resolver is used by many programs, including those that eventually make TLS connections. A TLS module in stdlib that needs hostname validation would create a circular dependency with the DNS module. The extlib boundary breaks this cycle: `extlib.tls` depends on `std.net` and `std.crypto`; `extlib.dns_secure` depends on `extlib.tls` for encrypted transport without any reverse dependency.
+- **Dependency cycle risk.** The standard library's DNS resolver is used by many programs, including those that eventually make TLS connections. A TLS module in stdlib that needs hostname validation would create a circular dependency with the DNS module. The extlib boundary breaks this cycle: `extlib.tls` depends on `std.net` and `std.crypto`; `extlib.dns_secure` depends on `extlib.tls` for encrypted transport without any reverse dependency.
 
-**Policy decisions belong at the boundary.** TLS is not a neutral transport — it embeds security policy. Which versions to support, which cipher suites to allow, whether to require SNI, what to do with renegotiation — these are engineering decisions with correctness implications. The stdlib is not the right place to enshrine them for all callers. The extlib module makes these decisions explicitly and documents them here.
+- **Policy decisions belong at the boundary.** TLS is not a neutral transport — it embeds security policy. Which versions to support, which cipher suites to allow, whether to require SNI, what to do with renegotiation — these are engineering decisions with correctness implications. The stdlib is not the right place to enshrine them for all callers. The extlib module makes these decisions explicitly and documents them here.
 
 ### Explicit Security Policy
 
 This module implements TLS 1.2 and TLS 1.3 only. The policy decisions below are not configuration options — they are structural properties of the implementation:
 
-**TLS 1.0 and 1.1 are absent, not disabled.** There is no configuration knob to enable them. The handshake state machine does not contain code paths for TLS 1.0 or 1.1. A `ClientHello` that offers only those versions will receive a `protocol_version` alert; the connection will not be established. This is intentional: TLS 1.0 uses MD5 and SHA-1 in its PRF; TLS 1.1 is a minor revision of the same RFC (RFC 4346) that never addressed the underlying cryptographic weaknesses. Neither version can be made secure. The correct response to a deployment that requires them is to fix the server, not to provide a compatibility shim.
+- **TLS 1.0 and 1.1 are absent, not disabled.** There is no configuration knob to enable them. The handshake state machine does not contain code paths for TLS 1.0 or 1.1. A `ClientHello` that offers only those versions will receive a `protocol_version` alert; the connection will not be established. This is intentional: TLS 1.0 uses MD5 and SHA-1 in its PRF; TLS 1.1 is a minor revision of the same RFC (RFC 4346) that never addressed the underlying cryptographic weaknesses. Neither version can be made secure. The correct response to a deployment that requires them is to fix the server, not to provide a compatibility shim.
 
-**SNI is required, not optional.** A `TlsClientConfig` cannot be built without a server name (see §7). Connections without SNI are structurally impossible through the public API.
+- **SNI is required, not optional.** A `TlsClientConfig` cannot be built without a server name (see §7). Connections without SNI are structurally impossible through the public API.
 
-**No renegotiation.** TLS 1.2 renegotiation is the mechanism behind CVE-2009-3555 and a persistent source of protocol confusion attacks. This implementation does not initiate renegotiation and does not respond to incoming renegotiation requests. An incoming `ClientHello` on an established TLS 1.2 session triggers a `no_renegotiation` warning alert followed by connection closure.
+- **No renegotiation.** TLS 1.2 renegotiation is the mechanism behind CVE-2009-3555 and a persistent source of protocol confusion attacks. This implementation does not initiate renegotiation and does not respond to incoming renegotiation requests. An incoming `ClientHello` on an established TLS 1.2 session triggers a `no_renegotiation` warning alert followed by connection closure.
 
-**CBC cipher suites are absent.** CBC-mode TLS has been the source of BEAST (CVE-2011-3389), Lucky Thirteen (CVE-2013-0169), POODLE (CVE-2014-3566), and related timing-oracle attacks. All cipher suites in this module use AEAD construction (GCM or ChaCha20-Poly1305). CBC suites are not in the negotiation list; they cannot be selected.
+- **CBC cipher suites are absent.** CBC-mode TLS has been the source of BEAST (CVE-2011-3389), Lucky Thirteen (CVE-2013-0169), POODLE (CVE-2014-3566), and related timing-oracle attacks. All cipher suites in this module use AEAD construction (GCM or ChaCha20-Poly1305). CBC suites are not in the negotiation list; they cannot be selected.
 
-**RC4, DES, 3DES, export ciphers, NULL, and anonymous DH are absent.** These are never negotiated for the same reason: they are broken.
+- **RC4, DES, 3DES, export ciphers, NULL, and anonymous DH are absent.** These are never negotiated for the same reason: they are broken.
 
 ---
 

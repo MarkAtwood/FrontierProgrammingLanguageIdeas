@@ -1217,32 +1217,32 @@ impl ListItemStyle for BoringListItemStyle {
 
 The boring suite makes the following guarantees about every widget it renders:
 
-**Focus indicators.** Every focusable widget displays a 2-pixel border in
-`theme.colors.primary` when it has keyboard focus. This indicator is always visible:
-it is never suppressed, faded, or delayed. The 2-pixel width meets WCAG 2.2 Success
-Criterion 2.4.11 (Focus Appearance, minimum).
+- **Focus indicators.** Every focusable widget displays a 2-pixel border in
+  `theme.colors.primary` when it has keyboard focus. This indicator is always visible:
+  it is never suppressed, faded, or delayed. The 2-pixel width meets WCAG 2.2 Success
+  Criterion 2.4.11 (Focus Appearance, minimum).
 
-**Color contrast.** The boring suite uses only the semantic color roles defined in
-`extlib.ccsp.style`. When `BoringTheme::new(seed)` generates the color palette, all
-role pairings that the boring suite uses (e.g., `on_primary` on `primary`,
-`on_surface` on `surface`) are generated with a contrast ratio ≥ 4.5:1 (WCAG 2.1 AA
-for normal text). The tonal palette algorithm enforces this; callers who override
-individual colors in `ColorTokens` are responsible for their own contrast.
+- **Color contrast.** The boring suite uses only the semantic color roles defined in
+  `extlib.ccsp.style`. When `BoringTheme::new(seed)` generates the color palette, all
+  role pairings that the boring suite uses (e.g., `on_primary` on `primary`,
+  `on_surface` on `surface`) are generated with a contrast ratio ≥ 4.5:1 (WCAG 2.1 AA
+  for normal text). The tonal palette algorithm enforces this; callers who override
+  individual colors in `ColorTokens` are responsible for their own contrast.
 
-**Disabled state.** Disabled widgets are rendered with `on_surface_variant` on
-`surface`, which is intentionally lower-contrast than normal state. WCAG exempts
-disabled controls from contrast requirements; the boring suite follows this exemption.
-Disabled widgets still have a visually distinct appearance to prevent confusion.
+- **Disabled state.** Disabled widgets are rendered with `on_surface_variant` on
+  `surface`, which is intentionally lower-contrast than normal state. WCAG exempts
+  disabled controls from contrast requirements; the boring suite follows this exemption.
+  Disabled widgets still have a visually distinct appearance to prevent confusion.
 
-**No state communicated by color alone.** The boring suite does not rely on color as
-the only distinguishing factor between states. Checked checkboxes have a tick mark.
-Selected radio buttons have an inner dot. The focused state has a border (shape
-change), not merely a color change. This satisfies WCAG 1.4.1 (Use of Color).
+- **No state communicated by color alone.** The boring suite does not rely on color as
+  the only distinguishing factor between states. Checked checkboxes have a tick mark.
+  Selected radio buttons have an inner dot. The focused state has a border (shape
+  change), not merely a color change. This satisfies WCAG 1.4.1 (Use of Color).
 
-**Pointer cursors.** The boring suite communicates interactive regions by declaring
-the appropriate pointer cursor (hand for buttons, text cursor for text fields) to the
-platform. This is not visible in the paint methods above — it is handled by the widget
-layer — but the boring suite never suppresses or overrides this behavior.
+- **Pointer cursors.** The boring suite communicates interactive regions by declaring
+  the appropriate pointer cursor (hand for buttons, text cursor for text fields) to the
+  platform. This is not visible in the paint methods above — it is handled by the widget
+  layer — but the boring suite never suppresses or overrides this behavior.
 
 ---
 

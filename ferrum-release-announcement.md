@@ -15,11 +15,8 @@ Ferrum is a compiled systems language designed around one question: can safety a
 The answer, we believe, is yes — if the language is built on four foundations:
 
 1. **Ownership without lifetime annotations.** Ferrum tracks memory lifetimes using region inference. In our test suite, fewer than 10% of functions require explicit lifetime annotations. The compiler infers the rest.
-
 2. **Effects as part of the type.** A function that does IO says so: `! IO`. A function that touches the network says so: `! Net`. Pure functions are verified pure by the compiler — calling anything impure is a type error. This is not documentation. It is a checked contract.
-
 3. **Contracts that mean something.** `requires` and `ensures` are not comments. They are checked. In this release, they are checked at load time via runtime assertion and Boogie-backed SMT verification where the solver can discharge them statically.
-
 4. **Correct before fast.** The compiler emits maximally instrumented code. Every contract fires on every call. Every borrow is tracked. Every effect is checked. Performance optimizations come later; correctness comes first.
 
 ---

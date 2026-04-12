@@ -16,25 +16,25 @@ A design token is a named design decision: a specific color, a spacing value, a 
 
 This separation has three concrete consequences:
 
-**Systematic consistency.** Every button, card, chip, and text field that uses `theme.colors.primary` changes together when the primary color changes. There is no spreadsheet of places to update. Consistency is structural, not disciplinary.
+- **Systematic consistency.** Every button, card, chip, and text field that uses `theme.colors.primary` changes together when the primary color changes. There is no spreadsheet of places to update. Consistency is structural, not disciplinary.
 
-**Easy dark mode and high contrast.** Dark mode is a different `Theme` value, not a mirror image maintained in parallel CSS. Switching from light to dark is `handle.set(Theme.dark())`. High-contrast mode is `handle.set(Theme.high_contrast())`. Widget code is unchanged; it reads whatever theme the handle currently provides.
+- **Easy dark mode and high contrast.** Dark mode is a different `Theme` value, not a mirror image maintained in parallel CSS. Switching from light to dark is `handle.set(Theme.dark())`. High-contrast mode is `handle.set(Theme.high_contrast())`. Widget code is unchanged; it reads whatever theme the handle currently provides.
 
-**Widget code that is readable.** `ctx.fill_rect(rect, theme.colors.surface)` communicates intent. `ctx.fill_rect(rect, Color.from_hex(0xFFFBFEFF))` communicates nothing except a hex value that may or may not be current.
+- **Widget code that is readable.** `ctx.fill_rect(rect, theme.colors.surface)` communicates intent. `ctx.fill_rect(rect, Color.from_hex(0xFFFBFEFF))` communicates nothing except a hex value that may or may not be current.
 
 ### Why NOT CSS
 
 CSS is the dominant theming mechanism in web browsers. It is not the right model for a native widget system.
 
-**Specificity and cascade create implicit dependencies.** In CSS, every style rule can potentially affect every element. A rule added to solve one problem silently changes an unrelated component. The interaction between a component's own styles and styles inherited from ancestors is non-local: you cannot understand a component's appearance by reading only its own code. These interactions become bugs that are difficult to isolate and reproduce.
+- **Specificity and cascade create implicit dependencies.** In CSS, every style rule can potentially affect every element. A rule added to solve one problem silently changes an unrelated component. The interaction between a component's own styles and styles inherited from ancestors is non-local: you cannot understand a component's appearance by reading only its own code. These interactions become bugs that are difficult to isolate and reproduce.
 
-**`!important` is an arms race.** The specificity system inevitably produces `!important` declarations to win specificity contests. `!important` in a component's stylesheet can then be overridden only by `!important` in a more specific rule, creating an escalation that ends in unmaintainable style sheets.
+- **`!important` is an arms race.** The specificity system inevitably produces `!important` declarations to win specificity contests. `!important` in a component's stylesheet can then be overridden only by `!important` in a more specific rule, creating an escalation that ends in unmaintainable style sheets.
 
-**Selector matching has runtime cost.** A CSS engine must evaluate every rule against every element on every style recalculation. Even with incremental invalidation, selector matching is work proportional to rule count times element count in the worst case. A native widget system that owns the widget tree can apply tokens at layout time with zero matching cost: each widget reads named tokens from its `Theme` reference. There are no selectors.
+- **Selector matching has runtime cost.** A CSS engine must evaluate every rule against every element on every style recalculation. Even with incremental invalidation, selector matching is work proportional to rule count times element count in the worst case. A native widget system that owns the widget tree can apply tokens at layout time with zero matching cost: each widget reads named tokens from its `Theme` reference. There are no selectors.
 
-**No layout engine, no inheritance by default.** CSS assumes a document model where properties like `font-family` and `color` inherit from parent elements. Native widget layout is a tree of positioned boxes; there is no inherited property mechanism. Simulating CSS inheritance in a native widget system requires either introducing the inheritance machinery (expensive) or documenting which properties inherit and which do not (ambiguous and surprising).
+- **No layout engine, no inheritance by default.** CSS assumes a document model where properties like `font-family` and `color` inherit from parent elements. Native widget layout is a tree of positioned boxes; there is no inherited property mechanism. Simulating CSS inheritance in a native widget system requires either introducing the inheritance machinery (expensive) or documenting which properties inherit and which do not (ambiguous and surprising).
 
-**Overrides are explicit code, not specificity games.** In `extlib.ccsp.style`, a widget override is a `WidgetOverrides` value passed to the widget constructor. You can read the widget construction site and immediately know what is overridden. There is no need to search for rules that might win the specificity contest.
+- **Overrides are explicit code, not specificity games.** In `extlib.ccsp.style`, a widget override is a `WidgetOverrides` value passed to the widget constructor. You can read the widget construction site and immediately know what is overridden. There is no need to search for rules that might win the specificity contest.
 
 ### Why an Extlib
 

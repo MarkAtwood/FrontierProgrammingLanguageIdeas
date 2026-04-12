@@ -20,11 +20,11 @@ The stdlib includes `text.latin1`, `text.ascii`, and `text.utf16` because these 
 
 `charconv` is not in stdlib for three reasons:
 
-**ICU is large.** The full International Components for Unicode library is 25–35 MB of compiled code. Most programs — command-line tools, embedded systems, network daemons — never need Devanagari-to-Braille transliteration or locale-aware Thai word breaking. Pulling ICU into every Ferrum binary by default would be hostile to constrained environments.
+- **ICU is large.** The full International Components for Unicode library is 25–35 MB of compiled code. Most programs — command-line tools, embedded systems, network daemons — never need Devanagari-to-Braille transliteration or locale-aware Thai word breaking. Pulling ICU into every Ferrum binary by default would be hostile to constrained environments.
 
-**Most programs don't need legacy encodings.** A web server processing UTF-8 JSON, a systems daemon talking to POSIX APIs, a game engine — none of these need Shift-JIS. Making them pay for it silently is wrong.
+- **Most programs don't need legacy encodings.** A web server processing UTF-8 JSON, a systems daemon talking to POSIX APIs, a game engine — none of these need Shift-JIS. Making them pay for it silently is wrong.
 
-**libiconv is a system dependency.** The conversion engine depends on libiconv (or an equivalent), which is a shared system library, not pure Ferrum. Extlib dependencies are explicitly opted into; stdlib dependencies are implicit.
+- **libiconv is a system dependency.** The conversion engine depends on libiconv (or an equivalent), which is a shared system library, not pure Ferrum. Extlib dependencies are explicitly opted into; stdlib dependencies are implicit.
 
 Programs that do need comprehensive encoding support — email clients, document converters, terminal emulators, database drivers for legacy databases — opt in by depending on `extlib.charconv`.
 

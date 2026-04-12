@@ -46,18 +46,18 @@ compositor-side decorations, damage tracking, GPU zero-copy), and carries the fu
 of the X11 protocol surface. There is no engineering reason to do this for a new
 application.
 
-**Use this module (`draw_wayland`) when:** you are writing a Linux desktop application,
-GUI toolkit, game, creative tool, or any program that opens windows and renders content
-on a Linux desktop. This is the right default for interactive Linux applications.
+- **Use this module (`draw_wayland`) when:** you are writing a Linux desktop application,
+  GUI toolkit, game, creative tool, or any program that opens windows and renders content
+  on a Linux desktop. This is the right default for interactive Linux applications.
 
-**Use `draw_x11` when:** you need to support Linux systems without a Wayland compositor
-(headless servers, very old distributions, some embedded Linux configurations), or when
-you need X11 extension protocols (XInput2 for tablet pressure, XRandR for explicit
-display management) that have no Wayland equivalent yet.
+- **Use `draw_x11` when:** you need to support Linux systems without a Wayland compositor
+  (headless servers, very old distributions, some embedded Linux configurations), or when
+  you need X11 extension protocols (XInput2 for tablet pressure, XRandR for explicit
+  display management) that have no Wayland equivalent yet.
 
-**Use `draw_fb` when:** you are running on bare Linux with no display server (framebuffer
-console, embedded kiosk, recovery console), or on a platform where neither Wayland nor
-X11 is available.
+- **Use `draw_fb` when:** you are running on bare Linux with no display server (framebuffer
+  console, embedded kiosk, recovery console), or on a platform where neither Wayland nor
+  X11 is available.
 
 ### What Protocols This Module Covers
 

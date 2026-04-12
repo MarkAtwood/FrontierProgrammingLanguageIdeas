@@ -14,29 +14,29 @@ RFC 2920 (PIPELINING), RFC 1870 (SIZE), RFC 6531 (SMTPUTF8), DANE for outbound M
 The stdlib `net` module provides TCP streams, TLS connections, and DNS resolution.
 SMTP is not there. This is deliberate.
 
-**Most programs do not send email.** A web server, a command-line tool, a database
-driver — none of these need SMTP. Pulling in a full SMTP implementation as part of
-every Ferrum program would impose binary size, compile time, and dependency surface on
-code that will never call it. The extlib is for domain-specific protocol libraries that
-are common enough to warrant a first-party, audited implementation but not universal
-enough to belong in the stdlib.
+- **Most programs do not send email.** A web server, a command-line tool, a database
+  driver — none of these need SMTP. Pulling in a full SMTP implementation as part of
+  every Ferrum program would impose binary size, compile time, and dependency surface on
+  code that will never call it. The extlib is for domain-specific protocol libraries that
+  are common enough to warrant a first-party, audited implementation but not universal
+  enough to belong in the stdlib.
 
-**SMTP has a severe CVE history.** Sendmail is one of the most consistently
-vulnerability-ridden pieces of infrastructure software ever written, with critical
-CVEs spanning four decades (CVE-1999-0206, CVE-2002-0906, CVE-2003-0161,
-CVE-2006-0058, CVE-2014-3956, and many others). The root causes recur:
-hand-written address parsers operating on byte buffers without length tracking,
-manual MIME boundary search with off-by-one errors, sprintf into fixed-size
-stack buffers, and state machines that accept out-of-order commands. These are
-not implementation accidents — they are the natural consequence of writing SMTP
-clients and servers in C close to the wire.
+- **SMTP has a severe CVE history.** Sendmail is one of the most consistently
+  vulnerability-ridden pieces of infrastructure software ever written, with critical
+  CVEs spanning four decades (CVE-1999-0206, CVE-2002-0906, CVE-2003-0161,
+  CVE-2006-0058, CVE-2014-3956, and many others). The root causes recur:
+  hand-written address parsers operating on byte buffers without length tracking,
+  manual MIME boundary search with off-by-one errors, sprintf into fixed-size
+  stack buffers, and state machines that accept out-of-order commands. These are
+  not implementation accidents — they are the natural consequence of writing SMTP
+  clients and servers in C close to the wire.
 
-**A declarative API prevents an entire class of bugs.** This library does not expose
-raw SMTP command streams or byte-level message construction. Application code
-assembles a `Message` using a typed builder; the library serializes it. There is no
-way to produce a malformed `Content-Type` header, inject a newline into an address,
-or construct a MIME boundary that conflicts with body content through the public API.
-Buffer management is invisible to callers.
+- **A declarative API prevents an entire class of bugs.** This library does not expose
+  raw SMTP command streams or byte-level message construction. Application code
+  assembles a `Message` using a typed builder; the library serializes it. There is no
+  way to produce a malformed `Content-Type` header, inject a newline into an address,
+  or construct a MIME boundary that conflicts with body content through the public API.
+  Buffer management is invisible to callers.
 
 ### What This Library Provides
 

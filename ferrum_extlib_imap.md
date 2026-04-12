@@ -16,26 +16,26 @@ RFC 9051 §6.3.10 (STATUS=SIZE, mandatory in RFC 9051)
 The stdlib `net` module provides TCP streams and TLS connections. IMAP is not there.
 This is deliberate.
 
-**Most programs do not access email.** A web server, a CLI tool, a data pipeline —
-none of these need IMAP. Pulling in a full IMAP implementation as part of every Ferrum
-program would impose binary size, compile time, and dependency surface on code that
-will never call it. The extlib exists precisely for high-value protocol libraries that
-are common enough to warrant a first-party, audited implementation but not universal
-enough to belong in the stdlib.
+- **Most programs do not access email.** A web server, a CLI tool, a data pipeline —
+  none of these need IMAP. Pulling in a full IMAP implementation as part of every Ferrum
+  program would impose binary size, compile time, and dependency surface on code that
+  will never call it. The extlib exists precisely for high-value protocol libraries that
+  are common enough to warrant a first-party, audited implementation but not universal
+  enough to belong in the stdlib.
 
-**IMAP depends on TLS.** RFC 9051 §11.1 deprecates unencrypted IMAP. The implicit TLS
-port (993, IMAPS) and STARTTLS upgrade path both require a TLS engine. Ferrum's `extlib::tls`
-provides that engine. Requiring `extlib::tls` as a transitive dependency of the stdlib
-is not acceptable; it carries CA trust anchors, cipher suite policy, and significant
-code size. The extlib layer exists for modules with non-trivial dependency trees.
+- **IMAP depends on TLS.** RFC 9051 §11.1 deprecates unencrypted IMAP. The implicit TLS
+  port (993, IMAPS) and STARTTLS upgrade path both require a TLS engine. Ferrum's `extlib::tls`
+  provides that engine. Requiring `extlib::tls` as a transitive dependency of the stdlib
+  is not acceptable; it carries CA trust anchors, cipher suite policy, and significant
+  code size. The extlib layer exists for modules with non-trivial dependency trees.
 
-**IMAP is protocol-complex.** IMAP4rev2 (RFC 9051) is a stateful, multiplexed
-protocol with five connection states (Not Authenticated, Authenticated, Selected,
-Logout, and the implicit Not Connected state), literal string synchronization,
-sequence number vs. UID duality, optional extension advertisement, and server-initiated
-untagged responses that can arrive during any client command. Implementing it correctly
-is non-trivial. A first-party audited implementation prevents the class of bugs that
-arise from hand-rolled IMAP parsers.
+- **IMAP is protocol-complex.** IMAP4rev2 (RFC 9051) is a stateful, multiplexed
+  protocol with five connection states (Not Authenticated, Authenticated, Selected,
+  Logout, and the implicit Not Connected state), literal string synchronization,
+  sequence number vs. UID duality, optional extension advertisement, and server-initiated
+  untagged responses that can arrive during any client command. Implementing it correctly
+  is non-trivial. A first-party audited implementation prevents the class of bugs that
+  arise from hand-rolled IMAP parsers.
 
 ### RFC Baseline
 

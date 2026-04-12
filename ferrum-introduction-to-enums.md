@@ -39,13 +39,10 @@ void print_message(struct Message* m) {
 
 This works, but it has problems that will bite you:
 
-**Problem 1: The enum is just a number.** Nothing stops you from writing `m->type = 99` or `m->type = -1`. The compiler doesn't know those are invalid.
-
-**Problem 2: The union doesn't know which variant is active.** If `m->type` is `TEXT` but you read `m->image.w`, you get garbage. The compiler can't warn you.
-
-**Problem 3: The switch isn't checked.** Add `VIDEO` to the enum next month, and `print_message()` silently does nothing for videos. No warning. No error. You'll find out in production.
-
-**Problem 4: It's a lot of code.** You need an enum, a union, a struct wrapper, and careful discipline to keep them all in sync.
+- **Problem 1: The enum is just a number.** Nothing stops you from writing `m->type = 99` or `m->type = -1`. The compiler doesn't know those are invalid.
+- **Problem 2: The union doesn't know which variant is active.** If `m->type` is `TEXT` but you read `m->image.w`, you get garbage. The compiler can't warn you.
+- **Problem 3: The switch isn't checked.** Add `VIDEO` to the enum next month, and `print_message()` silently does nothing for videos. No warning. No error. You'll find out in production.
+- **Problem 4: It's a lot of code.** You need an enum, a union, a struct wrapper, and careful discipline to keep them all in sync.
 
 In Python, you might try dataclasses and isinstance:
 
@@ -80,11 +77,9 @@ def print_message(m):
 
 This is cleaner, but still has issues:
 
-**Problem 1: No compile-time checking.** You can pass any object to `print_message`. You'll find out at runtime.
-
-**Problem 2: isinstance chains are easy to forget.** Add `VideoMessage` next month, and the `else` branch catches it with a runtime error. Better than C's silent bug, but you still don't find out until someone hits that code path.
-
-**Problem 3: The type hint `TextMessage | ImageMessage | FileMessage` exists, but Python doesn't enforce it.** It's documentation, not a guarantee.
+- **Problem 1: No compile-time checking.** You can pass any object to `print_message`. You'll find out at runtime.
+- **Problem 2: isinstance chains are easy to forget.** Add `VideoMessage` next month, and the `else` branch catches it with a runtime error. Better than C's silent bug, but you still don't find out until someone hits that code path.
+- **Problem 3: The type hint `TextMessage | ImageMessage | FileMessage` exists, but Python doesn't enforce it.** It's documentation, not a guarantee.
 
 The core problem in both languages: **"which variant" and "what data" are separate things.** You have to manually keep them synchronized. The compiler can't help you because it doesn't understand the relationship.
 

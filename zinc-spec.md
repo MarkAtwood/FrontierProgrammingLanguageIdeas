@@ -702,35 +702,15 @@ pub fn main() !void {
 
 ## What Is Explicitly Not Added
 
-**No borrow checker.** Zinc is manual memory management, same as Zig.
-Contracts help document ownership assumptions but do not enforce them.
-
-**No effect system.** There is no tracking of which functions do I/O,
-allocate, or have side effects beyond what is visible in the signature.
-
-**No type classes or traits.** Comptime duck typing handles generics,
-same as Zig.
-
-**No region inference.** The `with` block is the region. It is lexical
-and explicit.
-
-**No formal verification.** Contracts are runtime assertions in debug mode.
-They are not SMT-discharged. They are not proof obligations. A `requires`
-clause that is satisfied by all inputs is documentation, not a theorem.
-
-**No safety level ladder.** Zig's existing `unsafe` story (pointer arithmetic,
-`@ptrCast`, etc.) is unchanged.
-
-**No sum types with exhaustive matching beyond tagged unions.** Zig's tagged
-unions are the sum type story.
-
-**No hardware transactional memory in the core stdlib.** HTM (Intel TSX,
-ARM TME, IBM POWER HTM) lives in platform-specific namespaces. See
-§Concurrency below.
-
-**No CHERI capability pointer support.** CHERI requires ABI-level changes
-to pointer representation that are out of scope for Zinc. If CHERI support
-lands in upstream Zig it will be inherited.
+- **No borrow checker.** Zinc is manual memory management, same as Zig. Contracts help document ownership assumptions but do not enforce them.
+- **No effect system.** There is no tracking of which functions do I/O, allocate, or have side effects beyond what is visible in the signature.
+- **No type classes or traits.** Comptime duck typing handles generics, same as Zig.
+- **No region inference.** The `with` block is the region. It is lexical and explicit.
+- **No formal verification.** Contracts are runtime assertions in debug mode. They are not SMT-discharged. They are not proof obligations. A `requires` clause that is satisfied by all inputs is documentation, not a theorem.
+- **No safety level ladder.** Zig's existing `unsafe` story (pointer arithmetic, `@ptrCast`, etc.) is unchanged.
+- **No sum types with exhaustive matching beyond tagged unions.** Zig's tagged unions are the sum type story.
+- **No hardware transactional memory in the core stdlib.** HTM (Intel TSX, ARM TME, IBM POWER HTM) lives in platform-specific namespaces. See §Concurrency below.
+- **No CHERI capability pointer support.** CHERI requires ABI-level changes to pointer representation that are out of scope for Zinc. If CHERI support lands in upstream Zig it will be inherited.
 
 ---
 
@@ -936,22 +916,10 @@ try stm.atomically(struct {
 }.run);
 ```
 
-**`stm.TVar(T)`** — a transactional variable. Wraps a value and a version
-counter. Thread-safe reads outside transactions return a snapshot. Writes
-outside transactions are a runtime error in debug mode.
-
-**`stm.Tx`** — a transaction context. Records all reads (with version at
-read time) and all intended writes. `tx.read()` reads the current value and
-logs the version. `tx.write()` records an intended write without applying it.
-
-**`stm.atomically(fn(*Tx) !void)`** — commits the transaction. Validates
-that all read versions are still current (no concurrent modification). If
-valid, applies all writes atomically using a global lock for the commit
-phase. If invalid, clears the transaction log and retries from the start.
-
-**`tx.retry()`** — abort the current transaction and block until at least
-one read `TVar` changes. Implemented with condition variables. Equivalent
-to Haskell's `retry`.
+- **`stm.TVar(T)`** — a transactional variable. Wraps a value and a version counter. Thread-safe reads outside transactions return a snapshot. Writes outside transactions are a runtime error in debug mode.
+- **`stm.Tx`** — a transaction context. Records all reads (with version at read time) and all intended writes. `tx.read()` reads the current value and logs the version. `tx.write()` records an intended write without applying it.
+- **`stm.atomically(fn(*Tx) !void)`** — commits the transaction. Validates that all read versions are still current (no concurrent modification). If valid, applies all writes atomically using a global lock for the commit phase. If invalid, clears the transaction log and retries from the start.
+- **`tx.retry()`** — abort the current transaction and block until at least one read `TVar` changes. Implemented with condition variables. Equivalent to Haskell's `retry`.
 
 **`tx.orElse(first, second)`** — try `first`; if it calls `retry()`, try
 `second` instead. Composable alternative.
@@ -1110,21 +1078,9 @@ layout Packet {
 
 For each `layout` declaration the compiler generates three functions:
 
-**`TypeName.read(bytes: []const u8) TypeName`**
-
-Extracts fields from raw bytes per the layout. Applies byte/bit order
-conversion. Verifies the input slice is long enough. Returns the typed struct.
-
-**`TypeName.write(self: TypeName, buf: []u8) void`**
-
-Packs fields into raw bytes per the layout. Applies byte/bit order conversion.
-Zeroes all padding fields. Asserts `buf.len >= total_size / 8`.
-
-**`TypeName.view(ptr: *volatile [N]u8) TypeNameView`**
-
-Returns a zero-copy view over memory-mapped bytes. Field accessors
-(`view.ready()`, `view.set_mode(3)`) read and write individual fields
-using volatile loads and stores. Suitable for MMIO register access.
+- **`TypeName.read(bytes: []const u8) TypeName`** — extracts fields from raw bytes per the layout. Applies byte/bit order conversion. Verifies the input slice is long enough. Returns the typed struct.
+- **`TypeName.write(self: TypeName, buf: []u8) void`** — packs fields into raw bytes per the layout. Applies byte/bit order conversion. Zeroes all padding fields. Asserts `buf.len >= total_size / 8`.
+- **`TypeName.view(ptr: *volatile [N]u8) TypeNameView`** — returns a zero-copy view over memory-mapped bytes. Field accessors (`view.ready()`, `view.set_mode(3)`) read and write individual fields using volatile loads and stores. Suitable for MMIO register access.
 
 ```zig
 // Read from network packet

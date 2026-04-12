@@ -135,11 +135,9 @@ proof fn reverse_involutive[T](xs: &[T])
 
 ### 3.5 Design Principles
 
-**Correct before fast.** No optimization removes a semantic check unless the check is proven redundant. Every annotation is a claim that can be verified.
-
-**Annotations as deprecation queue.** Every explicit annotation marks a gap in compiler inference. As inference improves, annotations become redundant warnings. The asymptote is zero unnecessary annotations, not zero annotations.
-
-**Progressive disclosure.** The core working set (no explicit lifetimes, no effect annotations on private functions, no contracts) is productive indefinitely. Advanced features are encountered when needed.
+- **Correct before fast.** No optimization removes a semantic check unless the check is proven redundant. Every annotation is a claim that can be verified.
+- **Annotations as deprecation queue.** Every explicit annotation marks a gap in compiler inference. As inference improves, annotations become redundant warnings. The asymptote is zero unnecessary annotations, not zero annotations.
+- **Progressive disclosure.** The core working set (no explicit lifetimes, no effect annotations on private functions, no contracts) is productive indefinitely. Advanced features are encountered when needed.
 
 ---
 
@@ -205,11 +203,9 @@ For contracts Z3 cannot discharge, the Boogie pass emits a warning indicating th
 
 The load-time pass runs after class loading and before the JVM executes the program's entry point. It traverses all loaded Ferrum-annotated methods and performs:
 
-**Borrow flow analysis.** For each method, the pass performs a forward dataflow analysis over the bytecode, tracking borrow state at each program point. It verifies that: no exclusive borrow exists when a shared borrow is created (and vice versa); no reference is used after its borrow is released; region-local values do not escape their region.
-
-**Effect annotation verification.** The pass checks that every call from a pure function (no `Ferrum.Effects` attribute or empty effect set) targets only other pure functions. It reports violations as errors.
-
-**Contract consistency.** For contracts not discharged by Boogie, the pass inserts JVM assertion bytecode immediately preceding and following the method body. These assertions reference the serialized contract AST and are evaluated by the runtime library.
+- **Borrow flow analysis.** For each method, the pass performs a forward dataflow analysis over the bytecode, tracking borrow state at each program point. It verifies that: no exclusive borrow exists when a shared borrow is created (and vice versa); no reference is used after its borrow is released; region-local values do not escape their region.
+- **Effect annotation verification.** The pass checks that every call from a pure function (no `Ferrum.Effects` attribute or empty effect set) targets only other pure functions. It reports violations as errors.
+- **Contract consistency.** For contracts not discharged by Boogie, the pass inserts JVM assertion bytecode immediately preceding and following the method body. These assertions reference the serialized contract AST and are evaluated by the runtime library.
 
 If the load-time pass finds any violation, it emits a structured error and terminates before any user code runs. The error format is identical to compile-time errors: source file, line, column, error code, message, and suggested fix where available.
 
@@ -358,13 +354,13 @@ For 0.1, these limitations are acceptable — Boogie runs offline and its result
 
 ## 8. Related Work (Extended)
 
-**Viper** [Müller et al. 2016] is a verification infrastructure for permission-based reasoning over heap-manipulating programs. Ferrum's Boogie encoding of ownership is directly adapted from Viper's heap model. Unlike Viper, Ferrum is not a verification-first language — it is a systems language that uses verification as one layer of a progressive safety stack.
+- **Viper** [Müller et al. 2016] is a verification infrastructure for permission-based reasoning over heap-manipulating programs. Ferrum's Boogie encoding of ownership is directly adapted from Viper's heap model. Unlike Viper, Ferrum is not a verification-first language — it is a systems language that uses verification as one layer of a progressive safety stack.
 
-**Prusti** [Astrauskas et al. 2019] verifies Rust programs by encoding them in Viper. This is the closest prior work to Ferrum's approach. Ferrum differs in: (1) targeting a new language with a cleaner contract surface than Rust, (2) the progressive architecture (Prusti is compile-time only), and (3) the scope — Ferrum's verification is designed as part of the language rather than an external tool.
+- **Prusti** [Astrauskas et al. 2019] verifies Rust programs by encoding them in Viper. This is the closest prior work to Ferrum's approach. Ferrum differs in: (1) targeting a new language with a cleaner contract surface than Rust, (2) the progressive architecture (Prusti is compile-time only), and (3) the scope — Ferrum's verification is designed as part of the language rather than an external tool.
 
-**Creusot** [Denis et al. 2022] deductively verifies Rust programs using Why3. Like Prusti, it is a compile-time-only tool for an existing language. Ferrum's `verified_by` mechanism is inspired by Creusot's approach to linking fast implementations to proof functions.
+- **Creusot** [Denis et al. 2022] deductively verifies Rust programs using Why3. Like Prusti, it is a compile-time-only tool for an existing language. Ferrum's `verified_by` mechanism is inspired by Creusot's approach to linking fast implementations to proof functions.
 
-**Stainless** [Blanc et al. 2013] verifies Scala programs. It demonstrates that JVM-targeting languages can support deductive verification. Ferrum's choice of JVM as bootstrap target is partly informed by this work.
+- **Stainless** [Blanc et al. 2013] verifies Scala programs. It demonstrates that JVM-targeting languages can support deductive verification. Ferrum's choice of JVM as bootstrap target is partly informed by this work.
 
 ---
 

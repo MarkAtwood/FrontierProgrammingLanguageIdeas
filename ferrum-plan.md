@@ -119,18 +119,10 @@ modifying the source.
 SemanticQuery is a protocol (specified in `ferrum-semanticquery.md`) that
 exposes four operations:
 
-**Point Query:** Ask the compiler what it knows at any program point — type,
-effects, regions, invariants, active contracts, borrow checker state.
-
-**Counterfactual Query:** Inject a proposed invariant and ask whether it
-closes a verification gap — without writing it into the source.
-
-**Monitor:** Place semantically-aware traps in the binary — conditions
-expressed in Ferrum's type language that the compiler weaves in correctly.
-
-**Scaffolding:** Generate test scaffolding from what the compiler already
-knows — every `requires` clause is a test precondition, every `ensures`
-clause is a test oracle.
+- **Point Query:** Ask the compiler what it knows at any program point — type, effects, regions, invariants, active contracts, borrow checker state.
+- **Counterfactual Query:** Inject a proposed invariant and ask whether it closes a verification gap — without writing it into the source.
+- **Monitor:** Place semantically-aware traps in the binary — conditions expressed in Ferrum's type language that the compiler weaves in correctly.
+- **Scaffolding:** Generate test scaffolding from what the compiler already knows — every `requires` clause is a test precondition, every `ensures` clause is a test oracle.
 
 SemanticQuery is specified as LSP extension methods and can also be spoken
 standalone. The SMT-LIB export operation exposes the compiler's verification

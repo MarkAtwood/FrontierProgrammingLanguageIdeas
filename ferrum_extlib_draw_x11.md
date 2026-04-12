@@ -651,14 +651,14 @@ impl X11Window {
 
 Two approaches are viable; which to choose depends on the application:
 
-**XRender at physical resolution.** Pass physical pixel dimensions to all XRender calls.
-Font rasterization and shape rendering happen at the native display resolution.
-Sharpest result; no scaling artifact.
+- **XRender at physical resolution.** Pass physical pixel dimensions to all XRender calls.
+  Font rasterization and shape rendering happen at the native display resolution.
+  Sharpest result; no scaling artifact.
 
-**Offscreen pixmap at 2× then scale down.** Render to a pixmap twice the logical size,
-then scale down to the window via XRender's `XRenderSetPictureFilter` with `"bilinear"`.
-Useful when the rendering pipeline is expressed in logical coordinates and converting
-all coordinates is impractical.
+- **Offscreen pixmap at 2× then scale down.** Render to a pixmap twice the logical size,
+  then scale down to the window via XRender's `XRenderSetPictureFilter` with `"bilinear"`.
+  Useful when the rendering pipeline is expressed in logical coordinates and converting
+  all coordinates is impractical.
 
 ---
 

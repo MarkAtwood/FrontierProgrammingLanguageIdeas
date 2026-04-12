@@ -62,11 +62,11 @@ The specification, bootstrap compiler, and test suite are available at [reposito
 
 Three differences that matter day to day.
 
-First, ~90% fewer lifetime annotations. Rust's borrow checker requires programmers to name lifetimes when the compiler cannot infer them; in practice this is frequent enough to be a significant burden. Ferrum uses region inference (Tofte-Talpin style) to infer lifetimes as a constraint-solving problem. Explicit region annotations appear only when the system is genuinely ambiguous, and each annotation is load-bearing — not boilerplate.
+1. **~90% fewer lifetime annotations.** Rust's borrow checker requires programmers to name lifetimes when the compiler cannot infer them; in practice this is frequent enough to be a significant burden. Ferrum uses region inference (Tofte-Talpin style) to infer lifetimes as a constraint-solving problem. Explicit region annotations appear only when the system is genuinely ambiguous, and each annotation is load-bearing — not boilerplate.
 
-Second, effects in the type system. Rust does not track IO, network access, or synchronization in types. A Rust function signature tells you its inputs and outputs; it does not tell you whether it writes to disk or touches shared state. Ferrum's effect system makes this part of the type, checked by the compiler.
+2. **Effects in the type system.** Rust does not track IO, network access, or synchronization in types. A Rust function signature tells you its inputs and outputs; it does not tell you whether it writes to disk or touches shared state. Ferrum's effect system makes this part of the type, checked by the compiler.
 
-Third, contracts. Rust has no built-in precondition or postcondition system. Ferrum's `requires`/`ensures` are verified — statically where an SMT solver can discharge them, at runtime otherwise — so behavioral specifications have compiler backing.
+3. **Contracts.** Rust has no built-in precondition or postcondition system. Ferrum's `requires`/`ensures` are verified — statically where an SMT solver can discharge them, at runtime otherwise — so behavioral specifications have compiler backing.
 
 ---
 
@@ -204,9 +204,8 @@ Contracts (Layer 3) require familiarity with pre/postcondition reasoning, which 
 
 Two reasons.
 
-Security: macros that execute at compile time are a supply-chain attack surface. A compromised dependency that runs arbitrary code during compilation can silently modify the compiled output. Ferrum eliminates this attack vector entirely. (Ferrum's `proof fn` is not in this category — proof functions are verified by the compiler against a constrained logical sublanguage, cannot generate code, cannot access system resources, and are erased before the binary is produced.)
-
-Simplicity: macros in Rust are a parallel language with its own syntax and semantics. They make code harder to read, harder to tool, and harder to reason about. Ferrum's design philosophy is that the language itself should be expressive enough that macros are not needed for common patterns — generics, traits, effects, and layout declarations cover the structural cases.
+- **Security:** macros that execute at compile time are a supply-chain attack surface. A compromised dependency that runs arbitrary code during compilation can silently modify the compiled output. Ferrum eliminates this attack vector entirely. (Ferrum's `proof fn` is not in this category — proof functions are verified by the compiler against a constrained logical sublanguage, cannot generate code, cannot access system resources, and are erased before the binary is produced.)
+- **Simplicity:** macros in Rust are a parallel language with its own syntax and semantics. They make code harder to read, harder to tool, and harder to reason about. Ferrum's design philosophy is that the language itself should be expressive enough that macros are not needed for common patterns — generics, traits, effects, and layout declarations cover the structural cases.
 
 The compiler has built-in derive-equivalent attributes (`@derive(Debug, Clone, Hash, ...)`) for common implementations.
 
@@ -281,10 +280,10 @@ If this thesis is wrong — if the combination is unworkable or the annotation b
 
 High, if not managed. The mitigation is explicit scoping:
 
-Version 0.1: no proof system. Contracts with runtime checking only.
-Version 0.2: SMT discharge for linear arithmetic. Proof functions parsed but not verified.
-Version 0.3: Proof functions verified for termination and typing only.
-Version 0.4: Full `verified_by` integration for the subset of contracts Z3 can check.
+- **Version 0.1:** no proof system. Contracts with runtime checking only.
+- **Version 0.2:** SMT discharge for linear arithmetic. Proof functions parsed but not verified.
+- **Version 0.3:** Proof functions verified for termination and typing only.
+- **Version 0.4:** Full `verified_by` integration for the subset of contracts Z3 can check.
 
 The proof system is the last layer, not the first. It must not block shipping a useful language. Every proof-system feature is gated on "is there a real program that needs this today."
 

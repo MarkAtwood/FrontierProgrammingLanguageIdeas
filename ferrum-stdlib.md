@@ -55,17 +55,17 @@ Every design decision in this library is tested against this list.
 
 ### Structural Principles
 
-**Layering is absolute.** `core` never depends on `alloc`. `alloc` never depends on `std`. `std` never depends on platform-specific crates. Each layer is usable independently.
+- **Layering is absolute.** `core` never depends on `alloc`. `alloc` never depends on `std`. `std` never depends on platform-specific crates. Each layer is usable independently.
 
-**Effects are honest.** Every operation that touches OS resources carries an effect annotation. A pure computation annotated pure is verified pure. Effects are inferred within modules — you only write annotations at `pub` boundaries.
+- **Effects are honest.** Every operation that touches OS resources carries an effect annotation. A pure computation annotated pure is verified pure. Effects are inferred within modules — you only write annotations at `pub` boundaries.
 
-**Allocators default to Heap.** Types like `Vec`, `String`, and `HashMap` are allocator-generic, but `Heap` is the default. Most code never mentions allocators. Custom allocators are opt-in for specialized use cases.
+- **Allocators default to Heap.** Types like `Vec`, `String`, and `HashMap` are allocator-generic, but `Heap` is the default. Most code never mentions allocators. Custom allocators are opt-in for specialized use cases.
 
-**Encoding is explicit.** Text is always `&str` (UTF-8) or an explicitly-typed alternative. There is no "system encoding." There is no "default charset." The type tells you what you have.
+- **Encoding is explicit.** Text is always `&str` (UTF-8) or an explicitly-typed alternative. There is no "system encoding." There is no "default charset." The type tells you what you have.
 
-**Time is calendar-agnostic.** The core time types (`Timestamp`, `Instant`, `Duration`) have no embedded calendar. Calendars are separate modules that convert through Julian Day Number. Gregorian is common, not privileged.
+- **Time is calendar-agnostic.** The core time types (`Timestamp`, `Instant`, `Duration`) have no embedded calendar. Calendars are separate modules that convert through Julian Day Number. Gregorian is common, not privileged.
 
-**Async and sync are unified.** Blocking and non-blocking IO share the same trait hierarchy. A function that works on a `Read` works on both a blocking file and a non-blocking socket buffer. The difference is in the concrete type, not the trait.
+- **Async and sync are unified.** Blocking and non-blocking IO share the same trait hierarchy. A function that works on a `Read` works on both a blocking file and a non-blocking socket buffer. The difference is in the concrete type, not the trait.
 
 ---
 

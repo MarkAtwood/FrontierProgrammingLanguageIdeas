@@ -689,28 +689,28 @@ layout Timestamp as NtpTimestamp {
 
 For each layout declaration, the compiler generates:
 
-**`Type.read(bytes: &[u8]): Result[Type]`**
-- Extracts fields from raw bytes per the layout.
-- Applies byte/bit order conversion.
-- Applies `convert_back` functions.
-- Assigns extracted values to field types — if a field type is a constrained type, the constraint check fires here, returning `Err` on violation.
-- Returns `Err` if any field value violates its type's constraint.
+- **`Type.read(bytes: &[u8]): Result[Type]`**
+  - Extracts fields from raw bytes per the layout.
+  - Applies byte/bit order conversion.
+  - Applies `convert_back` functions.
+  - Assigns extracted values to field types — if a field type is a constrained type, the constraint check fires here, returning `Err` on violation.
+  - Returns `Err` if any field value violates its type's constraint.
 
-**`value.write(): [u8; N]`**
-- Packs fields into raw bytes per the layout.
-- Applies `convert` functions.
-- Applies byte/bit order conversion.
-- Zeros all `_pad` fields.
+- **`value.write(): [u8; N]`**
+  - Packs fields into raw bytes per the layout.
+  - Applies `convert` functions.
+  - Applies byte/bit order conversion.
+  - Zeros all `_pad` fields.
 
-**`Type.view(bytes: &[u8]): TypeView`**
-- Zero-copy reference into raw bytes.
-- Field accessor methods extract bits on read.
-- Field mutator methods pack bits on write.
-- Suitable for memory-mapped I/O.
+- **`Type.view(bytes: &[u8]): TypeView`**
+  - Zero-copy reference into raw bytes.
+  - Field accessor methods extract bits on read.
+  - Field mutator methods pack bits on write.
+  - Suitable for memory-mapped I/O.
 
-**`value.convert[OtherLayout](): Type layout OtherLayout`**
-- Converts between named layouts.
-- Applies any necessary byte swapping and value conversions.
+- **`value.convert[OtherLayout](): Type layout OtherLayout`**
+  - Converts between named layouts.
+  - Applies any necessary byte swapping and value conversions.
 
 ### 2.9 Endianness Safety
 

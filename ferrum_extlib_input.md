@@ -33,24 +33,24 @@
 
 Every display platform delivers input through a different event model.
 
-Wayland sends pointer events through `wl_pointer`, keyboard events through `wl_keyboard`
-with XKB state, touch through `wl_touch`, and IME input through `zwp-text-input-v3`. The
-keyboard protocol delivers raw keysyms, not characters; characters come separately from
-the text-input protocol.
+- **Wayland** sends pointer events through `wl_pointer`, keyboard events through `wl_keyboard`
+  with XKB state, touch through `wl_touch`, and IME input through `zwp-text-input-v3`. The
+  keyboard protocol delivers raw keysyms, not characters; characters come separately from
+  the text-input protocol.
 
-X11 delivers all input through `XEvent` unions — `XKeyEvent`, `XButtonEvent`,
-`XMotionEvent`, `XFocusChangeEvent` — each with platform-specific fields. Key-to-character
-mapping goes through `XmbLookupString` or `Xutf8LookupString` depending on locale. IME
-uses X Input Method (XIM), an entirely separate protocol predating modern IME requirements.
+- **X11** delivers all input through `XEvent` unions — `XKeyEvent`, `XButtonEvent`,
+  `XMotionEvent`, `XFocusChangeEvent` — each with platform-specific fields. Key-to-character
+  mapping goes through `XmbLookupString` or `Xutf8LookupString` depending on locale. IME
+  uses X Input Method (XIM), an entirely separate protocol predating modern IME requirements.
 
-evdev (Linux's raw kernel input layer) delivers `input_event` structs with type/code/value
-triples. It has no concept of windows, no coordinate system, and no character composition.
-It is used for windowless kiosk applications, game input polling, and accessibility tools.
+- **evdev** (Linux's raw kernel input layer) delivers `input_event` structs with type/code/value
+  triples. It has no concept of windows, no coordinate system, and no character composition.
+  It is used for windowless kiosk applications, game input polling, and accessibility tools.
 
-Win32 delivers `WM_MOUSEMOVE`, `WM_KEYDOWN`, `WM_CHAR`, `WM_INPUT`, and `WM_IME_COMPOSITION`
-messages to a window procedure. The split between `WM_KEYDOWN` (physical key) and `WM_CHAR`
-(character produced) is the correct model, but the surrounding protocol is entirely
-platform-specific.
+- **Win32** delivers `WM_MOUSEMOVE`, `WM_KEYDOWN`, `WM_CHAR`, `WM_INPUT`, and `WM_IME_COMPOSITION`
+  messages to a window procedure. The split between `WM_KEYDOWN` (physical key) and `WM_CHAR`
+  (character produced) is the correct model, but the surrounding protocol is entirely
+  platform-specific.
 
 A widget system should not contain four diverging code paths for "the user pressed a
 button." `extlib.ccsp.input` normalizes all four platforms into a single `InputEvent`

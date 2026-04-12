@@ -530,71 +530,71 @@ pub fn download_and_save(url: &str, path: &str): Result[(), Error] ! Net + IO {
 
 ### Practical Examples of Effect Tracking
 
-**Example 1: Library trust**
+- **Example 1: Library trust**
 
-You're evaluating a logging library. In Rust:
+  You're evaluating a logging library. In Rust:
 
-```rust
-// From the signature alone, you have no idea what this does
-pub fn log(level: Level, message: &str);
-```
+  ```rust
+  // From the signature alone, you have no idea what this does
+  pub fn log(level: Level, message: &str);
+  ```
 
-In Ferrum:
+  In Ferrum:
 
-```ferrum
-// This library just does file IO
-pub fn log(level: Level, message: &str) ! IO
+  ```ferrum
+  // This library just does file IO
+  pub fn log(level: Level, message: &str) ! IO
 
-// This library does network (suspicious for a logger!)
-pub fn log(level: Level, message: &str) ! IO + Net
+  // This library does network (suspicious for a logger!)
+  pub fn log(level: Level, message: &str) ! IO + Net
 
-// This logger is pure (writes to an in-memory buffer)
-pub fn log(level: Level, message: &str)
-```
+  // This logger is pure (writes to an in-memory buffer)
+  pub fn log(level: Level, message: &str)
+  ```
 
-Effects tell you immediately if a library does something unexpected.
+  Effects tell you immediately if a library does something unexpected.
 
-**Example 2: Sandboxing untrusted code**
+- **Example 2: Sandboxing untrusted code**
 
-```ferrum
-// Run a plugin with restricted capabilities
-fn run_plugin(plugin: &Plugin, input: &[u8]): Vec[u8] {
-    // Plugin cannot do IO or Net — compiler enforces this
-    plugin.process(input)
-}
-```
+  ```ferrum
+  // Run a plugin with restricted capabilities
+  fn run_plugin(plugin: &Plugin, input: &[u8]): Vec[u8] {
+      // Plugin cannot do IO or Net — compiler enforces this
+      plugin.process(input)
+  }
+  ```
 
-If `Plugin::process` tries to call an `IO` function, compilation fails. You don't need runtime sandboxing for this — the type system prevents it.
+  If `Plugin::process` tries to call an `IO` function, compilation fails. You don't need runtime sandboxing for this — the type system prevents it.
 
-**Example 3: Reasoning about parallelism**
+- **Example 3: Reasoning about parallelism**
 
-```ferrum
-// Compiler knows these can safely run in parallel
-fn process_batch(items: &[Item]): Vec[Output] {
-    items.par_iter()
-         .map(|item| transform(item))  // transform is pure
-         .collect()
-}
-```
+  ```ferrum
+  // Compiler knows these can safely run in parallel
+  fn process_batch(items: &[Item]): Vec[Output] {
+      items.par_iter()
+           .map(|item| transform(item))  // transform is pure
+           .collect()
+  }
+  ```
 
-If `transform` had effects, the compiler would require you to think about ordering. Pure functions can be parallelized automatically.
+  If `transform` had effects, the compiler would require you to think about ordering. Pure functions can be parallelized automatically.
 
-**Example 4: Testing without mocks**
+- **Example 4: Testing without mocks**
 
-```ferrum
-// Pure functions don't need mocks — they just compute
-fn calculate_tax(income: u64, brackets: &[Bracket]): u64 {
-    // Pure computation
-}
+  ```ferrum
+  // Pure functions don't need mocks — they just compute
+  fn calculate_tax(income: u64, brackets: &[Bracket]): u64 {
+      // Pure computation
+  }
 
-@test
-fn test_calculate_tax() {
-    // No mock setup needed, no IO stubs
-    assert_eq(calculate_tax(50_000, &STANDARD_BRACKETS), 7_500)
-}
-```
+  @test
+  fn test_calculate_tax() {
+      // No mock setup needed, no IO stubs
+      assert_eq(calculate_tax(50_000, &STANDARD_BRACKETS), 7_500)
+  }
+  ```
 
-Pure functions are trivially testable. Effect tracking tells you which functions need test infrastructure and which don't.
+  Pure functions are trivially testable. Effect tracking tells you which functions need test infrastructure and which don't.
 
 ### You Don't Write Effects Everywhere
 
@@ -901,63 +901,63 @@ fn binary_search[T: Ord](arr: &[T], target: &T): Option[usize]
 
 ### What Contracts Buy You
 
-**Example 1: Documenting and enforcing API contracts**
+- **Example 1: Documenting and enforcing API contracts**
 
-```ferrum
-fn pop[T](stack: &mut Vec[T]): T
-    requires stack.len() > 0
-    ensures stack.len() == old(stack.len()) - 1
-{
-    // No need for Option — precondition handles empty case
-    stack.remove(stack.len() - 1)
-}
+  ```ferrum
+  fn pop[T](stack: &mut Vec[T]): T
+      requires stack.len() > 0
+      ensures stack.len() == old(stack.len()) - 1
+  {
+      // No need for Option — precondition handles empty case
+      stack.remove(stack.len() - 1)
+  }
 
-// Caller must ensure precondition
-fn process(items: &mut Vec[Item]) {
-    if items.is_empty() {
-        return
-    }
-    let last = pop(items)  // OK: we checked emptiness
-    handle(last)
-}
+  // Caller must ensure precondition
+  fn process(items: &mut Vec[Item]) {
+      if items.is_empty() {
+          return
+      }
+      let last = pop(items)  // OK: we checked emptiness
+      handle(last)
+  }
 
-fn buggy_process(items: &mut Vec[Item]) {
-    let last = pop(items)  // ERROR: cannot prove items.len() > 0
-    handle(last)
-}
-```
+  fn buggy_process(items: &mut Vec[Item]) {
+      let last = pop(items)  // ERROR: cannot prove items.len() > 0
+      handle(last)
+  }
+  ```
 
-The `requires` clause generates a runtime check in both debug and release builds. A violated precondition aborts with a message naming the caller's bug.
+  The `requires` clause generates a runtime check in both debug and release builds. A violated precondition aborts with a message naming the caller's bug.
 
-**Example 2: Catching off-by-one errors**
+- **Example 2: Catching off-by-one errors**
 
-```ferrum
-fn get_range[T](arr: &[T], start: usize, end: usize): &[T]
-    requires start <= end
-    requires end <= arr.len()
-    ensures result.len() == end - start
-{
-    &arr[start..end]
-}
-```
+  ```ferrum
+  fn get_range[T](arr: &[T], start: usize, end: usize): &[T]
+      requires start <= end
+      requires end <= arr.len()
+      ensures result.len() == end - start
+  {
+      &arr[start..end]
+  }
+  ```
 
-The postcondition `result.len() == end - start` catches a common bug: if you accidentally wrote `end - start + 1`, the contract would fail.
+  The postcondition `result.len() == end - start` catches a common bug: if you accidentally wrote `end - start + 1`, the contract would fail.
 
-**Example 3: Loop invariants for complex algorithms**
+- **Example 3: Loop invariants for complex algorithms**
 
-```ferrum
-fn partition[T: Ord](arr: &mut [T], pivot: usize): usize
-    requires pivot < arr.len()
-    ensures result <= arr.len()
-    ensures forall i in 0..result => arr[i] <= arr[result]
-    ensures forall i in result+1..arr.len() => arr[i] >= arr[result]
-{
-    let pivot_val = arr[pivot]
-    // ... partitioning logic ...
-}
-```
+  ```ferrum
+  fn partition[T: Ord](arr: &mut [T], pivot: usize): usize
+      requires pivot < arr.len()
+      ensures result <= arr.len()
+      ensures forall i in 0..result => arr[i] <= arr[result]
+      ensures forall i in result+1..arr.len() => arr[i] >= arr[result]
+  {
+      let pivot_val = arr[pivot]
+      // ... partitioning logic ...
+  }
+  ```
 
-The postconditions precisely specify what partitioning means. If the implementation doesn't achieve this, tests catch it. In proof mode, the compiler verifies it statically.
+  The postconditions precisely specify what partitioning means. If the implementation doesn't achieve this, tests catch it. In proof mode, the compiler verifies it statically.
 
 ### Struct Invariants
 
@@ -1370,75 +1370,75 @@ fn run_plugin(plugin: Plugin, fs: FsCap.read_only("/plugins/")) ! IO {
 
 ### Practical Capability Patterns
 
-**Pattern 1: Sandbox untrusted code**
+- **Pattern 1: Sandbox untrusted code**
 
-```ferrum
-fn evaluate_user_script(script: &str): Result[Value, Error] {
-    // Create a minimal sandbox — no IO, no Net, no Unsafe
-    let sandbox = Sandbox.new()
-        .allow_pure()        // pure computation only
-        .max_memory(16.mb()) // limited memory
-        .max_time(1.second()) // limited time
+  ```ferrum
+  fn evaluate_user_script(script: &str): Result[Value, Error] {
+      // Create a minimal sandbox — no IO, no Net, no Unsafe
+      let sandbox = Sandbox.new()
+          .allow_pure()        // pure computation only
+          .max_memory(16.mb()) // limited memory
+          .max_time(1.second()) // limited time
 
-    sandbox.run(|| {
-        let ast = parse(script)?
-        interpret(ast)
-    })
-}
-```
+      sandbox.run(|| {
+          let ast = parse(script)?
+          interpret(ast)
+      })
+  }
+  ```
 
-The sandbox capability restricts what the script can do. Violations are compile errors, not runtime failures.
+  The sandbox capability restricts what the script can do. Violations are compile errors, not runtime failures.
 
-**Pattern 2: Audit capabilities at API boundaries**
+- **Pattern 2: Audit capabilities at API boundaries**
 
-```ferrum
-// Public API declares required capabilities
-pub fn start_server(
-    net: NetCap,
-    fs: FsCap,
-    port: u16,
-): Server ! Net + IO {
-    // Implementation can use net and fs
-}
-```
+  ```ferrum
+  // Public API declares required capabilities
+  pub fn start_server(
+      net: NetCap,
+      fs: FsCap,
+      port: u16,
+  ): Server ! Net + IO {
+      // Implementation can use net and fs
+  }
+  ```
 
-From the signature, you know exactly what authority this function needs. No hidden filesystem access or network calls.
+  From the signature, you know exactly what authority this function needs. No hidden filesystem access or network calls.
 
-**Pattern 3: Principle of least privilege**
+- **Pattern 3: Principle of least privilege**
 
-```ferrum
-fn process_uploads(
-    input_fs: FsCap.read_only("/uploads/"),
-    output_fs: FsCap.write_only("/processed/"),
-    log: LogCap,
-) ! IO {
-    for file in input_fs.list("*")? {
-        let data = input_fs.read(&file)?
-        let processed = transform(data)
-        output_fs.write(&format("/processed/{}", file), &processed)?
-        log.info("Processed {}", file)
-    }
-}
-```
+  ```ferrum
+  fn process_uploads(
+      input_fs: FsCap.read_only("/uploads/"),
+      output_fs: FsCap.write_only("/processed/"),
+      log: LogCap,
+  ) ! IO {
+      for file in input_fs.list("*")? {
+          let data = input_fs.read(&file)?
+          let processed = transform(data)
+          output_fs.write(&format("/processed/{}", file), &processed)?
+          log.info("Processed {}", file)
+      }
+  }
+  ```
 
-The function can read from `/uploads/`, write to `/processed/`, and log. It cannot read from `/processed/`, write to `/uploads/`, or access anything else. The compiler enforces this.
+  The function can read from `/uploads/`, write to `/processed/`, and log. It cannot read from `/processed/`, write to `/uploads/`, or access anything else. The compiler enforces this.
 
-**Pattern 4: Capability attenuation**
+- **Pattern 4: Capability attenuation**
 
-```ferrum
-fn main() ! IO + Net {
-    // main() has full capabilities
-    let full_fs = FsCap.all()
+  ```ferrum
+  fn main() ! IO + Net {
+      // main() has full capabilities
+      let full_fs = FsCap.all()
 
-    // Attenuate for a subsystem
-    let config_fs = full_fs.restrict_to("/etc/myapp/")
-    let data_fs = full_fs.restrict_to("/var/myapp/").read_only()
+      // Attenuate for a subsystem
+      let config_fs = full_fs.restrict_to("/etc/myapp/")
+      let data_fs = full_fs.restrict_to("/var/myapp/").read_only()
 
-    run_app(config_fs, data_fs)
-}
-```
+      run_app(config_fs, data_fs)
+  }
+  ```
 
-You can always create a less-powerful capability from a more-powerful one. You can never create a more-powerful capability (that would require someone who has it to grant it).
+  You can always create a less-powerful capability from a more-powerful one. You can never create a more-powerful capability (that would require someone who has it to grant it).
 
 ### In Practice
 

@@ -438,26 +438,26 @@ impl[T: Copy, const ADDR: usize] MmioReg[T, ADDR] {
 
 ### 1.9 What This Design Avoids
 
-**No compiler magic for common patterns.** Interior mutability is achieved
-with `unchecked` blocks and `trusted` annotations — explicit, auditable,
-no secret compiler knowledge.
+- **No compiler magic for common patterns.** Interior mutability is achieved
+  with `unchecked` blocks and `trusted` annotations — explicit, auditable,
+  no secret compiler knowledge.
 
-**Platform-specific features in the portable stdlib.** HTM in the standard
-library would imply it is reliable. It is not. Keeping it in `sys.arch.*`
-is accurate documentation.
+- **Platform-specific features in the portable stdlib.** HTM in the standard
+  library would imply it is reliable. It is not. Keeping it in `sys.arch.*`
+  is accurate documentation.
 
-**Overloading `unsafe` for distinct concepts.** Dereferencing a raw pointer,
-relaxing an aliasing rule, and asserting a hardware property are different
-things with different audit implications. The graduated safety ladder
-(`unchecked`, `trusted`, `extern`, `unsafe`) makes these distinct.
+- **Overloading `unsafe` for distinct concepts.** Dereferencing a raw pointer,
+  relaxing an aliasing rule, and asserting a hardware property are different
+  things with different audit implications. The graduated safety ladder
+  (`unchecked`, `trusted`, `extern`, `unsafe`) makes these distinct.
 
-**STM as a language construct.** Languages that bake STM into syntax make
-non-STM concurrency feel second-class. Ferrum's module-level STM composes
-naturally with all other concurrency primitives.
+- **STM as a language construct.** Languages that bake STM into syntax make
+  non-STM concurrency feel second-class. Ferrum's module-level STM composes
+  naturally with all other concurrency primitives.
 
-**Implicit volatile.** C's `volatile` qualifier on variable declarations
-makes it easy to forget (a bug) or over-apply (a performance problem).
-Ferrum's `read_volatile` and `write_volatile` are explicit at every access.
+- **Implicit volatile.** C's `volatile` qualifier on variable declarations
+  makes it easy to forget (a bug) or over-apply (a performance problem).
+  Ferrum's `read_volatile` and `write_volatile` are explicit at every access.
 
 ### 1.10 Concurrency Safety Guarantees
 
