@@ -167,14 +167,14 @@ impl Validatable for Day {
 // For enumerations:
 impl Validatable for Color {
     fn is_valid(&self): bool {
-        let disc = unsafe { transmute::<Self, u8>(*self) }
+        let disc: u8 = unsafe { transmute(*self) }
         disc <= 2
     }
 }
 
 // Usage: validating untrusted data
 fn parse_color(byte: u8): Option[Color] {
-    let color = unsafe { transmute::<u8, Color>(byte) }
+    let color: Color = unsafe { transmute(byte) }
     if color.is_valid() {
         Some(color)
     } else {
@@ -415,9 +415,9 @@ trait Extend[A] {
 ## 3.6 core.mem
 
 ```ferrum
-// Sizes and alignment
-const fn size_of[T](): usize
-const fn align_of[T](): usize
+// Sizes and alignment — compiler intrinsics; T is passed as a type value
+@intrinsic fn size_of(T: type): usize
+@intrinsic fn align_of(T: type): usize
 const fn size_of_val[T: ?Sized](val: &T): usize
 const fn align_of_val[T: ?Sized](val: &T): usize
 
@@ -429,9 +429,9 @@ fn drop[T](val: T)                              // explicit drop
 
 // Transmutation — unsafe
 unsafe fn transmute[T, U](val: T): U
-    requires size_of[T]() == size_of[U]()
+    requires size_of(T) == size_of(U)
 unsafe fn transmute_copy[T, U](src: &T): U
-    requires size_of[U]() <= size_of[T]()
+    requires size_of(U) <= size_of(T)
 
 // Zeroing — for security-sensitive data
 fn zeroed[T](): T  ! Unsafe    // returns zero-bit-pattern value
@@ -1479,18 +1479,18 @@ impl Debug for NonZeroU32
 impl Display for NonZeroU32
 
 // Size optimization proof
-const_assert(size_of[Option[NonZeroU32]]() == size_of[u32]())
-const_assert(size_of[Option[NonZeroU64]]() == size_of[u64]())
-const_assert(size_of[Option[Option[NonZeroU32]]]() == size_of[u32]())  // nested!
+const_assert(size_of(Option[NonZeroU32]) == size_of(u32))
+const_assert(size_of(Option[NonZeroU64]) == size_of(u64))
+const_assert(size_of(Option[Option[NonZeroU32]]) == size_of(u32))  // nested!
 ```
 
 ### 3.14.1 Niche Optimization Examples
 
 ```ferrum
 // These are all the same size due to niche optimization:
-size_of[u32]()                      // 4 bytes
-size_of[Option[NonZeroU32]]()       // 4 bytes (None = 0)
-size_of[Result[NonZeroU32, ()]]()   // 4 bytes (Err = 0)
+size_of(u32)                      // 4 bytes
+size_of(Option[NonZeroU32])       // 4 bytes (None = 0)
+size_of(Result[NonZeroU32, ()])   // 4 bytes (Err = 0)
 
 // Useful for space-efficient data structures:
 type Handle(NonZeroU32)   // 0 is never a valid handle

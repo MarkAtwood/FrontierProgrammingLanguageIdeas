@@ -517,11 +517,7 @@ let set: HashSet<i32> = numbers.iter().copied().collect();
 let s: String = ['h', 'e', 'l', 'l', 'o'].iter().collect();
 ```
 
-The type annotation tells `collect()` what to produce. Alternatively, use the turbofish:
-
-```ferrum
-let vec = numbers.iter().copied().collect::<Vec<i32>>();
-```
+The type annotation tells `collect()` what to produce.
 
 **Practical example—building a lookup table:**
 
@@ -807,8 +803,8 @@ When you want to filter *and* transform at once, `filter_map` is your friend:
 let strings = ["1", "two", "3", "four", "5"];
 
 // Parse only the valid integers, skip the rest
-let numbers: Vec<i32> = strings.iter()
-    .filter_map(|s| s.parse::<i32>().ok())  // ok() converts Result to Option
+let numbers: Vec[i32] = strings.iter()
+    .filter_map(|s| s.parse().ok())  // ok() converts Result to Option; type inferred from Vec[i32]
     .collect();
 // [1, 3, 5]
 ```
@@ -817,8 +813,8 @@ This is cleaner than:
 
 ```ferrum
 // More verbose equivalent
-let numbers: Vec<i32> = strings.iter()
-    .map(|s| s.parse::<i32>())
+let numbers: Vec[i32] = strings.iter()
+    .map(|s| s.parse())
     .filter(|r| r.is_ok())
     .map(|r| r.unwrap())
     .collect();
@@ -1100,8 +1096,8 @@ Calling `.unwrap()` inside a chain will panic if any element fails:
 let strings = ["1", "2", "three", "4"];
 
 // This panics on "three"
-let numbers: Vec<i32> = strings.iter()
-    .map(|s| s.parse::<i32>().unwrap())  // PANIC on "three"
+let numbers: Vec[i32] = strings.iter()
+    .map(|s| s.parse().unwrap())  // PANIC on "three"; type inferred from Vec[i32]
     .collect();
 ```
 
@@ -1109,14 +1105,14 @@ let numbers: Vec<i32> = strings.iter()
 
 ```ferrum
 // Skip failures
-let numbers: Vec<i32> = strings.iter()
-    .filter_map(|s| s.parse::<i32>().ok())
+let numbers: Vec[i32] = strings.iter()
+    .filter_map(|s| s.parse().ok())
     .collect();
 // [1, 2, 4]
 
 // Or collect Results to handle errors
-let results: Result<Vec<i32>, _> = strings.iter()
-    .map(|s| s.parse::<i32>())
+let results: Result[Vec[i32], _] = strings.iter()
+    .map(|s| s.parse())
     .collect();
 // Err(ParseIntError { kind: InvalidDigit })
 ```
@@ -1190,14 +1186,14 @@ This is called "zero-cost abstraction": you pay nothing at runtime for the highe
 | `.filter(p)` | Keep elements where p returns true | `.filter(\|x\| x > 0)` |
 | `.filter_map(f)` | Map then filter out None values | `.filter_map(\|x\| x.parse().ok())` |
 | `.fold(init, f)` | Reduce to single value | `.fold(0, \|a, x\| a + x)` |
-| `.collect()` | Gather into collection | `.collect::<Vec<_>>()` |
+| `.collect()` | Gather into collection | `let v: Vec[_] = iter.collect()` |
 | `.find(p)` | First element where p returns true | `.find(\|x\| x.id == 5)` |
 | `.position(p)` | Index of first match | `.position(\|x\| x == 5)` |
 | `.any(p)` | True if any element matches | `.any(\|x\| x < 0)` |
 | `.all(p)` | True if all elements match | `.all(\|x\| x > 0)` |
 | `.count()` | Number of elements | `.count()` |
-| `.sum()` | Sum of elements | `.sum::<i32>()` |
-| `.product()` | Product of elements | `.product::<i32>()` |
+| `.sum()` | Sum of elements | `let s: i32 = iter.sum()` |
+| `.product()` | Product of elements | `let p: i32 = iter.product()` |
 | `.max()` / `.min()` | Maximum / minimum element | `.max()` |
 | `.take(n)` | First n elements | `.take(5)` |
 | `.skip(n)` | Skip first n elements | `.skip(2)` |

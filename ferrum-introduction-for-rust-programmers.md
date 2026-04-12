@@ -69,7 +69,11 @@ let x = a < b && c > d       // comparisons
 let y: Vec[i32] = Vec.new()  // generic
 ```
 
-In Rust, the parser needs context to distinguish `foo<bar, baz>(x)` (generic function call) from `foo < bar, baz > (x)` (two comparisons and a tuple). Rust solves this with the "turbofish" (`::<>`) syntax. Ferrum sidesteps the problem entirely.
+In Rust, the parser needs context to distinguish `foo<bar, baz>(x)` (generic function call) from `foo < bar, baz > (x)` (two comparisons and a tuple). Rust solves this with the "turbofish" (`::<>`) syntax. Ferrum's rule is simpler: `expr[...]` in expression position is always indexing. Type parameters at call sites are always inferred — never written explicitly. When inference needs help, annotate the binding instead:
+
+```ferrum
+let x: i32 = "42".parse()?   // inferred from binding annotation
+```
 
 ### Paths: Dots Instead of Double Colon
 

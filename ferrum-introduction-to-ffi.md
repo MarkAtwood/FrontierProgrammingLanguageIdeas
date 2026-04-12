@@ -576,7 +576,7 @@ struct Point {
 1. **Fields are in declaration order.** Ferrum normally may reorder fields for efficiency.
 2. **Padding matches C.** Fields are aligned as C would align them.
 3. **Alignment matches C.** The struct's overall alignment matches C's rules.
-4. **Total size matches.** `size_of::<Point>()` equals C's `sizeof(struct Point)`.
+4. **Total size matches.** `size_of(Point)` equals C's `sizeof(struct Point)`.
 
 ### A Detailed Example: The stat Structure
 
@@ -1458,7 +1458,7 @@ eprintln("ptr = {ptr:?}")
 **Debug steps:**
 ```ferrum
 // Print struct size to verify it matches C's sizeof
-println("Ferrum size: {}", size_of::<MyStruct>())
+println("Ferrum size: {}", size_of(MyStruct))
 ```
 
 ```c

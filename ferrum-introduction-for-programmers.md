@@ -1115,11 +1115,8 @@ let x = "42".parse()?          // ERROR: parse to what type?
 Solutions:
 
 ```ferrum
-let x: i32 = "42".parse()?     // annotate the variable
-let x = "42".parse[i32]()?     // turbofish syntax — specify type on the call
+let x: i32 = "42".parse()?     // annotate the variable — inference fills in the type
 ```
-
-**Turbofish?** The `[i32]` in `parse[i32]()` tells the generic function what type to use. It's called "turbofish" because... someone thought `[T]` looks like a fish. You'll see it when type inference isn't enough.
 
 ---
 
