@@ -277,6 +277,46 @@ fn checksum(data: &[u8]): u32 {
 
 Pure functions are referentially transparent: calling them twice with the same arguments produces the same result. This property is exploited by the proof system (§14).
 
+#### Global and Thread-Local Mutable State
+
+Any access to mutable state that exists outside the function's own stack frame and is not passed in as a parameter generates `! IO`. This includes:
+
+- Process-wide global mutable state (`static mut`, atomics used as globals)
+- Thread-local mutable state (`thread_local!` variables)
+
+Thread-local state is still global state — just scoped to a thread. A function that reads a thread-local counter can return different values on successive calls with identical arguments, depending on what other code on the same thread has done. That violates referential transparency. Since `! IO` is not suppressible by `@pure`, no function accessing thread-local mutable state can be `@pure`.
+
+```ferrum
+thread_local! { static COUNTER: Cell<i32> = Cell::new(0); }
+
+fn get_count(): i32 { COUNTER.get() }
+// Compiler infers: ! IO — not pure, cannot be @pure
+```
+
+Immutable statics (constants, `static` without interior mutability) generate no effect — they are part of the program's read-only data segment and are referentially transparent.
+
+#### `@pure` and No-Alloc Contexts
+
+`@pure` suppresses `! Alloc` from the function's visible effect signature. This means the capability system cannot see the internal allocation:
+
+```ferrum
+@pure
+fn cached_compute(x: i32): i32 {
+    static CACHE: Mutex[HashMap[i32, i32]] = ...
+    // allocates on heap on first call per value
+}
+
+// In a no-alloc context (interrupt handler, embedded bare-metal):
+fn on_interrupt(n: i32): i32 {
+    cached_compute(n)   // compiles — ! Alloc hidden by @pure
+                        // may allocate at runtime → abort or corruption
+}
+```
+
+This is an acknowledged limitation of `@pure`, not a design bug. `@pure` makes a **correctness** claim (internal allocation does not affect the return value) — it is not a **resource-usage** claim (no allocation will occur). These are different questions.
+
+No-alloc callers must audit `@pure` callees manually. If a function is marked `@pure` and you are in a no-alloc context, inspect its implementation or documentation to verify it has no internal allocation path. This cannot be enforced by the type system without defeating the purpose of `@pure`.
+
 ### 2.5 Effect Polymorphism
 
 Functions can be polymorphic over effects using **effect variables** written with a `?` prefix:
