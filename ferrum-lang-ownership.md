@@ -65,7 +65,22 @@ fn choose[T]<'a, 'b>(x: &'a T, y: &'b T, use_x: bool): &'a T
 
 Region annotations use the `'name` syntax. The `where 'b: 'a` clause asserts that region `'b` outlives region `'a`.
 
-**The 90% rule:** Ferrum's region inference is designed to eliminate annotations in at least 90% of practical code. The remaining 10% — complex borrowing patterns at API boundaries — requires annotations, and these annotations carry genuine semantic content that a reader needs.
+**What region inference covers:** Inference handles three broad categories of borrow patterns without annotations:
+
+1. **Simple borrows** — a function takes a reference, uses it, and the result either doesn't alias the input or obviously does (single reference in, single reference out, same region).
+
+2. **Linear flows** — references that flow in at call sites and out at returns without ambiguity about which input the output aliases.
+
+3. **Local borrows** — references that don't escape the function or are consumed before the function returns.
+
+Annotations are required when the constraint system is genuinely underdetermined:
+- Multiple reference inputs where the output could alias any of them (the compiler cannot guess which)
+- Split borrows that cross function-call boundaries in non-obvious ways
+- Generic types that need to be region-polymorphic across call sites
+
+The hope is this will cover 90% of common cases without herculean efforts. It should improve with time, as compiler design and CS theory advance.
+
+> **Design decision:** The "90%" figure appears in lifetime-annotation literature but is not a measured fact for Ferrum — it is a design aspiration, not a guarantee. The real claim is qualitative: inference is designed to handle the common patterns so that the annotations that remain are load-bearing knowledge a reader needs to understand anyway.
 
 ### The Annotation Layer as Audit Trail
 
@@ -129,18 +144,67 @@ Self-referential types use `pinned` to guarantee they are never moved after cons
 ```ferrum
 pinned type RingBuffer[T] {
     data: [T; 256],
-    head: *const T,   // interior pointer
+    head: *const T,   // interior pointer into data
     tail: *const T,
 }
 ```
 
-`pinned` types:
-- Cannot be moved after construction completes.
-- Can be borrowed (`&T`, `&mut T`).
-- Cannot be passed by value to functions (only by reference).
-- Their destructor is guaranteed to run before their memory is freed.
+`pinned` is a property of the **type**, declared at the type definition. Once constructed, the value's memory address is fixed for its lifetime.
 
-The compiler inserts a compile-time check at every site where a `pinned` type would be moved. This is a first-class language concept, not a library workaround.
+#### What "move" means
+
+A **move** is any operation that copies a value's bytes to a new memory address. The compiler rejects all of the following for `pinned` types:
+
+| Operation | Example | Status |
+|-----------|---------|--------|
+| Assignment to a new binding | `let b = ring_buf` | Compile error |
+| Pass by value to a function | `f(ring_buf)` | Compile error |
+| Return by value | `return ring_buf` | Compile error |
+| Placement into a container | `vec.push(ring_buf)` | Compile error |
+| Destructuring by value | `let RingBuffer { data, .. } = ring_buf` | Compile error |
+
+`pinned` types can be **borrowed** (`&T`, `&mut T`) freely — borrowing takes a reference to the existing address, not a copy.
+
+#### Drop guarantee
+
+Once a `pinned` value is constructed, its destructor **must** run before its memory is reused. Forgetting a pinned value (the equivalent of `mem::forget`) is safe-code UB: it violates the invariant that interior pointers remain valid for the value's lifetime. The compiler does not permit safe code to forget a `pinned` value.
+
+#### Mutable references do not carry `noalias`
+
+Normally, `&mut T` carries an aliasing guarantee: no other pointer to the same memory exists. For `pinned` types, this guarantee is automatically suppressed — `&mut PinnedType` does **not** carry `noalias`. The compiler knows the type is `pinned` and applies this suppression unconditionally.
+
+This is why Ferrum does not need an equivalent of Rust's `UnsafePinned<T>` (RFC 3467): because `pinned` is a first-class type property rather than a library wrapper, the compiler can suppress `noalias` automatically wherever it matters.
+
+#### Generics and pinned types
+
+Generic code that moves `T` will fail to compile when instantiated with a `pinned T`:
+
+```ferrum
+fn swap[T](a: &mut T, b: &mut T) { ... }  // moves T internally
+
+swap(&mut buf1, &mut buf2)  // ERROR: cannot move pinned type RingBuffer[u8]
+```
+
+There is no `Unpin`-equivalent trait. Non-`pinned` types are unaffected by this restriction — only types declared `pinned` constrain their generic contexts. Code that needs to accept `pinned` types must operate through references:
+
+```ferrum
+fn inspect[T](r: &T): usize { ... }  // borrows only — works with any T including pinned
+```
+
+Containers of `pinned` types must use indirection: `Vec<Box<RingBuffer<u8>>>` is valid; `Vec<RingBuffer<u8>>` is not (the vec would need to move elements on reallocation).
+
+#### Unsafe code contract
+
+Unsafe code that copies the bytes of a `pinned` value to a new memory address has **undefined behavior**. The interior pointer invariant is violated: the self-pointers now point at the old location, which may be freed or reused. This is the same category as violating aliasing rules: the compiler cannot detect it, and the programmer takes full responsibility.
+
+Specifically, unsafe code must not:
+- `ptr::copy` a `pinned` value to a different address
+- Reinterpret a `&mut PinnedType` as a byte slice and copy it elsewhere
+- Transmute or otherwise bypass the no-move restriction
+
+What unsafe code **may** do: obtain a `&mut PinnedType` for in-place mutation (e.g., setting interior pointers after construction) — provided it does not move the value. This is the intended use case.
+
+> **Design decision:** Rust chose a library approach (`Pin<P>` wrapper + `Unpin` auto-trait) to avoid "infecting" all generic code with `?Move` bounds. The cost was years of formal-UB async code: `Pin::get_unchecked_mut()` returns `&mut T` carrying `noalias`, while the self-referential struct contains aliasing raw pointers. This required `UnsafePinned<T>` (2026) to fix. Ferrum avoids this by making `pinned` a first-class type property: the compiler sees `pinned` in the type and suppresses `noalias` on mutable references automatically, with no library wrapper needed. The tradeoff — generic instantiation failure instead of `Unpin` bounds — is cleaner at definition sites and noisier at use sites, but the use sites are rare (containers of pinned types are inherently indirect) and the failure message is actionable.
 
 ---
 

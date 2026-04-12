@@ -1546,7 +1546,7 @@ Ferrum's additions aren't free. Here's what you commit to:
 
 3. **Contracts for complex invariants.** You can ignore contracts entirely, but you'll get more value from Ferrum by documenting preconditions and postconditions where they matter.
 
-4. **Learning when inference fails.** Region inference handles 90% of cases, but when it fails you need to understand why and how to add annotations.
+4. **Learning when inference fails.** Region inference handles most common borrow patterns — simple borrows, linear flows, local references — but when it fails (ambiguous aliasing, complex API boundaries, region-polymorphic generics) you need to understand why and how to add annotations.
 
 The return: APIs that can't lie about their effects, finer-grained unsafe auditing, optional but powerful verification tools, and capability-based security when you need it.
 

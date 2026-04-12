@@ -372,7 +372,7 @@ Region inference is constraint-based, analogous to HM type inference. The compil
 3. Solves the constraint system for minimal region assignments
 4. Reports a type error if the system is unsatisfiable
 
-This is why ~90% of code needs no lifetime annotations. Annotations are only required when the constraint system is genuinely underdetermined — when the programmer's intent carries information the types alone don't convey.
+For most code — simple borrows, linear flows, local references — inference succeeds without annotations. Annotations are only required when the constraint system is genuinely underdetermined: when the programmer's intent carries information the types alone don't convey. The hope is this will cover the large majority of common cases without herculean effort, and it should improve over time as compiler design and CS theory advance.
 
 ### When Annotations Are Required
 
