@@ -48,7 +48,8 @@ type BoundedQueue[T] {
 | Build | Contracts |
 |-------|-----------|
 | Debug | Runtime assertions — violations abort with diagnostic |
-| Release | Optimizer assumptions — violations are undefined behavior |
+| Release | Runtime assertions — violations abort with diagnostic (same as debug) |
+| Proven | No runtime check — the proof guarantees the contract holds for all inputs |
 
 In **debug builds**, contracts are runtime checks. A violated `requires` aborts at the call site with a message naming the caller's bug. A violated `ensures` aborts at the return site with a message naming the implementer's bug. Type invariants are checked at two points:
 
@@ -87,11 +88,13 @@ fn push_batch(q: BoundedQueue[T], items: &[T]): Result[BoundedQueue[T], (Bounded
 }
 ```
 
-In **release builds**, contracts become optimizer assumptions. The compiler assumes all contracts hold and optimizes accordingly: eliminating redundant bounds checks, proving branches unreachable, enabling vectorization. Violating a contract in release mode is undefined behavior — the compiler already used the contract to transform the code.
+In **release builds**, contracts remain runtime assertions — exactly as in debug builds. A violated `requires` aborts at the call site; a violated `ensures` aborts at the return site. There is no mode in which a violated contract becomes undefined behavior.
 
-This is the correct tradeoff. Contracts are specifications, not just checks. If you wrote `requires idx < len`, you meant it. The optimizer should use that information.
+> **Design decision:** Contracts are correctness guarantees, not performance hints. Making unproven contracts into optimizer UB assumptions in release mode would mean callers cannot trust `ensures` clauses in production — a violated postcondition would silently corrupt state rather than abort. This contradicts the purpose of the contract system. The Eiffel and Ada precedent is correct: assertions check in all builds by default.
+>
+> The performance escape hatch is `@contracts(runtime = "never")`, which is only appropriate when the contract has been formally proven via `proven_by` — at which point the runtime check is genuinely redundant, not merely hoped to be.
 
-For contracts you can **prove** (see §1.11), neither runtime checks nor trust are needed — the proof guarantees correctness at compile time.
+For contracts you can **prove** (see §1.11), neither runtime checks nor trust are needed — the proof guarantees correctness at compile time, and `@contracts(runtime = "never")` is appropriate.
 
 ### 1.5 Proof Functions
 
@@ -264,7 +267,7 @@ Ferrum adopts Eiffel's contract model with the following mappings:
 
 ### 1.11 Static Verification
 
-The debug/release dichotomy applies to **unverified** contracts. Contracts that are **proven** need no runtime checks — the proof IS the verification.
+Contracts that are **proven** need no runtime checks — the proof IS the verification. Unproven contracts check at runtime in all builds (debug and release).
 
 ```
 ferrum build --proof

@@ -340,7 +340,7 @@ Each layer is optional. You move up when your problem requires it.
 
 ## Runtime Checks When Needed
 
-When the compiler can't prove a contract statically, it becomes a runtime check:
+Unproven contracts are runtime checks in both debug and release builds:
 
 ```ferrum
 fn process(data: &[u8])
@@ -350,16 +350,18 @@ fn process(data: &[u8])
     // ...
 }
 
-// At the call site:
-process(&input);  // compiler inserts: assert(input.len() >= 4)
+// At the call site — compiler inserts the check in all builds:
+process(&input);  // assert(input.len() >= 4) — debug AND release
 ```
 
-You can control this:
+The default is `"always"`. You can override per function:
 
 ```ferrum
-@contracts(runtime = "debug")   // check in debug builds only
-@contracts(runtime = "always")  // always check
-@contracts(runtime = "never")   // trust the caller (unsafe territory)
+@contracts(runtime = "debug")   // check in debug only (saves cost, loses release safety)
+@contracts(runtime = "always")  // explicit: check in all builds (the default)
+@contracts(runtime = "never")   // no runtime check — only appropriate when the contract
+                                 // is formally proven via proven_by; otherwise this is
+                                 // silently skipping a safety check
 ```
 
 ---

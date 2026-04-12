@@ -927,7 +927,7 @@ fn buggy_process(items: &mut Vec[Item]) {
 }
 ```
 
-In debug builds, the `requires` clause generates a runtime check. In release builds, it becomes an optimizer assumption. Either way, the contract is enforced.
+The `requires` clause generates a runtime check in both debug and release builds. A violated precondition aborts with a message naming the caller's bug.
 
 **Example 2: Catching off-by-one errors**
 
@@ -1025,18 +1025,17 @@ But this:
 - Is ad-hoc, not part of a systematic approach
 - Doesn't enable static verification
 
-Ferrum contracts are a first-class language feature with three enforcement modes:
-- **Debug builds:** Runtime checks that distinguish precondition violations (caller's bug) from postcondition violations (implementation bug)
-- **Release builds:** Optimizer assumptions (violation is UB)
-- **Proof mode:** Static verification via SMT solver
+Ferrum contracts are a first-class language feature with two enforcement modes:
+- **Unproven contracts:** Runtime assertions in both debug and release builds — violations abort with a diagnostic, never silently corrupt state
+- **Proven contracts:** Static verification at compile time — no runtime check needed because the proof guarantees correctness for all inputs
 
 ### Runtime Behavior of Contracts
 
-| Build | `requires` violation | `ensures` violation |
-|-------|---------------------|---------------------|
-| Debug | Panic at call site, message names the caller's bug | Panic at return site, message names implementation bug |
-| Release | Undefined behavior (optimizer assumed it holds) | Undefined behavior |
-| Proof | Compile error — must prove precondition holds | Compile error — must prove implementation correct |
+| Context | `requires` violation | `ensures` violation |
+|---------|---------------------|---------------------|
+| Debug build | Panic at call site, message names the caller's bug | Panic at return site, message names implementation bug |
+| Release build | Same as debug — panic at call site | Same as debug — panic at return site |
+| Proven (`proven_by`) | Compile error — must prove precondition holds | Compile error — must prove implementation correct |
 
 For code you can **prove** correct, neither runtime checks nor trust are needed — the proof IS the verification.
 
