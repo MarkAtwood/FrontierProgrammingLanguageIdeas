@@ -291,6 +291,29 @@ Think of it like this:
 
 You might have 4 OS threads running 10,000 tasks. The runtime schedules which task runs on which thread, switching between them when they suspend.
 
+```mermaid
+flowchart LR
+    subgraph tasks["10,000 async tasks"]
+        T1["Task A\n(running)"]
+        T2["Task B\n(suspended — awaiting network)"]
+        T3["Task C\n(running)"]
+        T4["Task D\n(suspended — awaiting disk)"]
+        T5["Task E\n(running)"]
+        T6["... 9,995 more"]
+    end
+    subgraph pool["4 OS threads"]
+        TH1["Thread 1"]
+        TH2["Thread 2"]
+        TH3["Thread 3"]
+        TH4["Thread 4"]
+    end
+    T1 --> TH1
+    T3 --> TH2
+    T5 --> TH3
+    T2 -. "suspended\n(not on any thread)" .- pool
+    T4 -. "suspended\n(not on any thread)" .- pool
+```
+
 ---
 
 ## Spawning Tasks

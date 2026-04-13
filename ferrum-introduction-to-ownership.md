@@ -156,6 +156,22 @@ fn main() {
 
 If `y` owned heap memory, that memory would be freed at the inner `}`. If `x` owned heap memory, it would be freed at the outer `}`. No guessing. No garbage collector deciding when. The scope determines when.
 
+```mermaid
+flowchart TD
+    subgraph outer["Outer scope (fn main)"]
+        X["let x = 1\n← x is valid here"]
+        subgraph inner["Inner scope { }"]
+            Y["let y = 2\n← x and y both valid"]
+            FreeY["} ← y freed here"]
+        end
+        X2["print(x)\n← x still valid, y is gone"]
+        FreeX["} ← x freed here"]
+    end
+    X --> inner
+    inner --> X2
+    X2 --> FreeX
+```
+
 ---
 
 ## Moving: Transferring Ownership

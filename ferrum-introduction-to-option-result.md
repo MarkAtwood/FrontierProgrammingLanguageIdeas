@@ -579,6 +579,22 @@ error[E0004]: non-exhaustive patterns: `None` not covered
 
 This is **exhaustiveness checking**. The compiler proves your code handles every possibility.
 
+```mermaid
+flowchart TD
+    M["match opt"]
+    M --> S["Some(n)"]
+    M --> N["None ✓"]
+    S --> G1["guard: n > 0\n→ 'positive: n' ✓"]
+    S --> G2["guard: n < 0\n→ 'negative: n' ✓"]
+    S --> G3["n == 0\n→ 'zero' ✓"]
+    style N fill:#d4edda
+    style G1 fill:#d4edda
+    style G2 fill:#d4edda
+    style G3 fill:#d4edda
+```
+
+Every leaf is marked — the compiler verifies no path is missing.
+
 ### Matching with Conditions (Guards)
 
 Sometimes you want to match based on the value inside:
