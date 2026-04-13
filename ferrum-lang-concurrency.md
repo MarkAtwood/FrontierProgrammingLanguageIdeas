@@ -142,6 +142,19 @@ scope s timeout(5s) or_abandon {
 
 `or_abandon` exists for cases where a misbehaving task must not block program exit. It is a last resort — an abandoned task is a resource leak.
 
+**When using `or_abandon`, a `// ABANDON:` comment is required in the scope body explaining why the leak is acceptable:**
+
+```ferrum
+// ABANDON: telemetry task — best-effort, never blocks user-facing response
+scope s timeout(5s) or_abandon {
+    s.spawn(send_metrics(event))
+}
+```
+
+The linter treats a missing `// ABANDON:` comment alongside `or_abandon` as a warning (`abandon_no_justification`). This is not a type error — the spec cannot enforce what the comment says — but the friction is intentional: every `or_abandon` scope should have a human-readable explanation.
+
+> **Design decision:** `or_abandon` is a first-class keyword rather than an `unsafe` block or library escape hatch. The alternative — requiring `unsafe { scope s or_abandon { ... } }` — would conflate two distinct concerns: memory-safety violations (`unsafe`) and structured-concurrency violations (task leak). A task leak is not memory-unsafe; it is a resource management issue. Using `unsafe` as the gate would either dilute `unsafe`'s meaning or fail to communicate the actual risk. The keyword approach, combined with the mandatory `// ABANDON:` comment and `abandon_task_leak` linter warning, makes the decision visible at the use site without conflating it with memory safety. `or_abandon` is genuinely necessary for programs that must exit cleanly even when tasks misbehave — telemetry, background indexers, non-critical cleanup. Making it too hard to reach for would cause programmers to leave scopes without timeouts instead.
+
 #### `@noncancellable` — critical sections
 
 `@noncancellable` is a **block-level attribute** — it applies to the block expression that follows it, not to a function or type declaration. Block-level attributes have the form `@attr { body }` and are evaluated as expressions. Ferrum supports a small set of built-in block attributes; user-defined block attributes are not supported.
@@ -171,6 +184,7 @@ Inside `@noncancellable`, `await` points exist but cancellation signals are held
 | `noncancellable_large` | `@noncancellable` block spans more than ~20 lines or calls functions with `! Async` | Block is too large to be a "brief critical section"; refactor or document why |
 | `scope_no_timeout_net` | A scope spawns tasks with `! Net` effects and has no `timeout` declaration | If the network blocks, the scope may wait indefinitely |
 | `abandon_task_leak` | `or_abandon` is used | Reminder that the task may still be running after the scope exits |
+| `abandon_no_justification` | `or_abandon` scope has no `// ABANDON:` comment | Every task leak needs a documented reason |
 
 These are **warnings**, not errors — there are legitimate uses of each pattern. The warnings surface the risk so the programmer can make an informed choice and document it.
 

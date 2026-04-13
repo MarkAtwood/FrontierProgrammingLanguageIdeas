@@ -59,15 +59,17 @@ struct.field = v // field assignment (requires &mut)
 a + b    a - b    a * b    a / b    a % b
 -a       // negation
 
-// Wrapping variants
+// Wrapping variants (two's complement wrap-around)
 a +% b   a -% b   a *% b
 
-// Saturating variants
+// Saturating variants (clamp to type min/max)
 a +| b   a -| b   a *| b
 
 // Bitwise
 a & b    a | b    a ^ b    !a    a << n    a >> n
 ```
+
+> **Design decision:** Wrapping (`+%`) and saturating (`+|`) arithmetic use operator syntax rather than method calls (`a.wrapping_add(b)` / `a.saturating_add(b)` as in Rust). Operator syntax is essential for readability in DSP, cryptography, and binary protocol code where wrapping arithmetic is the norm, not the exception. Writing `(a.wrapping_add(b)).wrapping_add(c)` instead of `a +% b +% c` is illegible at scale. In a cryptographic primitive, the entire implementation may be wrapping arithmetic — method chains make the algorithm unreadable. The operator form conveys intent without visual noise. The tradeoff is that readers must know `+%` means wrapping; this is documented once in the syntax reference, not repeated at every call site.
 
 **Shift amount type safety:**
 

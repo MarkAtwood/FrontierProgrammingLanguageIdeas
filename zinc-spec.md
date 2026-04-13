@@ -219,6 +219,8 @@ Both names are visible in the function body and must be provided by the
 `with` block. The compiler errors if a `using(name)` function is called
 and no enclosing `with` provides that name.
 
+> **Design decision:** `using(allocator)` (function signature) and `with (allocator: expr)` (block statement) use different keywords because they serve syntactically distinct roles. `using` is a modifier on a function type — it describes a requirement of the function's interface, similar to `!Error` in a return type. `with` is a statement that creates a lexical scope — like `const`, `var`, or `defer`. Unifying them into a single keyword (e.g., `alloc fn` / `alloc(expr) { }`) would require a keyword that works as both a type modifier and a statement introducer, which is syntactically unusual and harder to parse. The asymmetry is intentional: `using` declares "what I need", `with` declares "what I'm providing". Reading a function signature tells you the requirement; reading a call site tells you where it's satisfied.
+
 ### Explicit override at call site
 
 When you need to call a `using(allocator)` function with a specific
@@ -366,7 +368,7 @@ fires, the bug is in the function body.
 
 ```zig
 fn push(self: *ArrayList(T), item: T) !void
-    ensures self.items.len == old(self.items.len) + 1
+    ensures self.items.len == @old(self.items.len) + 1
     ensures self.items[self.items.len - 1] == item
 {
     try self.items.append(item);
@@ -410,23 +412,25 @@ fn readLine(reader: anytype, buf: []u8) ![]u8
 }
 ```
 
-### `old()` — pre-call snapshots
+### `@old()` — pre-call snapshots
 
-`old(expr)` captures the value of `expr` at function entry, for use in
+`@old(expr)` captures the value of `expr` at function entry, for use in
 `ensures` clauses.
+
+> **Design decision:** `@old()` uses the `@` prefix (Zinc's builtin convention) rather than plain `old()`. A plain function call `old(expr)` would suggest it is user-callable from anywhere — but `@old()` is a compiler keyword that only makes sense in `ensures` clauses. Using it in a `requires` clause, a regular expression, or a helper function is a compile error. The `@` prefix signals "this is compiler magic, not a user-space function" — consistent with `@as()`, `@intFromFloat()`, `@sizeOf()`, and other Zinc builtins. Readers who encounter `@old()` outside an `ensures` clause get a clear error pointing them to the correct usage, rather than a confusing "function not found" message.
 
 ```zig
 fn pop(self: *ArrayList(T)) !T
     requires self.items.len > 0
-    ensures self.items.len == old(self.items.len) - 1
+    ensures self.items.len == @old(self.items.len) - 1
 {
     return self.items.pop();
 }
 
 fn transfer(from: *Account, to: *Account, amount: u64) !void
     requires from.balance >= amount
-    ensures from.balance == old(from.balance) - amount
-    ensures to.balance == old(to.balance) + amount
+    ensures from.balance == @old(from.balance) - amount
+    ensures to.balance == @old(to.balance) + amount
 {
     from.balance -= amount;
     to.balance += amount;
@@ -434,7 +438,7 @@ fn transfer(from: *Account, to: *Account, amount: u64) !void
 ```
 
 The compiler generates a snapshot variable at function entry for each
-expression referenced in `old()`:
+expression referenced in `@old()`:
 
 ```zig
 // Desugaring of the pop() function above:
@@ -450,32 +454,32 @@ fn pop(self: *ArrayList(T)) !T {
 }
 ```
 
-Only expressions that actually appear in `old()` are snapshotted. The
+Only expressions that actually appear in `@old()` are snapshotted. The
 compiler does not copy the entire state of all arguments.
 
-For types that require allocation to copy (slices, complex structs), `old()`
+For types that require allocation to copy (slices, complex structs), `@old()`
 requires a `using(allocator)` declaration on the function. If the function
-does not have `using(allocator)` and `old()` references a non-Copy type, it
-is a compile error at the `old()` call site — not a runtime surprise:
+does not have `using(allocator)` and `@old()` references a non-Copy type, it
+is a compile error at the `@old()` call site — not a runtime surprise:
 
 ```zig
-// COMPILE ERROR: old(self.items) requires using(allocator) — items is []i32 (non-Copy)
+// COMPILE ERROR: @old(self.items) requires using(allocator) — items is []i32 (non-Copy)
 fn pop(self: *ArrayList) !i32
-    ensures self.items.len == old(self.items.len) - 1
+    ensures self.items.len == @old(self.items.len) - 1
 {
     return self.items.pop();
 }
 
 // OK: function declares the allocator requirement
 fn pop(self: *ArrayList) !i32  using(allocator)
-    ensures self.items.len == old(self.items.len) - 1
+    ensures self.items.len == @old(self.items.len) - 1
 {
     return self.items.pop();
 }
 ```
 
 This makes the allocation requirement visible in the function signature.
-Adding `old(non_copy_expr)` to an `ensures` clause is therefore a
+Adding `@old(non_copy_expr)` to an `ensures` clause is therefore a
 potentially API-visible change and must be reflected in the `using` declaration.
 
 ### `invariant` — struct invariants
@@ -577,6 +581,8 @@ caller bugs — you want to catch those even in production. Postconditions
 and invariants are stripped because they add overhead proportional to
 function complexity.
 
+> **Design decision:** The asymmetric table (`requires` stays in ReleaseSafe, `ensures`/`invariant` stripped) is correct engineering. Precondition violations are caller bugs — incorrect API use that you want to catch in production, where the fix is a patched binary, not a rerun of the test suite. Stripping everything in release for performance trades away that safety net. Postconditions and invariants verify the *implementation*: they run after every call and inside every method, adding overhead proportional to function complexity. These are for development correctness proofs, not production monitoring. The cost — proportional to function complexity, on every call — is not acceptable in release builds. Security-critical preconditions can be further pinned with `requires(always)` to survive even release builds.
+
 Override per-function if needed:
 
 ```zig
@@ -622,7 +628,7 @@ fn binarySearch(items: []const i32, target: i32) ?usize
 ```
 
 Contract expressions must be pure — no side effects, no allocation (unless
-using `old()` with an ambient allocator). The compiler enforces this: any
+using `@old()` with an ambient allocator). The compiler enforces this: any
 function called from a contract expression must itself have no `using(allocator)`
 declaration and must not perform any operation that would be a `requires`/`ensures`
 violation. A contract that calls a function with side effects is a compile error:
@@ -657,7 +663,7 @@ is available:
 ```zig
 fn sort(items: []i32) void
     ensures forall (i in 0..items.len-1) items[i] <= items[i+1]
-    ensures forall (i in 0..items.len) old(containsElement(items, items[i]))
+    ensures forall (i in 0..items.len) @old(containsElement(items, items[i]))
     // every element in output was in input
 {
     std.sort.heap(i32, items, {}, std.sort.asc(i32));
@@ -672,10 +678,10 @@ stripped.
 
 ## Interaction Between the Two Features
 
-Allocators and contracts interact in one specific place: `old()` for
+Allocators and contracts interact in one specific place: `@old()` for
 non-Copy types.
 
-When a contract uses `old(expr)` and `expr` has a type that cannot be
+When a contract uses `@old(expr)` and `expr` has a type that cannot be
 trivially copied (a slice, a pointer to heap data, a struct containing
 pointers), the compiler needs to make a copy at function entry.
 
@@ -686,8 +692,8 @@ of return path.
 ```zig
 fn sort(items: []i32) void
     using(allocator)
-    ensures isPermutation(items, old(items))
-    // old(items) is a slice — needs a copy
+    ensures isPermutation(items, @old(items))
+    // @old(items) is a slice — needs a copy
 {
     // Compiler generates at entry:
     //   const __old_items = try allocator.dupe(i32, items);
@@ -698,20 +704,20 @@ fn sort(items: []i32) void
 }
 ```
 
-If no allocator is in scope and `old(expr)` requires one, the compiler
+If no allocator is in scope and `@old(expr)` requires one, the compiler
 emits an error:
 
 ```
-error: `old(items)` requires a copy of type `[]i32`, but no ambient
+error: `@@old(items)` requires a copy of type `[]i32`, but no ambient
        allocator is in scope. Add `using(allocator)` to this function.
 ```
 
-**Debug/release allocation difference:** The `old()` snapshot allocation happens only in debug builds — contracts are stripped in release mode, so the allocation disappears entirely. This means a debug build of a function using `old(slice)` has higher peak allocation than its release build. For embedded targets with tight heap budgets, a debug build can OOM where release succeeds.
+**Debug/release allocation difference:** The `@old()` snapshot allocation happens only in debug builds — contracts are stripped in release mode, so the allocation disappears entirely. This means a debug build of a function using `@old(slice)` has higher peak allocation than its release build. For embedded targets with tight heap budgets, a debug build can OOM where release succeeds.
 
-Design guidance: if this is a concern, limit `old()` to `Copy` types (integers, small structs) and use explicit assertion helpers for non-Copy types:
+Design guidance: if this is a concern, limit `@old()` to `Copy` types (integers, small structs) and use explicit assertion helpers for non-Copy types:
 
 ```zig
-// Instead of old(items) on a large slice:
+// Instead of @old(items) on a large slice:
 fn sort(items: []i32) void {
     const original_len = items.len;  // Copy — no allocation, works in all modes
     std.sort.heap(i32, items, {}, std.sort.asc(i32));
@@ -744,7 +750,7 @@ const MinHeap = struct {
     }
 
     pub fn push(self: *MinHeap, value: i32) !void  using(allocator)
-        ensures self.len == old(self.len) + 1
+        ensures self.len == @old(self.len) + 1
         ensures containsElement(self.data[0..self.len], value)
     {
         if (self.len == self.data.len) {
@@ -758,8 +764,8 @@ const MinHeap = struct {
     pub fn pop(self: *MinHeap) ?i32
         requires self.len > 0
         ensures result != null
-        ensures self.len == old(self.len) - 1
-        ensures result.? <= old(self.data[0])
+        ensures self.len == @old(self.len) - 1
+        ensures result.? <= @@old(self.data[0])
     {
         if (self.len == 0) return null;
         const min = self.data[0];
@@ -944,6 +950,8 @@ system feature. It checks whether any local variable implementing
 `isSyncGuard()` is live at any `async`/`await` point. No compiler
 changes required — implementable as a Zinc-specific analysis pass.
 
+> **Design decision:** The `__sync_guard_marker` sentinel is a comptime naming convention rather than a formal interface. A cleaner design would declare `pub interface SyncGuard` with a destructor requirement — but that requires a language feature Zinc does not have. The double-underscore naming convention is a deliberate code smell: it signals "implementation detail of the lock library, not user API." The linter only catches declared markers, which is acceptable — the goal is to catch the common case (standard library lock guards held across suspensions), not to provide a complete static analysis. Authors of custom lock types should declare the marker. The limitation is acknowledged: the linter cannot be certain it has found all sync guards, only the ones that opted in.
+
 #### 3. `std.mem.TaggedPtr(T, n_bits)` — typed tagged pointers
 
 Tagged pointers store small integers in the low bits of a pointer,
@@ -1090,6 +1098,8 @@ counters, `std.Thread.Mutex` for commit-phase serialization, and
 `std.Thread.Condition` for `retry()` blocking. Approximately 800–1,200
 lines. No compiler changes required.
 
+> **Design decision:** `TVar` is deliberately restricted to `Copy` types. Heap-allocated types (strings, slices, complex structs) cannot be wrapped directly. This is a scoping decision, not an oversight. The target use case is composable transactions over shared scalar and small value state — bank balances, counters, state flags — where atomics lack composability. For complex heap state, store an index or immutable handle in a `TVar` and manage the heap data separately. STM over arbitrary heap types requires either reference counting (GC-like overhead) or persistent immutable data structures — both are out of scope for a systems language stdlib. If you need composable transactions over complex heap state, the Copy restriction is telling you to restructure the state model, not to extend `TVar`.
+
 ### Hardware Transactional Memory — platform namespaces
 
 Hardware TM (Intel RTM/TSX, ARM TME, IBM POWER HTM) lives in
@@ -1148,6 +1158,8 @@ A `layout` block is a separate declaration attached to a struct. It specifies
 the physical binary representation and causes the compiler to generate
 read/write/view functions.
 
+> **Design decision:** The `layout` block is a separate top-level declaration rather than an inline annotation inside the struct. The reason is separation of concerns: the struct defines the *semantic* type (field names and Zig types); the layout defines the *physical representation* (bit positions, byte order, codec generation). These have different audiences — the struct is for Zig programmers, the layout is for hardware interface authors or protocol implementers. Most structs never need a layout, and not every binary format naturally maps to a Zig struct. The concern that a struct and its layout can drift apart (rename the struct, orphan the layout) is valid — the compiler warns on orphaned layout blocks at build time, and a future attribute `#[layout = TypeName]` can make the attachment explicit at the struct definition site. The alternative (mandatory inline) would burden every packed struct with layout syntax even when no binary codec is needed.
+
 ```zig
 const StatusRegister = packed struct {
     ready:    bool,
@@ -1195,6 +1207,8 @@ layout Broken {
 // error: layout 'Broken': bits 8..15 are unaccounted for
 //        declare a padding field or reduce total_size to 8
 ```
+
+> **Design decision:** The layout verifier is deliberately strict — every bit must be accounted for, no gaps, no overlaps, total size verified. The alternative (allowing implicit gaps or making `total_size` optional) weakens the guarantee. Implicit padding is exactly what `packed struct` gives you, and it causes endless bugs in binary protocol code where the author assumed one layout and got another. Requiring explicit accounting for every bit means the layout is self-documenting and the compiler verifies the documentation. If you want padding, name it — that forces the author to acknowledge the unused bits exist. Relaxing this would make the layout block equivalent to a comment with extra syntax.
 
 ### Padding fields
 
@@ -1433,6 +1447,8 @@ const y: d64 = 0.1d64;                  // exact
 // OK: explicit inexact conversion (rare)
 const z: d64 = std.math.decimal.fromBinaryFloat(some_f64);  // lossiness visible
 ```
+
+> **Design decision:** The literal-level enforcement (lexer stores the original string, never passes through binary float) is the only way to guarantee the decimal invariant. The moment a decimal value touches binary float, exactness is lost. A reviewer might suggest "just use `@as(d64, ...)` for convenience" or "allow implicit conversion from `f64`". Both are wrong: `0.1` as a binary float is already `0.1000000000000000055511151231257827021181583404541015625`. Converting that to `d64` does not recover exactness — it encodes the binary approximation in decimal. The `@as(d64, binary_float_expr)` compile error exists precisely to catch this mistake at the call site rather than in a financial audit.
 
 **Operations:** Arithmetic operators `+`, `-`, `*`, `/` work on decimal
 floats. Comparison operators work. Transcendental functions (`sin`, `exp`,
@@ -1759,7 +1775,7 @@ The gap Zinc fills is specifically: `bf16`, decimal floats, `Fixed(I,F)`,
 declarations. No new type system concepts.
 
 **Contracts:** 5,000–8,000 lines. AST transformation pass. `assert` insertion,
-`old()` snapshot generation, invariant checks. No new type system concepts.
+`@old()` snapshot generation, invariant checks. No new type system concepts.
 
 **Binary layout declarations:** 4,000–6,000 lines. Layout verification pass
 (arithmetic on ranges), codec generation pass (bit manipulation). No new
@@ -1838,9 +1854,9 @@ name resolution semantics in a way a library function cannot.
 Probably not default — opt-in is more explicit. A future linter rule
 could flag functions that look security-critical without `requires(always)`.
 
-**Should the compiler warn on `old()` expressions that are expensive to copy?**
+**Should the compiler warn on `@old()` expressions that are expensive to copy?**
 Yes. Snapshotting a large struct in a hot loop will silently destroy
-performance in debug mode. The compiler should warn when `old()` copies
+performance in debug mode. The compiler should warn when `@old()` copies
 more than N bytes.
 
 **Should contracts be visible in generated documentation?**

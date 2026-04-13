@@ -151,6 +151,8 @@ error: public function `process` has undeclared effects
 
 This means most code looks like regular C or Python — no effect annotations cluttering every line. The annotations appear only where they document your API.
 
+> **Design decision:** The inference/annotation split (private = inferred, `pub` = required) is the correct tradeoff. Two alternatives exist: require effect annotations everywhere, or infer effects everywhere including `pub`. Requiring annotations everywhere is Rust's mistake — annotation burden on every private helper discourages writing small, well-named functions and pushes code toward larger functions to avoid the annotation tax. Inferring at `pub` boundaries violates the "public API is the contract" principle: a caller reading a library function cannot know what it does without reading the implementation, which defeats the purpose of an effect system. The current rule is the pragmatic middle: private functions are lightweight because their effects are visible to the compiler without annotation; public functions are explicit because their callers depend on the contract.
+
 ---
 
 ## Comparing to C
@@ -299,10 +301,11 @@ For the full specification including `@pure` interaction and error message forma
 
 Sometimes a function is pure from the caller's perspective but uses internal mutation — a memoization cache is the canonical example. The `@pure` attribute handles this, but it is **compiler-verified**, not a trust assertion.
 
-`@pure` is only valid when the compiler's inferred effects are a subset of `{Alloc, Sync}`. These are the two effects that are genuinely unobservable to callers: whether memory was allocated internally, and whether an internal lock was acquired, are implementation details the caller cannot detect. All other effects — `IO`, `Net`, `Panic`, `Unsafe`, `Async` — are caller-visible by definition and cannot be suppressed.
+`@pure` is only valid when the compiler's inferred effects are a subset of `{Sync}`. The one effect that is genuinely unobservable to callers is whether an internal lock was acquired — that is an implementation detail the caller cannot detect. All other effects — `IO`, `Net`, `Panic`, `Unsafe`, `Async`, `Alloc` — are caller-visible and cannot be suppressed. A `@pure` function that allocates internally retains `! Alloc` in its visible effect set, so no-alloc callers catch the violation at compile time.
 
 ```ferrum
-// ok: inferred effects are ! Alloc + ! Sync — both suppressible
+// ok: inferred effect is ! Sync — suppressible (internal mutex is not caller-visible)
+// Note: if the cache allocates, ! Alloc remains visible in the effect set
 @pure
 fn expensive_computation(x: i32): i32 {
     static CACHE: Mutex[HashMap[i32, i32]] = ...
@@ -327,15 +330,11 @@ fn risky(x: i32): i32 {
 
 **What `@pure` does and does not guarantee:**
 
-The compiler verifies that the function's only effects are internal allocation and synchronization. It does *not* verify that the caching logic is correct — a buggy cache that returns wrong results for some inputs would still compile. This is the same situation as `unsafe`: the compiler checks the boundary, but correctness of the implementation inside that boundary is the author's responsibility.
+The compiler verifies that the function's only suppressed effect is internal synchronization. It does *not* verify that the caching logic is correct — a buggy cache that returns wrong results for some inputs would still compile. This is the same situation as `unsafe`: the compiler checks the boundary, but correctness of the implementation inside that boundary is the author's responsibility.
 
-You can find all `@pure` functions in a codebase with `grep @pure`. Each one is a human claim that internal allocation/synchronization does not affect the observable result. That claim is auditable; the effect types are compiler-enforced.
+You can find all `@pure` functions in a codebase with `grep @pure`. Each one is a human claim that internal synchronization does not affect the observable result. That claim is auditable; the effect types are compiler-enforced.
 
-> **Design decision:** `@pure` was deliberately narrowed to `{Alloc, Sync}` suppressible effects.
-> The alternative — allowing suppression of any effect — would let functions lie about `IO`,
-> `Net`, and `Panic`, destroying the value of the effect system for callers. The memoization
-> pattern (the primary use case) only needs `Alloc` + `Sync` suppression, so the narrowed
-> form covers all legitimate uses without opening the broader hole.
+> **Design decision:** `@pure` suppresses only `! Sync`. Suppressing `! Alloc` was considered and rejected: allocation is caller-visible in no-alloc contexts (embedded, kernel, real-time code). A `@pure` function that allocates internally retains `! Alloc` so no-alloc callers get a compile error rather than a silent violation. The memoization pattern (the primary use case) needs `! Sync` suppression — the internal mutex is hidden from callers. The cache allocation is correctly visible as `! Alloc`. For functions that genuinely do not allocate, use `@no_alloc` — the compiler statically verifies the absence of allocation. `@pure` and `@no_alloc` are orthogonal and can both be applied to the same function.
 
 ---
 
@@ -347,7 +346,7 @@ You can find all `@pure` functions in a codebase with `grep @pure`. Each one is 
 | IO function | Same signature as pure | `! IO` in signature |
 | Effect checking | None | Compiler-enforced |
 | Writing annotations | N/A | Only at `pub` boundaries |
-| Internal mutation, observationally pure | Just do it | `@pure` — compiler-verified: only `Alloc`+`Sync` effects allowed |
+| Internal mutation, observationally pure | Just do it | `@pure` — compiler-verified: only `! Sync` suppressed; `! Alloc` remains visible |
 
 Effects are types for "what else a function does." They make the implicit explicit, let the compiler help you, and document your APIs honestly — without cluttering every line of code.
 

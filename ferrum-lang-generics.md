@@ -327,6 +327,8 @@ fn eval[T](expr: Expr[T]): T {
 
 GADTs enable encoding protocol state machines, typed expression languages, and other invariants that flat enums cannot express.
 
+> **Design decision:** GADTs are worth the complexity cost for a systems language. Without GADTs, `Expr[T]` cannot enforce that `Add(a, b)` only appears where `T = i32` — the evaluator must handle impossible cases or panic. With GADTs, `fn eval[T](expr: Expr[T]): T` is total by construction: no match arm can be absent, no runtime case is unreachable, the compiler proves completeness. The use cases — compilers, type checkers, protocol state machines, binary format parsers — are exactly the domains systems programmers write in. The complexity cost is bounded (GADTs are only needed for these specific patterns), and the safety benefit is unbounded (an entire class of runtime errors becomes impossible). The alternative — encoding the same invariants with trait objects and runtime checks — moves the proof burden to the programmer and the panics to production.
+
 ### 2.8 Contract Inheritance in Traits
 
 When a trait declares contracts, implementations must respect the Liskov Substitution Principle:

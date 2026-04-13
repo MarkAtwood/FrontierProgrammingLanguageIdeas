@@ -31,10 +31,7 @@ These rules are enforced by the compiler's borrow checker (see §19).
 
 Ferrum uses region inference to eliminate explicit lifetime annotations in the common case. A *region* is a compile-time abstraction representing the scope during which a reference is valid.
 
-> **Design Note:** Region inference eliminates annotations in the common case.
-> The fallback — requiring annotations when inference fails — is not failure.
-> It is honest scope management. The annotations that remain carry genuine
-> semantic content that a reader needs.
+> **Design decision:** Region inference eliminates annotations in the common case, including the canonical `longest` pattern that Rust requires explicit annotation for. The inference algorithm (fresh region per parameter → constraint generation → smallest valid solution) is specifically designed to handle `fn longest(a: &str, b: &str): &str` without annotation — the return region is inferred as `min(region(a), region(b))`, which is the only valid solution. The fallback — requiring annotations when inference fails — is not failure. It is honest scope management: the annotations that remain carry genuine semantic content that a human reader also cannot determine without additional information. If you add a redundant annotation the compiler already inferred, it warns to remove it.
 
 **The inference algorithm:**
 1. Assign a fresh region variable to every reference in a function signature.
@@ -90,7 +87,7 @@ When the compiler can verify something automatically, it does. When it cannot, t
 
 ```
 warning: redundant annotation
-  --> src/parser.rs:47:5
+  --> src/parser.fe:47:5
    |
 47 |     trusted("ptr valid for len bytes, aligned")
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -284,12 +281,13 @@ Pure functions are referentially transparent: calling them twice with the same a
 Any access to mutable state that exists outside the function's own stack frame and is not passed in as a parameter generates `! Global`. This is distinct from `! IO` (which covers files, pipes, stdin/stdout, and environment variables). Separating them lets callers understand whether a function touches the process's I/O streams or merely reads internal shared state:
 
 - Process-wide global mutable state (`static mut`, atomics used as globals)
-- Thread-local mutable state (`thread_local!` variables)
+- Thread-local mutable state (`#[thread_local] static` variables)
 
 Thread-local state is still global state — just scoped to a thread. A function that reads a thread-local counter can return different values on successive calls with identical arguments, depending on what other code on the same thread has done. That violates referential transparency. Since `! Global` is not suppressible by `@pure`, no function accessing thread-local mutable state can be `@pure`.
 
 ```ferrum
-thread_local! { static COUNTER: Cell<i32> = Cell::new(0); }
+#[thread_local]
+static COUNTER: Cell[i32] = Cell.new(0)
 
 fn get_count(): i32 { COUNTER.get() }
 // Compiler infers: ! Global — not pure, cannot be @pure
