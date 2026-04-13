@@ -373,6 +373,22 @@ scope s {
 
 The `scope` block owns its tasks. When control leaves the scope — for any reason — the scope waits for all its tasks to complete. If any are still running, they're cancelled and the scope waits for the cancellation to finish.
 
+```mermaid
+flowchart TD
+    A([Enter scope block]) --> B[s.spawn tasks]
+    B --> C[Tasks run concurrently]
+    C --> D{How does scope exit?}
+    D -->|All tasks finish normally| E[Scope exits normally]
+    D -->|Early return from scope body| F[Send cancel to all live tasks]
+    D -->|Panic inside scope| F
+    D -->|External cancel signal| F
+    F --> G[Wait for all tasks to finish]
+    G --> E
+    E --> H([Code after scope — all tasks guaranteed done])
+```
+
+The diagram shows the key guarantee: every exit path from a scope — normal, early return, panic, or external cancel — passes through the same "wait for all tasks" step. There is no path where a task outlives its scope.
+
 ### Why Fire-and-Forget Is Dangerous
 
 Here's a real bug that happens in unstructured systems. Imagine you're writing a web service that processes orders:

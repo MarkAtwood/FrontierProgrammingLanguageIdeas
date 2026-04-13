@@ -142,7 +142,7 @@ Use `String` when you need to:
 
 ### The Relationship
 
-`String` dereferences to `&str`. Any function that takes `&str` accepts `&String` automatically:
+`String` is an owned heap buffer. To pass it where `&str` is expected, call `.as_str()` or dereference explicitly — Ferrum has no implicit coercions:
 
 ```ferrum
 fn word_count(text: &str): usize {
@@ -150,8 +150,8 @@ fn word_count(text: &str): usize {
 }
 
 let owned: String = String.from("one two three")
-word_count(&owned)  // works: &String coerces to &str
-word_count("four five")  // works: literal is &str
+word_count(owned.as_str())  // explicit: extract &str view from String
+word_count("four five")     // literal is already &str
 ```
 
 ---

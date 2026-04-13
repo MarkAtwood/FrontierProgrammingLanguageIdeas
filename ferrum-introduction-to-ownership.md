@@ -402,6 +402,35 @@ fn main() {
 
 ---
 
+## Value Lifecycle: State Diagram
+
+Every value in Ferrum moves through a defined set of states. The compiler tracks which state each value is in and rejects programs that violate the rules:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Owned : let x = value
+
+    Owned --> Owned : copy (Copy types only)
+    Owned --> Invalid : let y = x (move)
+    Owned --> SharedBorrow : &x
+    Owned --> ExclusiveBorrow : &mut x
+    Owned --> [*] : out of scope (drop)
+
+    SharedBorrow --> SharedBorrow : another &x (allowed)
+    SharedBorrow --> Owned : all borrows expire
+
+    ExclusiveBorrow --> Owned : borrow expires
+
+    Invalid --> [*] : use after move = compile error
+```
+
+Key constraints enforced at compile time:
+- **SharedBorrow → ExclusiveBorrow** is forbidden while any `&x` is live
+- **ExclusiveBorrow → SharedBorrow** is forbidden while `&mut x` is live
+- **Invalid** is a terminal state — using a moved value is a compile error, not a runtime crash
+
+---
+
 ## The Borrowing Rules
 
 Ferrum enforces two rules about borrows. These rules catch bugs at compile time that would be runtime nightmares in C.

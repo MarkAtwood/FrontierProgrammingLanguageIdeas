@@ -622,6 +622,18 @@ type Callback = fn(i32): bool
 
 Type aliases are transparent — `Meters` and `f32` are the same type. For a distinct type use a newtype (tuple struct with one field).
 
+**The `Result[T]` pattern:** The one-argument `Result[T]` alias is idiomatic for modules that define their own error type. Each module declares its error enum and a local alias:
+
+```ferrum
+// In module parser:
+enum Error { UnexpectedToken(char), UnexpectedEof, InvalidUtf8 }
+type Result[T] = std.Result[T, Error]   // local alias — Error is this module's Error
+
+pub fn parse(src: &str): Result[Ast] ! IO { ... }  // Error is parser::Error
+```
+
+`Result[T]` is not a built-in with a default error type — it is always a module-level alias. `pub fn` signatures using `Result[T]` are valid only inside modules that define this alias. Functions in the standard library use the two-argument form `std.Result[T, E]` explicitly.
+
 ### 4.4 Newtype Pattern
 
 ```ferrum

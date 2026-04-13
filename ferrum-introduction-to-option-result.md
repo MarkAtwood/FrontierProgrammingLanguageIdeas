@@ -358,6 +358,17 @@ fn read_config(path: &str) -> Result[Config, ConfigError]
 
 Writing `match` for every operation is verbose. Most of the time, you want to say: "if this failed, pass the error up to my caller." The `?` operator does exactly that.
 
+```mermaid
+flowchart TD
+    Call["expr?"] --> Q{Result?}
+    Q -->|Ok(value)| Unwrap["unwrap value\ncontinue execution"]
+    Q -->|Err(e)| Return["return Err(e) immediately\n— early exit from function"]
+    Unwrap --> Next["next statement in function"]
+    Return --> Caller["caller receives the error"]
+```
+
+The `?` is early-return shorthand. Every `?` in a function is a potential early exit — callers of that function receive the error without any additional code.
+
 ### What `?` Does
 
 ```ferrum

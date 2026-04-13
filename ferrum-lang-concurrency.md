@@ -75,7 +75,7 @@ fn main() {
 
 ```ferrum
 s.spawn(expr)             // spawn a task, returns Task[T] where T = type of expr
-s.spawn_detached(expr)    // no handle returned, task still bounded by scope
+s.spawn_void(expr)        // no handle returned, task still bounded by scope
 
 // With capability override
 s.spawn(with Heap as alloc { worker(data) })
@@ -144,7 +144,9 @@ scope s timeout(5s) or_abandon {
 
 #### `@noncancellable` — critical sections
 
-A block annotated `@noncancellable` defers cancellation until the block exits. Use this for operations that must complete atomically — flushing a buffer, committing a transaction, releasing a lock in a consistent state:
+`@noncancellable` is a **block-level attribute** — it applies to the block expression that follows it, not to a function or type declaration. Block-level attributes have the form `@attr { body }` and are evaluated as expressions. Ferrum supports a small set of built-in block attributes; user-defined block attributes are not supported.
+
+`@noncancellable { }` defers cancellation until the block exits. Use this for operations that must complete atomically — flushing a buffer, committing a transaction, releasing a lock in a consistent state:
 
 ```ferrum
 s.spawn(async {
@@ -285,6 +287,35 @@ Ferrum organizes concurrency primitives across three tiers:
 - **Language** — constructs the compiler must understand to maintain safety guarantees
 - **Module** — constructs the type system can handle as opaque types
 - **Out of band** — platform-specific, non-portable, requires explicit opt-in
+
+```mermaid
+flowchart TD
+    Q{Does the compiler need\nsemantic understanding\nfor correctness?} -->|Yes — touches region inference,\nborrow checker, effect tracking,\nor proof obligations| L
+    Q -->|No — opaque type is sufficient| P{Is it\nplatform-specific\nor non-portable?}
+    P -->|No| M
+    P -->|Yes — requires explicit opt-in| O
+
+    subgraph L["Language tier"]
+        L1["scope / s.spawn"]
+        L2["memory Ordering"]
+        L3["fence / sfence / lfence"]
+        L4["@thread_local"]
+        L5["SyncGuard marker trait"]
+        L6["CHERI capability pointers"]
+    end
+
+    subgraph M["Module tier (sync.*)"]
+        M1["Atomic[T]"]
+        M2["TVar / atomically (STM)"]
+        M3["TaggedPtr"]
+        M4["MMIO typed registers"]
+        M5["seqlock / RCU"]
+    end
+
+    subgraph O["Out-of-band (sys.arch.*)"]
+        O1["Hardware TM: TSX / ARM TME / POWER HTM"]
+    end
+```
 
 The assignment of a primitive to a tier follows a single principle:
 

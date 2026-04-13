@@ -95,6 +95,23 @@ This is the guarantee: **if a function doesn't have `! IO`, it doesn't do IO.** 
 
 Here's the key insight that makes this usable: **you only write effect annotations at module boundaries.**
 
+```mermaid
+flowchart TD
+    subgraph Module["Module boundary"]
+        PUB["pub fn process(x: i32): i32 ! IO\n⬆ annotation required — compile error if missing"]
+    end
+    subgraph Internal["Inside module — effects inferred, no annotation needed"]
+        FN1["fn log_and_compute(x: i32): i32\n(inferred: ! IO — calls println)"]
+        FN2["fn helper(x: i32): i32\n(inferred: pure — no effects)"]
+        IO["println — ! IO effect source"]
+    end
+    PUB -->|calls| FN1
+    FN1 -->|calls| FN2
+    FN1 -->|calls| IO
+    IO -->|effect propagates up| FN1
+    FN1 -->|effect propagates up| PUB
+```
+
 Inside your module, the compiler infers effects:
 
 ```ferrum

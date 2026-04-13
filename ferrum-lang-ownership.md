@@ -56,7 +56,7 @@ Annotations are required when the function signature is genuinely ambiguous — 
 ```ferrum
 // Ambiguous: does the return borrow from x, y, or either?
 // Must annotate
-fn choose[T]<'a, 'b>(x: &'a T, y: &'b T, use_x: bool): &'a T
+fn choose['a, 'b, T](x: &'a T, y: &'b T, use_x: bool): &'a T
     where 'b: 'a    // 'b outlives 'a
 {
     if use_x { x } else { y as &'a T }
@@ -218,8 +218,10 @@ Effects describe what a function does beyond computing a return value. Effects a
 
 | Effect | Meaning |
 |---|---|
-| `IO` | Reads or writes to I/O (files, stdin/stdout, environment) |
+| `IO` | Reads or writes to actual I/O — files, pipes, stdin/stdout, environment variables |
+| `Global` | Reads or writes mutable global or thread-local state |
 | `Net` | Network operations |
+| `Async` | Can suspend execution and resume (contains `.await` points) |
 | `Sync` | Acquires or releases synchronization primitives |
 | `Unsafe` | Contains unsafe operations |
 | `Panic` | May call `panic` |
@@ -279,43 +281,66 @@ Pure functions are referentially transparent: calling them twice with the same a
 
 #### Global and Thread-Local Mutable State
 
-Any access to mutable state that exists outside the function's own stack frame and is not passed in as a parameter generates `! IO`. This includes:
+Any access to mutable state that exists outside the function's own stack frame and is not passed in as a parameter generates `! Global`. This is distinct from `! IO` (which covers files, pipes, stdin/stdout, and environment variables). Separating them lets callers understand whether a function touches the process's I/O streams or merely reads internal shared state:
 
 - Process-wide global mutable state (`static mut`, atomics used as globals)
 - Thread-local mutable state (`thread_local!` variables)
 
-Thread-local state is still global state — just scoped to a thread. A function that reads a thread-local counter can return different values on successive calls with identical arguments, depending on what other code on the same thread has done. That violates referential transparency. Since `! IO` is not suppressible by `@pure`, no function accessing thread-local mutable state can be `@pure`.
+Thread-local state is still global state — just scoped to a thread. A function that reads a thread-local counter can return different values on successive calls with identical arguments, depending on what other code on the same thread has done. That violates referential transparency. Since `! Global` is not suppressible by `@pure`, no function accessing thread-local mutable state can be `@pure`.
 
 ```ferrum
 thread_local! { static COUNTER: Cell<i32> = Cell::new(0); }
 
 fn get_count(): i32 { COUNTER.get() }
-// Compiler infers: ! IO — not pure, cannot be @pure
+// Compiler infers: ! Global — not pure, cannot be @pure
 ```
 
 Immutable statics (constants, `static` without interior mutability) generate no effect — they are part of the program's read-only data segment and are referentially transparent.
 
 #### `@pure` and No-Alloc Contexts
 
-`@pure` suppresses `! Alloc` from the function's visible effect signature. This means the capability system cannot see the internal allocation:
+`@pure` suppresses `! Sync` from the function's visible effect signature — a memoized function may use an internal mutex as an implementation detail, and callers need not know. However, `@pure` does **not** suppress `! Alloc`. A `@pure` function that allocates internally retains `! Alloc` in its visible effect set.
+
+This means a no-alloc context catches the problem at compile time:
 
 ```ferrum
 @pure
-fn cached_compute(x: i32): i32 {
+fn cached_compute(x: i32): i32 ! Alloc {
     static CACHE: Mutex[HashMap[i32, i32]] = ...
     // allocates on heap on first call per value
 }
 
 // In a no-alloc context (interrupt handler, embedded bare-metal):
-fn on_interrupt(n: i32): i32 {
-    cached_compute(n)   // compiles — ! Alloc hidden by @pure
-                        // may allocate at runtime → abort or corruption
+fn on_interrupt(n: i32): i32  given [A: Allocator where A: NoAlloc] {
+    cached_compute(n)   // COMPILE ERROR: ! Alloc not permitted in NoAlloc context
 }
 ```
 
-This is an acknowledged limitation of `@pure`, not a design bug. `@pure` makes a **correctness** claim (internal allocation does not affect the return value) — it is not a **resource-usage** claim (no allocation will occur). These are different questions.
+**For functions that genuinely do not allocate**, use `@no_alloc`. This is a static verification attribute — the compiler checks that the function and every callee it calls produce no `! Alloc` effect:
 
-No-alloc callers must audit `@pure` callees manually. If a function is marked `@pure` and you are in a no-alloc context, inspect its implementation or documentation to verify it has no internal allocation path. This cannot be enforced by the type system without defeating the purpose of `@pure`.
+```ferrum
+@no_alloc
+fn square(x: i32): i32 { x * x }   // OK: pure arithmetic
+
+@no_alloc
+fn checksum(data: &[u8]): u32 {
+    data.iter().fold(0u32, |acc, b| acc ^ *b as u32)  // OK: no heap
+}
+
+@no_alloc
+fn bad(x: i32): i32 {
+    let v = Vec.new()   // COMPILE ERROR: Vec allocation violates @no_alloc
+    x
+}
+```
+
+`@no_alloc` and `@pure` are orthogonal:
+
+- `@pure` — referentially transparent; result depends only on inputs; may or may not allocate
+- `@no_alloc` — no heap allocation; may or may not be referentially transparent
+- A function may be both: `@pure @no_alloc fn square(x: i32): i32 { x * x }`
+
+A no-alloc context (`given [A: Allocator where A: NoAlloc]`) permits calling any function without `! Alloc` in its effect set. `@no_alloc` functions satisfy this constraint because the compiler has verified they produce no allocation.
 
 ### 2.5 Effect Polymorphism
 
@@ -333,6 +358,13 @@ fn map_result[T, U, E](f: fn(T): U ! ?E, r: Result[T, E]): Result[U, E] ! ?E {
 #### Syntax and Inference
 
 Effect variables (`?E`, `?Eff`, `?E1`, `?E2`, …) are declared by use — any identifier prefixed with `?` in an effect position is an effect variable. They are **always inferred** from the argument types at each call site; you never write them explicitly as type arguments.
+
+**Why a separate mechanism from `[T]` type parameters?** Effect variables have two properties that make them inappropriate as regular type parameters:
+
+1. They are always inferred — callers never name them explicitly. Putting them in the `[T]` list would suggest they can be provided at call sites (they cannot).
+2. They range over effect sets, not types. An effect variable `?E` represents a set of effects like `{IO, Net}`, not a Ferrum type. Mixing these into the type parameter list would conflate two distinct namespaces.
+
+The `?` prefix distinguishes them visually and mechanically. Effect variables appear only in effect positions (after `!`). They require no declaration site — their scope is the function signature they appear in.
 
 ```ferrum
 // ?E is inferred from f's concrete type at the call site
@@ -383,7 +415,7 @@ fn memoize[F](f: F): impl Fn(): i32
 
 #### Interaction with `@pure`
 
-`@pure` suppresses `{Alloc, Sync}` from the visible effect set. A `@pure` function cannot accept an unconstrained `?E` callback — if `?E` resolves to `! IO`, the `@pure` guarantee would be violated:
+`@pure` suppresses `! Sync` from the visible effect set. A `@pure` function cannot accept an unconstrained `?E` callback — if `?E` resolves to `! IO`, the `@pure` guarantee would be violated:
 
 ```ferrum
 // COMPILE ERROR: unconstrained ?E is incompatible with @pure
@@ -394,7 +426,7 @@ fn transform[F](f: F): i32 where F: Fn(): i32 ! ?E { f() }
 @pure
 fn transform[F](f: F): i32
     where F: Fn(): i32 ! ?E,
-          ?E <: {Alloc, Sync}
+          ?E <: {Sync}
 { f() }
 ```
 
@@ -410,8 +442,8 @@ error: effect variable ?E resolves to `! IO + Net` but is not permitted here
    |    ^^^^^^^^^
    |
    = note: ?E inferred as `! IO + Net` from argument `f` at this call site
-   = note: @pure permits only { Alloc, Sync } effects
-   = help: remove @pure, or constrain `?E <: { Alloc, Sync }`
+   = note: @pure permits only { Sync } effects
+   = help: remove @pure, or constrain `?E <: { Sync }`
 ```
 
 #### Closure Captures and the Effect System

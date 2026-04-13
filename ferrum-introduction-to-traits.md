@@ -491,6 +491,23 @@ The compiler tells you exactly what's missing and how to fix it.
 
 Traits in Ferrum give you a choice that Python never offers: do you want the compiler to generate specialized code for each type (fast, more code), or use one piece of code for all types (smaller, slight overhead)?
 
+```mermaid
+flowchart LR
+    subgraph Static["Static dispatch — fn log_value[T: Display]"]
+        SG["generic fn\n(compile-time only)"] -->|monomorphize at compile time| S1["log_value_i32"]
+        SG -->|monomorphize at compile time| S2["log_value_str"]
+        SG -->|monomorphize at compile time| S3["log_value_Point"]
+    end
+    subgraph Dynamic["Dynamic dispatch — fn log_dyn(v: &dyn Display)"]
+        DF["single fn\n(one copy at runtime)"] --> VT["vtable pointer\n(per concrete type)"]
+        VT --> D1["i32::Display::fmt"]
+        VT --> D2["str::Display::fmt"]
+        VT --> D3["Point::Display::fmt"]
+    end
+```
+
+Static dispatch: zero runtime overhead, larger binary (one copy per type), concrete type known at compile time. Dynamic dispatch: one copy in the binary, one pointer indirection at runtime, concrete type unknown at compile time.
+
 ### Static Dispatch: Specialized Code for Each Type
 
 ```ferrum
@@ -693,6 +710,27 @@ trait Iterator {
 ```
 
 When you implement `Iterator`, you write one method (`next`), and you get `count`, `skip`, `take`, `map`, `filter`, `fold`, `collect`, and dozens more for free.
+
+```mermaid
+flowchart TD
+    NEXT["next() — required\nthe only method you implement"]
+    NEXT --> COUNT["count()"]
+    NEXT --> SKIP["skip(n)"]
+    NEXT --> TAKE["take(n)"]
+    NEXT --> MAP["map(f)"]
+    NEXT --> FILTER["filter(pred)"]
+    NEXT --> FOLD["fold(init, f)"]
+    NEXT --> NTH["nth(n)"]
+    NEXT --> LAST["last()"]
+    TAKE --> COLLECT["collect()"]
+    MAP --> COLLECT
+    FILTER --> COLLECT
+    FOLD --> COLLECT
+```
+
+One required method → dozens of free methods, all built on `next`.
+
+
 
 ```ferrum
 struct Countdown {

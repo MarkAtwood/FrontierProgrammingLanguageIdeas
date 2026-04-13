@@ -26,7 +26,7 @@ trait Allocator {
         ! Unsafe
 
     // Optional: hint that the allocator cannot allocate (compile-time check)
-    type CanAlloc: bool = true
+    const CanAlloc: bool = true
 }
 
 marker trait NoAlloc  // implemented by allocators that always return Err
@@ -260,21 +260,34 @@ fn count_if[C: Collection](c: &C, pred: fn(&C.Item): bool): usize {
 
 ### 2.5 `impl Trait` Syntax
 
-For return types and function parameters where the concrete type is unimportant:
+`impl Trait` in **parameter position** is syntactic sugar for an anonymous type parameter. These two are identical:
 
 ```ferrum
-// Parameter: accepts any Iterator over i32
-fn sum(iter: impl Iterator[Item = i32]): i32 {
-    iter.fold(0, |a, b| a + b)
-}
+fn sum(iter: impl Iterator[Item = i32]): i32 { ... }
+fn sum[I: Iterator[Item = i32]](iter: I): i32 { ... }
+```
 
-// Return type: returns some Iterator, caller doesn't know which
+Both are statically dispatched — the compiler generates a separate version per concrete iterator type. Prefer `[T: Trait]` in parameter position when you need to name the type (e.g., for multiple parameters that must agree), and `impl Trait` when the type name is truly irrelevant.
+
+`impl Trait` in **return position** is different — it hides the concrete type from the caller, but the type is still determined at compile time (no vtable):
+
+```ferrum
+// Return type: returns some Iterator, caller doesn't know which concrete type
 fn evens(n: usize): impl Iterator[Item = usize] {
     (0..n).filter(|x| x % 2 == 0)
 }
 ```
 
-`impl Trait` in return position is monomorphized — the concrete type is determined at compile time. For dynamic dispatch, use `dyn Trait` (see 2.6).
+**Dispatch guidance:** there are two meaningful choices.
+
+| Form | Dispatch | Use when |
+|---|---|---|
+| `fn f[T: Trait](x: T)` or `fn f(x: impl Trait)` | Static — monomorphized per type | Performance matters; concrete type known at compile time |
+| `fn f(x: &dyn Trait)` | Dynamic — one function + vtable | Heterogeneous collections; concrete type varies at runtime |
+
+The `impl Trait` parameter form is just abbreviated `[T: Trait]` — it does not introduce a third dispatch mechanism. When in doubt, prefer `[T: Trait]` for clarity.
+
+For dynamic dispatch, use `dyn Trait` (see 2.6).
 
 ### 2.6 Dynamic Dispatch
 

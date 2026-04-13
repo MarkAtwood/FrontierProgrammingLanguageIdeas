@@ -233,6 +233,49 @@ const result = try parse(input) with(allocator: special_allocator);
 This is the escape hatch for cases where lexical scoping does not fit.
 It should be rare.
 
+### Function pointer types and `using`
+
+A function pointer type for a `using(allocator)` function must carry the `using` annotation:
+
+```zig
+// Type of a function that requires an ambient allocator:
+const ParseFn = fn([]const u8) !Value  using(allocator);
+
+// Storing a using(allocator) function in a pointer:
+const handler: ParseFn = &parseJson;   // OK — types match
+
+// COMPILE ERROR: type mismatch
+const bad: fn([]const u8) !Value = &parseJson;
+// error: parseJson requires using(allocator) but function pointer type does not
+```
+
+A function pointer without `using` cannot refer to a `using(allocator)` function. This ensures the allocator requirement is visible at every call site through the pointer, not only when calling the original function by name:
+
+```zig
+fn dispatch(input: []const u8, f: fn([]const u8) !Value  using(allocator)) !Value {
+    return f(input);  // ambient allocator is required by caller of dispatch
+}
+```
+
+The `using` annotation is part of the function type. Two function pointer types that differ only in `using` are distinct types that cannot be implicitly coerced to each other.
+
+**Implementation — fat pointers:** Function pointer types carrying `using` are represented as two-word fat pointers: `{ fn_ptr: *const fn(...), ctx: *anyopaque }`. The `ctx` field carries the captured allocator at the time the function pointer is taken. Non-`using` function pointers remain one word (thin pointers) with `ctx = null`. This is the uniform representation — callers do not need to know whether a pointer was created from a `using` or non-`using` function. The calling convention passes `ctx` in an additional register when non-null.
+
+Taking a pointer to a `using(X)` function must happen inside a `with(X: expr)` block. The compiler captures `expr` into the `ctx` slot at that point. For `using(scratch, persistent)`, `ctx` points to a compiler-generated struct holding both captured allocators. Taking a `using(X)` function pointer outside a `with(X)` block is a compile error:
+
+```zig
+// COMPILE ERROR: no ambient 'allocator' in scope
+const f: fn([]const u8) !Value  using(allocator) = &parseJson;
+
+// OK: pointer taken inside with block
+with (allocator: arena.allocator()) {
+    const f: fn([]const u8) !Value  using(allocator) = &parseJson;
+    // f.ctx = arena.allocator() — captured at this point
+}
+```
+
+`extern fn` pointers remain thin for C ABI compatibility. Declaring a `using(X)` function as `extern` is a compile error — the C ABI has no mechanism to carry the allocator context. Callers needing to pass allocating callbacks to C must write a thin wrapper that captures the allocator via an explicit userdata parameter.
+
 ### What `using` does NOT do
 
 `using` is not:
@@ -246,6 +289,14 @@ It should be rare.
 
 It is simply a scoped implicit parameter resolved by name at the call site.
 The implementation is a small compiler pass, not a type system feature.
+
+### `using` and function coloring
+
+`using(allocator)` does propagate up the call chain: every function that calls a `using(allocator)` function must either declare `using(allocator)` itself or wrap the call in a `with` block. This is function coloring in the structural sense — the allocation requirement is visible in each function's signature and propagates to callers.
+
+The key difference from async function coloring (Rust's `async fn`) is the boundary: the propagation chain ends at the nearest enclosing `with` block. The caller providing the `with` block absorbs the requirement. In Rust's async, the chain ends only at an explicit runtime spawn. In Zinc, the chain ends at the nearest allocator scope, which is typically at a module boundary or `main`.
+
+This is worth acknowledging rather than denying. If you find yourself adding `using(allocator)` deep in a call stack, you may want to move the `with` block down to narrow the scope — or reconsider whether that call site should allocate at all.
 
 ---
 
@@ -403,8 +454,29 @@ Only expressions that actually appear in `old()` are snapshotted. The
 compiler does not copy the entire state of all arguments.
 
 For types that require allocation to copy (slices, complex structs), `old()`
-triggers a shallow copy via the ambient allocator if one is in scope, or a
-compile error if no allocator is available and the type is not `Copy`-able.
+requires a `using(allocator)` declaration on the function. If the function
+does not have `using(allocator)` and `old()` references a non-Copy type, it
+is a compile error at the `old()` call site — not a runtime surprise:
+
+```zig
+// COMPILE ERROR: old(self.items) requires using(allocator) — items is []i32 (non-Copy)
+fn pop(self: *ArrayList) !i32
+    ensures self.items.len == old(self.items.len) - 1
+{
+    return self.items.pop();
+}
+
+// OK: function declares the allocator requirement
+fn pop(self: *ArrayList) !i32  using(allocator)
+    ensures self.items.len == old(self.items.len) - 1
+{
+    return self.items.pop();
+}
+```
+
+This makes the allocation requirement visible in the function signature.
+Adding `old(non_copy_expr)` to an `ensures` clause is therefore a
+potentially API-visible change and must be reflected in the `using` declaration.
 
 ### `invariant` — struct invariants
 
@@ -445,6 +517,24 @@ The invariant is checked automatically after the body of any method that
 takes `*Self` (mutable pointer). Methods taking `*const Self` do not trigger
 the check — they cannot modify the struct and therefore cannot violate the
 invariant.
+
+**`deinit` is exempt.** A method named `deinit` (or decorated with `pub fn deinit(self: *Self)`) is excluded from invariant checking. This is necessary because `deinit` typically sets `self.* = undefined` to catch use-after-free, which leaves the struct in an intentionally invalid state:
+
+```zig
+const SortedList = struct {
+    items: []i32,
+    len: usize,
+
+    invariant self.len <= self.items.len
+
+    pub fn deinit(self: *SortedList)  using(allocator) {
+        allocator.free(self.items);
+        self.* = undefined;   // OK — invariant not checked after deinit
+    }
+};
+```
+
+If you need the teardown sequence to be invariant-checked up to the point of destruction, perform the cleanup in a separate method that is not named `deinit`, then call `deinit` last.
 
 Multiple invariants are allowed and all are checked:
 
@@ -506,7 +596,9 @@ fn innerKernel(data: []const f32) f32
 ```
 
 `requires(always)` keeps the check in all build modes.
-`requires(never)` strips the check in all build modes (documentation only).
+`requires(never)` strips the check in all build modes — it is documentation only at runtime.
+
+**`requires(never)` and drift:** Because a `requires(never)` contract is never checked, it will not be caught when it becomes wrong. Callers may mistake it for an enforced invariant. To prevent drift, `requires(never)` contracts are verified offline via `zig build test --contract-check`. This flag re-enables all `requires(never)` contracts for the test build, running them as ordinary debug assertions. The test suite should include at least one test that exercises each `requires(never)` precondition. The linter (`zig build lint`) warns when a `requires(never)` function has no such test coverage.
 
 ### Contract expressions
 
@@ -529,10 +621,33 @@ fn binarySearch(items: []const i32, target: i32) ?usize
 }
 ```
 
-Contract expressions should be pure — no side effects, no allocation (unless
-using `old()` with an ambient allocator). The compiler does not enforce this
-in v1, but a contract that allocates or has side effects in debug mode will
-produce confusing behavior.
+Contract expressions must be pure — no side effects, no allocation (unless
+using `old()` with an ambient allocator). The compiler enforces this: any
+function called from a contract expression must itself have no `using(allocator)`
+declaration and must not perform any operation that would be a `requires`/`ensures`
+violation. A contract that calls a function with side effects is a compile error:
+
+```zig
+var logged = false;
+
+fn sideEffectCheck() bool {
+    logged = true;   // mutates global state
+    return true;
+}
+
+fn bad(x: i32) i32
+    requires sideEffectCheck()   // COMPILE ERROR: contract expression has side effects
+{
+    return x;
+}
+```
+
+The detection heuristic: a function is considered to have side effects if
+(a) it returns `void`, or (b) any of its parameters is a mutable pointer
+(`*T` where `T` is not `const`), or (c) it has `using(allocator)`. Any
+function reachable from a contract expression that matches these criteria
+is rejected at compile time with a note naming the offending function and
+which heuristic triggered.
 
 ### `forall` in contracts
 
@@ -589,6 +704,19 @@ emits an error:
 ```
 error: `old(items)` requires a copy of type `[]i32`, but no ambient
        allocator is in scope. Add `using(allocator)` to this function.
+```
+
+**Debug/release allocation difference:** The `old()` snapshot allocation happens only in debug builds — contracts are stripped in release mode, so the allocation disappears entirely. This means a debug build of a function using `old(slice)` has higher peak allocation than its release build. For embedded targets with tight heap budgets, a debug build can OOM where release succeeds.
+
+Design guidance: if this is a concern, limit `old()` to `Copy` types (integers, small structs) and use explicit assertion helpers for non-Copy types:
+
+```zig
+// Instead of old(items) on a large slice:
+fn sort(items: []i32) void {
+    const original_len = items.len;  // Copy — no allocation, works in all modes
+    std.sort.heap(i32, items, {}, std.sort.asc(i32));
+    assert(items.len == original_len);  // always checked (not a contract)
+}
 ```
 
 ---
@@ -891,11 +1019,25 @@ A CAS-based STM library. No language primitives. No compiler support. No
 scheduler integration. Convention-enforced transactional semantics using
 Zig's existing atomic builtins.
 
-The limitation relative to Haskell's STM: Zig has no effect system, so
-the compiler cannot enforce that `TVar` reads only happen inside
-`atomically`. This is enforced by convention — `TVar.read()` returns an
-error if called outside a transaction context — rather than by the type
-system.
+Unlike Haskell's STM, Zinc has no monadic type to enforce that `TVar`
+reads only happen inside `atomically`. Zinc's solution is API design:
+`TVar` has no standalone `read()` method. Reading a `TVar` requires a
+`*Tx` argument — you must be inside `atomically` to have one:
+
+```zig
+// TVar has no read() method without a transaction — this does not compile:
+const val = balance_a.read();   // COMPILE ERROR: no method 'read' on TVar(u64)
+
+// Reading requires a transaction context:
+try stm.atomically(struct {
+    fn run(tx: *stm.Tx) !void {
+        const val = try tx.read(&balance_a);  // OK — tx proves we're in a transaction
+    }
+}.run);
+```
+
+The `*Tx` parameter is the compile-time proof that a transaction is in
+scope. Code that has no access to a `*Tx` cannot read a `TVar`.
 
 ```zig
 const stm = std.stm;
@@ -916,7 +1058,7 @@ try stm.atomically(struct {
 }.run);
 ```
 
-- **`stm.TVar(T)`** — a transactional variable. Wraps a value and a version counter. Thread-safe reads outside transactions return a snapshot. Writes outside transactions are a runtime error in debug mode.
+- **`stm.TVar(T)`** — a transactional variable. Wraps a value and a version counter. Has no standalone read method — all reads go through `tx.read()`. Writes outside transactions are a compile error (no `*Tx` available).
 - **`stm.Tx`** — a transaction context. Records all reads (with version at read time) and all intended writes. `tx.read()` reads the current value and logs the version. `tx.write()` records an intended write without applying it.
 - **`stm.atomically(fn(*Tx) !void)`** — commits the transaction. Validates that all read versions are still current (no concurrent modification). If valid, applies all writes atomically using a global lock for the commit phase. If invalid, clears the transaction log and retries from the start.
 - **`tx.retry()`** — abort the current transaction and block until at least one read `TVar` changes. Implemented with condition variables. Equivalent to Haskell's `retry`.
@@ -1074,6 +1216,8 @@ layout Packet {
 }
 ```
 
+`_` is a reserved padding sentinel in layout blocks. Unlike regular Zig struct field initializers, `_` may appear multiple times — each occurrence declares an independent anonymous padding region. The compiler allocates no storage and generates no accessor. This is a layout-block-specific rule and does not apply to ordinary Zig struct literals.
+
 ### Generated codec
 
 For each `layout` declaration the compiler generates three functions:
@@ -1132,7 +1276,22 @@ Bit order values: `.lsb_first` (default, x86 convention), `.msb_first`.
 
 ### Multi-byte field spanning
 
-A field can span multiple bytes by specifying a byte range:
+A field that occupies contiguous bytes uses a `.bytes` range:
+
+```zig
+.length = .{ .bytes = 2..3 },   // occupies bytes 2 and 3 entirely
+```
+
+A field that spans a non-contiguous bit region across bytes uses `.span` with an array of `{ .byte, .bits }` descriptors:
+
+```zig
+.frag_off = .{ .span = &.{
+    .{ .byte = 6, .bits = 3..7 },  // upper 5 bits of the field
+    .{ .byte = 7 },                 // lower 8 bits of the field
+}},
+```
+
+Full example:
 
 ```zig
 layout IpHeader {
@@ -1145,8 +1304,10 @@ layout IpHeader {
     .length   = .{ .bytes = 2..3           },
     .id       = .{ .bytes = 4..5           },
     .flags    = .{ .byte = 6, .bits = 0..2 },
-    .frag_off = .{ .byte = 6, .bits = 3..7,
-                   .byte = 7              },   // spans two bytes
+    .frag_off = .{ .span = &.{
+                   .{ .byte = 6, .bits = 3..7 },  // upper 5 bits
+                   .{ .byte = 7 },                 // lower 8 bits
+               }},
     .ttl      = .{ .byte = 8               },
     .protocol = .{ .byte = 9               },
     .checksum = .{ .bytes = 10..11         },
@@ -1255,9 +1416,23 @@ their original string representation and converts to IEEE 754-2008 decimal
 encoding. The literal `0.1d64` is never converted to binary float at any
 point. If you write `0.1d64` you get the exact decimal value 0.1.
 
-This is different from `@as(d64, 0.1)` which would convert the binary float
-`0.1` (which is `0.1000000000000000055511...`) to decimal. Do not do that.
-Always use decimal literals for decimal values.
+`@as(d64, binary_float_expr)` is a compile error. Converting a binary float
+to a decimal type is almost always a bug — the programmer meant to write a
+decimal literal but wrote a binary float literal instead. The explicit
+conversion function `std.math.decimal.fromBinaryFloat(val)` is available
+for the rare cases where you genuinely need to convert a computed binary
+float value to decimal and accept the inexactness:
+
+```zig
+// COMPILE ERROR:
+const x: d64 = @as(d64, 0.1);          // 0.1 is already a binary float
+
+// OK: use a decimal literal
+const y: d64 = 0.1d64;                  // exact
+
+// OK: explicit inexact conversion (rare)
+const z: d64 = std.math.decimal.fromBinaryFloat(some_f64);  // lossiness visible
+```
 
 **Operations:** Arithmetic operators `+`, `-`, `*`, `/` work on decimal
 floats. Comparison operators work. Transcendental functions (`sin`, `exp`,
@@ -1304,8 +1479,10 @@ const UQ8_8  = UFixed(8, 8);    // 16-bit unsigned, range [0, 255.996...)
 
 var x: Q16_16 = 3.75;     // compile-time exact conversion from float literal
 var y: Q16_16 = 1.5;
-var z: Q16_16 = x + y;    // 5.25, exact, uses integer ADD
+var z: Q16_16 = x.add(y); // 5.25, exact, uses integer ADD — method syntax required
 ```
+
+**No operator overloading:** Zig does not support operator overloading for custom types. `Fixed` arithmetic uses explicit methods (`.add()`, `.sub()`, `.mul()`, `.div()`). This is intentional — arithmetic that might require rescaling or could overflow should not look like trivial `+` or `*`.
 
 The value represented is `stored_integer / 2^F`. Stored in the smallest
 containing integer type:
@@ -1325,7 +1502,7 @@ var a: Q16_16 = 3.75;
 var b: Q16_16 = 1.5;
 
 // Addition/subtraction: exact, same Q format
-var sum: Q16_16 = a + b;    // 5.25
+var sum: Q16_16 = a.add(b);  // 5.25
 
 // Multiplication: result has doubled fractional bits — must rescale
 // mul() returns Fixed(I*2, F*2) to preserve precision
@@ -1389,15 +1566,17 @@ Uses the ambient allocator.
 ```zig
 const BigDecimal = std.math.big.Decimal;
 
-var x = try BigDecimal.parse("3.141592653589793238462643383279", allocator);
-defer x.deinit();
+with (allocator: arena.allocator()) {
+    var x = try BigDecimal.parse("3.141592653589793238462643383279");
+    defer x.deinit();
 
-var y = try x.mul(x, allocator);   // exact to full precision
-defer y.deinit();
+    var y = try x.mul(x);   // exact to full precision
+    defer y.deinit();
 
-// Rounding only when explicitly requested
-var z = try x.sqrt(50, allocator); // 50 significant digits
-defer z.deinit();
+    // Rounding only when explicitly requested
+    var z = try x.sqrt(50); // 50 significant digits
+    defer z.deinit();
+}
 ```
 
 **`Rational`** — exact rational arithmetic. Stored as `BigInt / BigUint`
@@ -1406,27 +1585,29 @@ in lowest terms. Never rounds.
 ```zig
 const Rational = std.math.big.Rational;
 
-var one_third = try Rational.init(1, 3, allocator);
-defer one_third.deinit();
+with (allocator: gpa.allocator()) {
+    var one_third = try Rational.init(1, 3);
+    defer one_third.deinit();
 
-var two_thirds = try one_third.add(one_third, allocator);
-defer two_thirds.deinit();
+    var two_thirds = try one_third.add(one_third);
+    defer two_thirds.deinit();
 
-var one = try two_thirds.add(one_third, allocator);
-defer one.deinit();
-// one.numerator == 1, one.denominator == 1 — always reduced to lowest terms
+    var one = try two_thirds.add(one_third);
+    defer one.deinit();
+    // one.numerator == 1, one.denominator == 1 — always reduced to lowest terms
 
-// Series that binary float gets wrong:
-var sum = try Rational.zero(allocator);
-var i: u32 = 1;
-while (i <= 100) : (i += 1) {
-    const term = try Rational.init(1, i * i, allocator);
-    sum = try sum.add(term, allocator);
+    // Series that binary float gets wrong:
+    var sum = try Rational.zero();
+    var i: u32 = 1;
+    while (i <= 100) : (i += 1) {
+        const term = try Rational.init(1, i * i);
+        sum = try sum.add(term);
+    }
+    // exact sum of 1/n² for n=1..100
 }
-// exact sum of 1/n² for n=1..100
 ```
 
-Both types use `using(allocator)` naturally.
+Both types use `using(allocator)` — all methods that allocate implicitly pick up the ambient allocator from the enclosing `with` block.
 
 ---
 
@@ -1528,9 +1709,7 @@ fn bitWidth(comptime T: std.meta.Integer) comptime_int {
 }
 ```
 
-**This is a pure standard library addition.** No compiler changes required.
-The `std.meta.Integer` usage as a parameter type is sugar over comptime
-function calls that Zig already supports.
+**Compiler support required.** Using `std.meta.Integer` as a parameter type directly — `fn popcount(value: std.meta.Integer) u32` — is not valid Zig today. In current Zig the function would be written `fn popcount(value: anytype) u32` with an internal `comptime` check. The parameter-as-constraint syntax requires the compiler to treat a `fn(type)void` as a type-level predicate on `anytype` arguments — a new feature, not a library addition. The actual stdlib interface may look different until this compiler support is implemented. The spec presents the intended API; treat these examples as aspirational for v1 compilers.
 
 ---
 
@@ -1670,11 +1849,7 @@ important documentation it has. They should appear prominently in `zinc doc`
 output, more prominent than the description comment.
 
 **Should `@as(d64, some_f64_value)` be a compile error?**
-Leaning yes. Converting a binary float to decimal float almost always
-indicates a bug — the programmer meant to write a decimal literal but
-wrote a binary float literal instead. The cast should require an explicit
-`std.math.decimal.fromBinaryFloat(val)` call that makes the lossiness
-visible.
+Yes — resolved. `@as(d64, f)` is a compile error for any binary float `f`. Use decimal literals or `std.math.decimal.fromBinaryFloat(val)` explicitly. See the decimal float section above.
 
 **Should `Fixed(I, F)` use operator overloading or explicit methods?**
 Zig does not have operator overloading for user types. `Fixed` arithmetic
@@ -1698,12 +1873,7 @@ specific fields would cover this. Not in v1 but the layout block syntax
 has room for it.
 
 **Should `std.stm` enforce transactional context via the type system?**
-Haskell's STM enforces that `TVar` reads only happen inside `atomically`
-through the type system (`STM a` monad). Zig has no equivalent mechanism.
-Zinc's STM enforces this at runtime in debug mode — `tx.read()` panics if
-called without a transaction context. Full compile-time enforcement would
-require either an effect system or a significant stdlib design change.
-Accepted limitation for v1.
+Yes — resolved. `TVar` has no standalone read method; all reads require a `*Tx` argument, which is only obtainable inside `atomically`. This is API-level enforcement rather than a type system feature. See the STM section above.
 
 **Should `TaggedPtr` support tags wider than the alignment bits?**
 Some use cases want to store more bits than the pointer alignment provides,
