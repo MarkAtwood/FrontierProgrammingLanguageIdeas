@@ -1,0 +1,14 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-2f1",
+  "title": "type keyword is overloaded for struct definitions, type aliases, and constrained types",
+  "description": "Ferrum uses 'type Point { x: i32, y: i32 }' for struct definitions, 'type Meters = f32' for aliases, and 'type Percent = u8 where value \u003c= 100' for constrained types. All three use the same keyword. A new reader cannot tell from 'type X { ... }' whether X is a struct or something else — they must read the body. The word 'type' is already overloaded in type system discourse (type parameters, type inference, type system). Using it for struct definitions specifically loses the product-type shape signal that 'struct' provides. Consider: 'struct' for product types, 'type' only for aliases and constraints, or at minimum add clear visual distinction in the syntax.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:13:28Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T20:58:34Z",
+  "closed_at": "2026-04-12T20:58:34Z",
+  "close_reason": "Added product types to §1.4 with design decision note: intended direction is struct for product types, type for aliases/constraints. Spec examples not yet updated — mechanical rename tracked as follow-on."
+}

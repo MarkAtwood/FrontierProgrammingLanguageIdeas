@@ -1,0 +1,29 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-g91.19",
+  "title": "pinned as first-class type property — defend over Rust's Pin\u003cP\u003e",
+  "description": "Ferrum uses 'pinned struct' as a first-class type property. The compiler suppresses noalias on \u0026mut PinnedType automatically and rejects moves at compile time. Rust used a library approach (Pin\u003cP\u003e + Unpin auto-trait) and created years of formal UB in async code, requiring UnsafePinned\u003cT\u003e in 2026 to fix. A reviewer may suggest 'simplify by removing pinned and using a Pin\u003cP\u003e wrapper like Rust'. Defend: the library approach failed formally. The first-class approach means the compiler can make correct aliasing decisions automatically. The tradeoff (generic instantiation failure instead of Unpin bounds) is cleaner at definition sites. This design is correct and should be preserved.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "decision",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:20:41Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:21:50Z",
+  "closed_at": "2026-04-13T00:21:50Z",
+  "close_reason": "Closed",
+  "labels": [
+    "api-design",
+    "review"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-g91.19",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-g91",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:20:41Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

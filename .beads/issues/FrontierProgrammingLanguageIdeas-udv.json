@@ -1,0 +1,14 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-udv",
+  "title": "as cast bypasses constrained type invariants in safe code",
+  "description": "The spec allows 'as' casts to bypass constraint checking on constrained types (e.g. 'type Percent = u8 where value \u003c= 100'). A Percent value \u003e 100 can be constructed in safe code via 'as Percent'. This directly contradicts the stated goal that illegal states are unrepresentable at the type level. In release mode the constraint check is elided, so invalid Percent silently misbehaves with no runtime error. The 'as' escape path must either be removed from safe code, restricted to unsafe blocks, or made to unconditionally check the constraint regardless of build mode.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "bug",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:11:15Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T16:31:25Z",
+  "closed_at": "2026-04-12T16:31:25Z",
+  "close_reason": "Fixed in ferrum-lang-types.md: as to a constrained target now panics on violation in all build modes. Decision rationale documented inline at both the conversion example and the constraint-checking rule."
+}

@@ -1,0 +1,25 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-c87.25",
+  "title": "Write ferrum_extlib_text_layout.md",
+  "description": "CCSP lib_ccsp_text: HarfBuzz shaping, UAX#9 bidi, UAX#14 line breaking, paragraph layout. Not in Ferrum stdlib. Design extlib module: text shaping for complex scripts (Arabic, Indic, Tibetan, Khmer), bidirectional text, line breaking, paragraph layout, hit testing, selection rectangles, variable font axis support in style, abstraction over HarfBuzz.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-11T06:21:59Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-11T07:02:14Z",
+  "closed_at": "2026-04-11T07:02:14Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-c87.25",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-c87",
+      "type": "parent-child",
+      "created_at": "2026-04-10T23:21:59Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

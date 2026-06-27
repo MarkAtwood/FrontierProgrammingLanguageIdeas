@@ -1,0 +1,30 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-g91.11",
+  "title": "IO effect semantically overloaded: covers both file I/O and global state access",
+  "description": "ferrum-lang-ownership.md §2.4 states: 'Any access to mutable state that exists outside the function's own stack frame and is not passed in as a parameter generates ! IO. This includes: process-wide global mutable state, thread-local mutable state.' A function that reads a global counter or a thread-local flag gets the IO effect. But IO conventionally and universally means Input/Output — file operations, network I/O, stdin/stdout. A caller who sees fn get_count(): i32 ! IO will think it reads a file or a socket. This semantic overloading makes effect signatures misleading. Suggested split: ! IO for actual I/O (files, pipes, stdio, sockets), ! Global for global/thread-local mutable state. A function that reads a thread-local counter should be ! Global, not ! IO.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:19:35Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:09:28Z",
+  "closed_at": "2026-04-13T00:09:28Z",
+  "close_reason": "Closed",
+  "labels": [
+    "api-design",
+    "naming",
+    "review"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-g91.11",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-g91",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:19:34Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

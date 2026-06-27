@@ -1,0 +1,15 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-ny6",
+  "title": "Add Mermaid state diagram for ownership lifecycle",
+  "description": "ferrum-introduction-to-ownership.md currently explains the Created→Moved→Invalid ownership lifecycle and the shared/exclusive borrow rules in prose. These are the hardest concepts in the doc. A stateDiagram showing valid state transitions (owned, shared-borrowed, exclusively-borrowed, moved/invalid) and why 'never both at the same time' holds would give readers a concrete mental model before the code examples.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:41:30Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T23:58:02Z",
+  "closed_at": "2026-04-12T23:58:02Z",
+  "close_reason": "Closed"
+}

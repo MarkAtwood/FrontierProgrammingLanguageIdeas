@@ -1,0 +1,25 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-c87.23",
+  "title": "Write ferrum_extlib_draw_gpu.md",
+  "description": "CCSP lib_ccsp_draw_gpu: Vulkan (primary) + OpenGL ES 3.x (fallback) GPU backend. Not in Ferrum stdlib. Design extlib module: Vulkan command buffer per frame, pipeline state cache, glyph atlas as Vulkan image, path tessellation to triangle fans, GLES3 fallback for older embedded (RPi 3, Android), explicit no-OpenGL-2.1 policy, swapchain sRGB handling.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-11T06:21:52Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-11T07:02:09Z",
+  "closed_at": "2026-04-11T07:02:09Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-c87.23",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-c87",
+      "type": "parent-child",
+      "created_at": "2026-04-10T23:21:51Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

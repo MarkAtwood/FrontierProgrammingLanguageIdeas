@@ -1,0 +1,15 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-841",
+  "title": "Region inference '90% of code needs no annotations' claim is unsubstantiated",
+  "description": "The spec claims region inference eliminates annotations in at least 90% of practical code, but provides no empirical data, no definition of 'practical code', and no guidance for the remaining 10%. When inference fails, the error message does not suggest which signature patterns would make it succeed. Developers who hit a region inference failure have no path forward except reading deep compiler documentation. Either: (a) measure the claim against a real code corpus and publish the methodology, (b) replace the percentage with a qualitative description, or (c) provide clear documentation of which borrow patterns require manual annotations and what the annotations look like.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:12:17Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T19:51:07Z",
+  "closed_at": "2026-04-12T19:51:07Z",
+  "close_reason": "Replaced unsubstantiated 90% claim with qualitative three-category breakdown plus aspirational quote and design decision note. Updated all three locations."
+}

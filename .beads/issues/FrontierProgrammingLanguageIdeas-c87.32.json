@@ -1,0 +1,25 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-c87.32",
+  "title": "Write ferrum_extlib_fuzz.md",
+  "description": "CCSP lib_ccsp_fuzz: fuzzing framework and targets for all parsers/decoders. Ferrum stdlib has @property_test but not a dedicated fuzzing infrastructure. Design extlib module: LibFuzzer and AFL target harness, corpus management, crash triage, OSS-Fuzz integration, fuzz targets for: ASN.1, cert, JSON, TOML, DNS response, TLS record/handshake, regex pattern+match, AEAD decrypt, CBOR, HTTP request/response.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-11T06:22:22Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-11T07:02:29Z",
+  "closed_at": "2026-04-11T07:02:29Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-c87.32",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-c87",
+      "type": "parent-child",
+      "created_at": "2026-04-10T23:22:22Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

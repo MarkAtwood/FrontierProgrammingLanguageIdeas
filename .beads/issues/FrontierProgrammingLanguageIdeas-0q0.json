@@ -1,0 +1,14 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-0q0",
+  "title": "Invalid states constructable in trusted/unchecked blocks before boundary check",
+  "description": "Type invariants are 'enforced at visibility boundaries.' Inside a trusted or unchecked block a programmer can construct a value violating its invariant; the check only fires when the value crosses a public API boundary. If implementation has multiple exit paths, passes the invalid value to an intermediate helper, or the helper stores it, the check fires too late or not at all. Example: BoundedQueue with invariant data.len() \u003c= limit can be built with len \u003e limit inside trusted, then observed in a corrupt state by internal code before any boundary check. Spec must either enforce invariants at construction time or explicitly define which invariants are construction-time vs boundary-time.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "bug",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:11:42Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T18:02:35Z",
+  "closed_at": "2026-04-12T18:02:35Z",
+  "close_reason": "Fixed in ferrum-lang-syntax.md (defer added as a first-class block-exit expression) and ferrum-lang-verification.md (§1.4 updated). Invariants now checked at two points: public API boundaries AND exit of trusted/unchecked blocks holding \u0026mut T. Lint mut_invariant_unguarded_exit warns when a trusted block has unguarded early exits on a \u0026mut with invariants. Ownership principle documented: functions that cannot guarantee restoration should take ownership, not \u0026mut."
+}

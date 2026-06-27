@@ -1,0 +1,30 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-g91.2",
+  "title": "Result[T] single-type-param form: default error type undefined",
+  "description": "ferrum-lang-types.md uses Result[T] with one type parameter in several places (e.g. 'value.try_into(): Result[T]', 'let p: Result[Percent] = ...'). But the canonical definition is enum Result[T, E] with two type params (confirmed in ferrum-stdlib-core.md). No default error type is defined anywhere in the spec. A caller reading Result[T] cannot know the error type. Either: (a) there is a context-dependent default error type that is not documented, or (b) these are doc errors that should be Result[T, _]. If (a), the default must be specified — what is it? Box[dyn Error]? The Error type from context? If (b), fix the docs. Either way, the current spec leaves callers unable to handle errors from these functions.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "bug",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:18:25Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:05:15Z",
+  "closed_at": "2026-04-13T00:05:15Z",
+  "close_reason": "Closed",
+  "labels": [
+    "api-design",
+    "review",
+    "type-safety"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-g91.2",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-g91",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:18:24Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

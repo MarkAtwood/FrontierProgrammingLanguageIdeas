@@ -1,0 +1,38 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-8rf.1.3",
+  "title": "C ABI compatibility: extern fn pointers remain thin, using(X) extern fns are forbidden",
+  "description": "Fat pointers break C ABI compatibility. extern fn pointers must remain thin (one word). Rule: a function declared extern cannot have a using() clause. A fat pointer cannot be passed to a C function expecting a fn pointer. The compiler emits an error at the boundary. Callers needing to pass allocating callbacks to C must write a thin wrapper that captures the allocator via a global or explicit parameter — same as today.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:55:24Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:04:16Z",
+  "closed_at": "2026-04-13T00:04:16Z",
+  "close_reason": "Closed",
+  "labels": [
+    "lang-design",
+    "review",
+    "type-safety"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.1.3",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf.1",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:55:24Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.1.3",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf.1.1",
+      "type": "blocks",
+      "created_at": "2026-04-12T16:55:43Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

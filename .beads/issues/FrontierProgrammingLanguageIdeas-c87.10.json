@@ -1,0 +1,25 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-c87.10",
+  "title": "Write ferrum_extlib_asn1.md",
+  "description": "CCSP lib_ccsp_asn1: BER/DER/CER codec, schema-driven, strict DER by default, ANY DEFINED BY with dispatch tables. Not in Ferrum stdlib. Design extlib module: OID type, schema-driven decode/encode, ANY DEFINED BY dispatch, bare ANY as opaque capture, max nesting depth, all string types normalized to UTF-8, X.509/PKCS/CMS format support.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-11T06:21:04Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-11T07:01:24Z",
+  "closed_at": "2026-04-11T07:01:24Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-c87.10",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-c87",
+      "type": "parent-child",
+      "created_at": "2026-04-10T23:21:04Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

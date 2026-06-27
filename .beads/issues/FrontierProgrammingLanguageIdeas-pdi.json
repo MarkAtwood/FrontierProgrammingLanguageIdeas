@@ -1,0 +1,14 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-pdi",
+  "title": "unchecked vs trusted semantic distinction not documented with examples",
+  "description": "The spec uses both 'unchecked { ... }' (relaxes aliasing checks) and 'trusted(\"...\") { ... }' (names an assertion) in the same example (split_at_mut). The distinction is subtle: unchecked means 'the compiler is too conservative'; trusted means 'this invariant cannot be expressed in the type system.' A programmer could use either in ambiguous cases and be wrong without knowing it. The audit trail records both but the semantic intent is lost. Add a decision guide in the docs: 'use unchecked when X, use trusted when Y, use unsafe when Z' with concrete examples where the wrong choice would cause a different kind of bug.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:13:34Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T20:58:26Z",
+  "closed_at": "2026-04-12T20:58:26Z",
+  "close_reason": "Added 'why wrong choices matter' paragraph to §3.1.1 explaining the specific bug class each wrong choice introduces: unsafe-instead-of-unchecked (full memory audit burden), trusted-instead-of-unchecked (misleading audit trail), unchecked-instead-of-trusted (invariant unrecorded)."
+}

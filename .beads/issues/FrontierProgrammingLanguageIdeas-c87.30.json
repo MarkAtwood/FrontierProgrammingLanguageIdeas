@@ -1,0 +1,25 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-c87.30",
+  "title": "Write ferrum_extlib_style.md",
+  "description": "CCSP lib_ccsp_style: design tokens and theming (not CSS). Not in Ferrum stdlib. Design extlib module: theme type with typography/color/geometry/motion tokens, dark variant generation, high-contrast WCAG AAA variant, runtime theme switching, explicit override model (no cascade/specificity), token-based design system API, integration with widget extlib.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-11T06:22:16Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-11T07:02:25Z",
+  "closed_at": "2026-04-11T07:02:25Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-c87.30",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-c87",
+      "type": "parent-child",
+      "created_at": "2026-04-10T23:22:16Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-c87.14",
+  "title": "Write ferrum_extlib_toml.md",
+  "description": "CCSP lib_ccsp_toml: TOML 1.0 parser/serializer. Not in Ferrum stdlib. Design extlib module: parse to dynamic value type and to typed structs via derive, serialize Ferrum structs to TOML, parse errors with line+column, round-trip key order preservation, integration with CLI config file loading, serde-style derive macros or trait-based.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-11T06:21:20Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-11T07:01:33Z",
+  "closed_at": "2026-04-11T07:01:33Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-c87.14",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-c87",
+      "type": "parent-child",
+      "created_at": "2026-04-10T23:21:20Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

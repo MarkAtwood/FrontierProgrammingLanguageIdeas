@@ -1,0 +1,30 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-8rf.4.2",
+  "title": "Hidden __valid bool field on structs with invariant declarations",
+  "description": "Structs with one or more invariant declarations get a compiler-injected __valid: bool field. Initialized to true at construction. Post-method invariant check becomes: 'if (self.__valid) { assert invariants }'. Field is inaccessible from user code. Stripped in release mode along with all invariant checks. Size cost: 1 bool per struct with invariants, debug mode only.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:47:37Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T20:01:32Z",
+  "closed_at": "2026-04-12T23:55:31Z",
+  "close_reason": "Closed",
+  "labels": [
+    "lang-design",
+    "review",
+    "type-safety"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.4.2",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf.4",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:47:36Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

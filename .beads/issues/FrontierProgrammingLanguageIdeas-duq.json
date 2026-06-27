@@ -1,0 +1,14 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-duq",
+  "title": "Raw pointer types lack NonNull distinction — nullability not tracked in types",
+  "description": "Raw pointer types (*const T, *mut T) are nullable, but the type system does not distinguish nullable from non-null pointers. A function signature fn deref(p: *const T) gives callers no information about whether null is a valid input. Code using raw pointers must track nullability via comments or convention. This is especially important for FFI wrappers where the C API specifies non-null semantics. A NonNull[T] newtype wrapper should be provided in the standard library (analogous to Rust's NonNull\u003cT\u003e) so that functions that genuinely cannot accept null can express that in the type signature.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:13:15Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T20:58:35Z",
+  "closed_at": "2026-04-12T20:58:35Z",
+  "close_reason": "Added NonNull[T] to §1.5 Pointer Types: new/new_unchecked/dangling constructors, covariance note, FFI example showing correct vs wrong declaration."
+}

@@ -1,0 +1,29 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-g91.18",
+  "title": "Region inference handles longest-pattern without annotation — defend this",
+  "description": "Ferrum claims 'fn longest(a: \u0026str, b: \u0026str): \u0026str' compiles without lifetime annotation. This is the canonical case Rust requires explicit annotation for. If true, this is the biggest concrete DX win over Rust for borrow-checker code. A reviewer may question whether this is implementable or may suggest adding the annotation for clarity. Defend: the spec's inference algorithm (fresh region per parameter → constraint generation → smallest valid solution) is designed to handle exactly this case. The annotation would be redundant and the compiler warns to remove it. This is correct behavior and should be preserved.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "decision",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:20:41Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:18:23Z",
+  "closed_at": "2026-04-13T00:18:23Z",
+  "close_reason": "Closed",
+  "labels": [
+    "api-design",
+    "review"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-g91.18",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-g91",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:20:40Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

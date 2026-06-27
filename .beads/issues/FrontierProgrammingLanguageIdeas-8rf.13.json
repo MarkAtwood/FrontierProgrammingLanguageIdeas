@@ -1,0 +1,30 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-8rf.13",
+  "title": "BigDecimal and Rational thread explicit allocators — inconsistent with Zinc's ambient allocator design",
+  "description": "The ambient allocator feature exists specifically to remove explicit allocator threading. But BigDecimal and Rational examples show: 'var x = try BigDecimal.parse(str, allocator)' and 'var y = try one_third.add(one_third, allocator)'. These pass allocators explicitly, the old Zig way. Meanwhile the spec states 'Both types use using(allocator) naturally' — which is not demonstrated by the code examples. If these types really use using(allocator), the examples are wrong. If they don't, then every BigDecimal/Rational operation requires explicit allocator threading, which is exactly the problem Zinc claims to solve.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:21:39Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:09:15Z",
+  "closed_at": "2026-04-13T00:09:15Z",
+  "close_reason": "Closed",
+  "labels": [
+    "lang-design",
+    "review",
+    "type-system"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.13",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:21:39Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

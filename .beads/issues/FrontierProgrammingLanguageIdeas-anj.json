@@ -1,0 +1,14 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-anj",
+  "title": "NaN and Infinity to integer as-cast silently loses distinguishing information",
+  "description": "f64.NAN as i32 produces 0, identical to 0.0 as i32. f64.INFINITY as i32 saturates to i32.MAX, identical to a large-but-finite float. After the cast, the caller cannot distinguish NaN-origin from zero-origin, or infinity from max-value. Code that assumes 'if result is 0, input was 0.0' is silently wrong. The try_into() path is available but not default. The as-cast path should either: (a) return Option[i32] so the caller is forced to handle the special cases, or (b) be documented with a prominent warning that NaN and infinities lose their identity, and the spec should provide a named function (checked_float_cast) as the idiomatic path.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:13:09Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T20:58:35Z",
+  "closed_at": "2026-04-12T20:58:35Z",
+  "close_reason": "Added blockquote warning after NaN/Infinity as-cast examples: as cast loses NaN vs 0 and infinity vs large-value distinction; use try_into() when caller needs to detect these cases."
+}

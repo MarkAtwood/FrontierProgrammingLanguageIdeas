@@ -1,0 +1,30 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-g91.12",
+  "title": "type CanAlloc: bool = true in Allocator trait should be const, not type",
+  "description": "ferrum-lang-generics.md §1.1 Allocator trait shows: 'type CanAlloc: bool = true'. The 'type' keyword introduces an associated type (a type-level item). But 'bool' here is used as a bound on the type's kind (?) and 'true' is a value, not a type. This appears to be an associated constant: 'const CanAlloc: bool = true'. Using 'type' for this is inconsistent with the rest of the trait system where 'type' introduces associated types (like 'type Item' in Iterator) and values are introduced with 'const'. A caller implementing the Allocator trait will not know whether to write 'type CanAlloc = bool' (a type alias to bool) or 'const CanAlloc: bool = false' (a boolean constant). Fix: use 'const CanAlloc: bool = true' consistently with associated constants.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:19:56Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:09:26Z",
+  "closed_at": "2026-04-13T00:09:26Z",
+  "close_reason": "Closed",
+  "labels": [
+    "api-design",
+    "review",
+    "type-system"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-g91.12",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-g91",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:19:55Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

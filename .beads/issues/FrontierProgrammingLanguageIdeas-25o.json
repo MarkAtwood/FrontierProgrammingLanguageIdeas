@@ -1,0 +1,15 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-25o",
+  "title": "Contract violations become UB in release builds rather than hard assertions",
+  "description": "Contracts (requires/ensures) are runtime checks in debug builds. In release builds they become 'optimizer assumptions' — if a contract is violated, the compiler assumes it cannot happen and the result is undefined behavior. This means contracts in release mode are not safety guarantees; they are performance hints. A caller who relies on a function's 'ensures' clause to know what they can trust gets UB instead of an error when the contract is false. Contracts must either remain as hard assertions in release mode (with a performance cost the caller can accept), or be clearly documented as debug-only assertions so callers know they provide zero runtime guarantee in production.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:12:30Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T19:17:36Z",
+  "closed_at": "2026-04-12T19:17:36Z",
+  "close_reason": "Closed"
+}

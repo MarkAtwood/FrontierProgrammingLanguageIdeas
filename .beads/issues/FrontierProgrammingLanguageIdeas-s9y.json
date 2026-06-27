@@ -1,0 +1,14 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-s9y",
+  "title": "Mechanical rename: type Foo {} -\u003e struct Foo {} throughout spec",
+  "description": "The design decision in §1.4 of ferrum-lang-types.md chose 'struct' for product types and 'type' for aliases/constraints. The spec examples have not been updated. This is a mechanical search-replace across all .md files: 'type \u003cName\u003e {' -\u003e 'struct \u003cName\u003e {' and 'type \u003cName\u003e[\u003cparams\u003e] {' -\u003e 'struct \u003cName\u003e[\u003cparams\u003e] {'. Approximately 396 occurrences across ~30 files. Care needed to not change type aliases (type X = ...) or constrained types (type X = ... where ...).",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T20:58:41Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T21:22:57Z",
+  "closed_at": "2026-04-12T21:22:57Z",
+  "close_reason": "Complete. 61 files, ~814 occurrences renamed. Type aliases and constrained types untouched."
+}

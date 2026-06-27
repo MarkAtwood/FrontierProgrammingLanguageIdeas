@@ -1,0 +1,31 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-8rf.4",
+  "title": "invariant fires on deinit: self.* = undefined leaves struct in invalid state",
+  "description": "The MinHeap example shows deinit setting self.* = undefined. But invariants are checked after every *Self method. deinit takes *Self. So the invariant (e.g. isHeap(self.data[0..self.len])) is evaluated on undefined memory. In debug mode this is a guaranteed invariant violation panic after every deinit call. The spec does not address how invariants interact with teardown methods. Every data structure that zeroes or undefines itself in deinit will panic in debug mode.",
+  "design": "@invalidate(self) builtin + hidden __valid bool field on structs with invariants. After every *Self method the compiler emits: 'if (self.__valid) { check invariants }'. @invalidate sets __valid = false, causing the post-method check to skip. self.* = undefined then runs safely. __valid initialized to true at struct construction. Both __valid and the branch are stripped in release mode. Linter warns when a deinit method on a struct with invariants does not call @invalidate.",
+  "status": "closed",
+  "priority": 0,
+  "issue_type": "bug",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:20:27Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T20:01:32Z",
+  "closed_at": "2026-04-12T23:54:04Z",
+  "close_reason": "Closed",
+  "labels": [
+    "lang-design",
+    "review",
+    "type-safety"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.4",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:20:26Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

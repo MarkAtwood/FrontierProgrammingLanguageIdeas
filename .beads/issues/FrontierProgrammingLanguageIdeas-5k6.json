@@ -1,0 +1,14 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-5k6",
+  "title": "verified_by checks signature compatibility, not behavioral equivalence",
+  "description": "The verified_by annotation links a fast implementation to a proof function. The compiler only checks that the two signatures are type-compatible — it does not verify that the fast implementation actually computes the same result as the proof. A fast sort that skips a comparison, or a fast hash that returns a constant, passes the verified_by check. Callers who depend on verified_by to trust an optimized path get no actual behavioral guarantee. Either verified_by must require formal proof of equivalence (e.g. via the proof system itself), or it must be renamed to something that doesn't imply verification.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "bug",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:10:49Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T18:10:03Z",
+  "closed_at": "2026-04-12T18:10:03Z",
+  "close_reason": "Fixed across ferrum-lang-verification.md (§1.9), ferrum-introduction-for-rust-programmers.md, ferrum-introduction-for-haskell-programmers.md, and ferrum-learning-for-ai.md. verified_by split into tested_by (debug-mode runtime comparison, honest about coverage limits) and proven_by (formal compile-time proof, covers all inputs). Both still check signature compatibility as a minimum. Design decision documented inline in verification spec."
+}

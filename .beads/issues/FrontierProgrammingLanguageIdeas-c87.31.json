@@ -1,0 +1,25 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-c87.31",
+  "title": "Write ferrum_extlib_app.md",
+  "description": "CCSP lib_ccsp_app: application lifecycle, window management, system integration. Not in Ferrum stdlib. Design extlib module: app lifecycle (init/run/quit), window management via xdg-shell, system notifications (libnotify / D-Bus), file pickers via XDG Desktop Portal, system menus, macOS NSApp/NSMenu integration, Windows HWND integration, multi-window support, sandboxed-friendly API.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-11T06:22:19Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-11T07:02:27Z",
+  "closed_at": "2026-04-11T07:02:27Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-c87.31",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-c87",
+      "type": "parent-child",
+      "created_at": "2026-04-10T23:22:19Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

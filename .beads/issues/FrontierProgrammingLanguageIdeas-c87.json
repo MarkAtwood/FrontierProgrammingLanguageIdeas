@@ -1,0 +1,14 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-c87",
+  "title": "CCSP-derived extended stdlib for Ferrum",
+  "description": "For each CCSP library section not mooted by Ferrum language or existing stdlib, write a ferrum_extlib_*.md design document.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "epic",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-11T06:20:06Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T20:01:32Z",
+  "closed_at": "2026-04-11T07:02:31Z",
+  "close_reason": "all steps complete"
+}

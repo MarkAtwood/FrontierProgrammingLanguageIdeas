@@ -1,0 +1,14 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-bzg",
+  "title": "Research: can @pure functions access thread-local or global mutable state?",
+  "description": "The @pure attribute is described as telling the compiler 'trust me, this has no effects.' The spec gives the memoization cache as an example. This implies @pure functions CAN access global mutable state (via Mutex or atomic ops) but claim purity anyway. This has two sub-questions: (1) Is the @pure claim only about the effect system, or does it also mean 'no observable side effects from the caller's perspective'? (2) Can an interrupt handler in a no-alloc context call a @pure function that internally allocates via its hidden cache? Determine what @pure actually promises, document it precisely, and decide whether that promise is strong enough to be useful.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:13:48Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T20:44:33Z",
+  "closed_at": "2026-04-12T20:44:33Z",
+  "close_reason": "Added §2.4 subsections: (1) thread-local mutable state generates ! IO — same rule as process-global state, not suppressible by @pure, with example. (2) @pure and no-alloc contexts — documented acknowledged limitation: @pure is a correctness claim not a resource-usage claim; no-alloc callers must audit @pure callees manually."
+}

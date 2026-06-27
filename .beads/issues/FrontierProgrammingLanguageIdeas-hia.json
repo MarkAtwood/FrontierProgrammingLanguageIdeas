@@ -1,0 +1,15 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-hia",
+  "title": "Effect variable ?E: instantiation syntax and constraint semantics underdefined",
+  "description": "The spec introduces ?E for effect polymorphism in higher-order functions. It says '?E is an effect variable; retry has whatever effects f has.' But it does not specify: how a caller explicitly instantiates ?E; whether ?E can be constrained (e.g. ?E must not include Unsafe); whether multiple effect variables in one signature are independent; what the error message looks like when effect unification fails; or how ?E interacts with @pure. Library authors writing combinators using ?E have no complete specification to follow, and will discover edge cases through compiler errors with no recovery path documented.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:12:10Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T19:40:59Z",
+  "closed_at": "2026-04-12T19:40:59Z",
+  "close_reason": "Closed"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-seg",
+  "title": "Five-level safety taxonomy (safe/unchecked/trusted/extern/unsafe) lacks clear usage rules",
+  "description": "The verification spec defines five safety levels: default (safe), unchecked, trusted, extern, and unsafe. Each has distinct semantics and audit implications. The documentation does not define the decision rule for which level to use in a given situation — it provides examples but no formal distinction. A programmer wrapping a C library must understand all five and their intended interaction to know which to apply where. unchecked relaxes aliasing checks; trusted names an assertion; extern marks FFI boundaries; unsafe enables arbitrary operations — but the boundaries between these are not formally specified. Add a decision table or flowchart explaining which level to use and why.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:12:48Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T19:31:25Z",
+  "closed_at": "2026-04-12T19:31:25Z",
+  "close_reason": "Closed"
+}

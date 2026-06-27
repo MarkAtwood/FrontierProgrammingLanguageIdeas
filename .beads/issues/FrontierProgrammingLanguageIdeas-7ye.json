@@ -1,0 +1,15 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-7ye",
+  "title": "Add Mermaid flowchart for ? operator error propagation",
+  "description": "ferrum-introduction-to-option-result.md shows the ? operator as shorthand for match, but the control flow (success continues, error returns early to caller) is described in prose. A flowchart with two paths — Ok(value) unwraps and continues, Err(e) returns immediately — would reinforce how ? changes control flow, which is the main thing beginners get wrong.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:41:43Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:09:15Z",
+  "closed_at": "2026-04-13T00:09:15Z",
+  "close_reason": "Closed"
+}

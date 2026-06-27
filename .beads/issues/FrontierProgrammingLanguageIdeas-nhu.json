@@ -1,0 +1,15 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-nhu",
+  "title": "Add Mermaid flowchart for structured concurrency lifecycle",
+  "description": "ferrum-introduction-to-async.md explains structured concurrency in prose: scope starts, tasks spawn, cancellation signal propagates, tasks drain, scope exits. The key guarantee — tasks cannot outlive their scope — is subtle and easy to miss in text. A flowchart or sequence diagram showing the full lifecycle (including early-return and panic paths) would make the guarantee visually obvious.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:41:38Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T23:58:02Z",
+  "closed_at": "2026-04-12T23:58:02Z",
+  "close_reason": "Closed"
+}

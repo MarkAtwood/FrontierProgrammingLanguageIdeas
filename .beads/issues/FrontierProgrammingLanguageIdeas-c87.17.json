@@ -1,0 +1,25 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-c87.17",
+  "title": "Write ferrum_extlib_cli.md",
+  "description": "CCSP lib_ccsp_cli: declarative option parsing with source tracking. Ferrum stdlib has env.args() but no declarative parser. Design extlib module: schema-driven option definition (name, type, default, env var, config file key, help text), types (bool/string/int/uint/float/size/duration/path/enum/list/count), source priority (CLI \u003e env \u003e TOML config \u003e default), source tracking, auto-generated help, effective-config dump.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-11T06:21:31Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-11T07:01:56Z",
+  "closed_at": "2026-04-11T07:01:56Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-c87.17",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-c87",
+      "type": "parent-child",
+      "created_at": "2026-04-10T23:21:31Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

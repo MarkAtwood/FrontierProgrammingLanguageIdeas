@@ -1,0 +1,30 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-8rf.17",
+  "title": "using/with keyword asymmetry: two prepositions for one concept",
+  "description": "Declaring an ambient allocator requirement uses 'using(allocator)'. Binding the allocator uses 'with (allocator: expr)'. These are different prepositions for the same concept. A new reader encounters 'fn foo() void using(allocator)' and 'with (allocator: gpa.allocator())' as separate syntactic constructs and must learn they are two halves of the same feature. Suggested rename: use a single keyword for both. Options: 'ambient(allocator)' / 'provide(allocator: expr)', or 'alloc fn' / 'alloc(expr) { }'. The name matters because it establishes the mental model: is this a capability, a parameter, a scope? The current pair of keywords does not answer that question.",
+  "status": "closed",
+  "priority": 4,
+  "issue_type": "chore",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:22:09Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:21:57Z",
+  "closed_at": "2026-04-13T00:21:57Z",
+  "close_reason": "Closed",
+  "labels": [
+    "lang-design",
+    "naming",
+    "review"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.17",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:22:08Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

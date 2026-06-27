@@ -1,0 +1,14 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-9cr",
+  "title": "Glob imports discouraged but not prevented — enables silent name collisions",
+  "description": "The module spec shows 'import std.prelude.*' as 'glob import (discouraged outside preludes)' but does not prevent it. If a library adds a new export that collides with an existing name in the caller's namespace, the caller's code silently changes meaning or breaks. The caller cannot opt out of the glob if used by a dependency. The spec should either: (a) disallow glob imports in non-prelude contexts (strong, prevents the problem entirely), (b) require library authors to explicitly mark exports as prelude-eligible, or (c) make glob imports require explicit re-export acknowledgment at the import site. The current 'discouraged' status provides no protection.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "task",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:13:21Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T20:58:34Z",
+  "closed_at": "2026-04-12T20:58:34Z",
+  "close_reason": "Added Glob Imports subsection to ferrum-learning-for-ai.md: lint warning outside preludes, require allow(glob_import, reason) with non-empty justification, three legitimate use cases, no public API re-export of globs."
+}

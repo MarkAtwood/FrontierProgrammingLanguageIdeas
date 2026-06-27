@@ -1,0 +1,24 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-75e.3",
+  "title": "Section 0 last bullet references a different prompt's output",
+  "description": "Line 48-49: 'Could the type system have prevented any bug found in Section 0 of a correctness review?' This references PROMPT-review-upstream.md's Section 0, as if the two prompts are always run together. LANG-DESIGN is a standalone mode. Fix: either remove this bullet, or rewrite it as a self-contained question: 'Are there bug classes (null dereference, invalid state, wrong-type argument, wrong-order call) that the type system could have statically prevented, but didn't? If yes, that is a type design failure, not just a code bug.'",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:10:33Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T20:47:17Z",
+  "closed_at": "2026-04-12T20:47:17Z",
+  "close_reason": "All four PROMPT-review-lang.md fixes applied in one pass.",
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-75e.3",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-75e",
+      "type": "parent-child",
+      "created_at": "2026-04-12T09:10:32Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

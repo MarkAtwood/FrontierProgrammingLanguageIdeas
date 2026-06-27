@@ -1,0 +1,16 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-cid",
+  "title": "Fix generic call-site type disambiguation",
+  "description": "Ferrum claims to avoid Rust's turbofish problem by using [] for generics, but foo[T](x) is ambiguous between 'generic call with type T' and 'index foo with T then call result'. The docs for Rust programmers (ferrum-introduction-for-rust-programmers.md line 72) claim the problem is sidestepped but it isn't. Need to specify a disambiguation syntax (e.g. ::[T]) and document it in ferrum-lang-generics.md, ferrum-lang-syntax.md, and ferrum-introduction-for-rust-programmers.md.",
+  "design": "Option A: No explicit type application at call sites. In expression position, expr[...] is always indexing, never a turbofish. Type inference is the only mechanism for resolving type parameters. When inference fails, annotate the binding: let x: i32 = parse('42'). For phantom-type-parameter functions (size_of, align_of, zeroed, etc.): make them compiler intrinsics with a type-as-value calling convention. The intrinsic takes the type as its argument: size_of(u64), align_of(u64). No special bracket syntax for intrinsics — they look like normal function calls. This avoids a two-tier parsing rule and reads naturally.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T06:04:29Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T06:20:28Z",
+  "closed_at": "2026-04-12T06:20:28Z",
+  "close_reason": "Closed"
+}

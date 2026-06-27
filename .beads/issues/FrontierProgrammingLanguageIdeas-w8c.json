@@ -1,0 +1,14 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-w8c",
+  "title": "Research: is the pinned type move analysis formally specified and proven sound?",
+  "description": "pinned types (types with interior pointers that cannot be moved after construction) are described as having a 'compiler-checked' no-move guarantee. Interior pointers are inherently unsafe: if the move analysis has a bug, the program has a use-after-free. The spec does not cite a formal specification of the move analysis, does not describe how interior pointers interact with the region system, and does not explain how pinned interacts with unsafe blocks. Research needed: (1) Is there a formal model of pinned type safety? (2) Is there a proof that no safe Ferrum program can move a pinned type after construction? (3) How does pinned interact with unsafe code that copies raw pointer values?",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:13:55Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T20:11:18Z",
+  "closed_at": "2026-04-12T20:11:18Z",
+  "close_reason": "Specified pinned type semantics: exhaustive move definition, drop guarantee, automatic noalias suppression (no UnsafePinned needed), generic instantiation failure instead of Unpin, unsafe code contract. Design decision note explains Rust's UnsafePinned lesson and why first-class type property avoids it."
+}

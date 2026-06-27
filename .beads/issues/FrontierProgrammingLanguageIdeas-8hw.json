@@ -1,0 +1,14 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-8hw",
+  "title": "trusted blocks can assert Send+Sync on \\!Sync types enabling data races",
+  "description": "trusted('...') allows programmers to assert type-system properties the compiler cannot verify. This includes asserting that a \\!Sync type implements Sync, which defeats the data-race safety model. Example: Arc\u003cAtomic\u003cRefCell\u003cu64\u003e\u003e\u003e can be made Send+Sync via trusted, then shared across threads, causing a data race on RefCell which is not Sync. Send and Sync bounds are Ferrum's primary concurrency safety guarantee. Making them bypassable with a named string assertion reduces them to advisory documentation. The trusted keyword must be prohibited from asserting Send or Sync on types containing \\!Sync fields — or the language must abandon its data-race-free claim.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "bug",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:11:29Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T17:00:40Z",
+  "closed_at": "2026-04-12T17:00:40Z",
+  "close_reason": "Fixed in ferrum-lang-verification.md (§3.3) and ferrum-lang-concurrency.md (§1.10). trusted is now prohibited from asserting Send/Sync on types with \\!Sync fields — compile error. The compiler's structural \\!Sync determination cannot be overridden by trusted. Legitimate use case (implementing a custom sync primitive) redirected to unsafe impl Sync. Design decision documented inline."
+}

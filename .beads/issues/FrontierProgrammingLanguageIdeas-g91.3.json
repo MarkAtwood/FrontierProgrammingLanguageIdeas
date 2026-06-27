@@ -1,0 +1,31 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-g91.3",
+  "title": "self: \u0026Self vs \u0026self syntax inconsistency throughout spec",
+  "description": "The spec uses two different syntaxes for self-receivers: 'fn fmt(self: \u0026Self, ...)' and 'fn push(\u0026mut self, ...)'. Both appear in ferrum-lang-generics.md (compare §2.2 trait definitions with §2.8 contract inheritance). The traits introduction exclusively uses the verbose self: \u0026Self form. The stdlib-core.md uses \u0026self. If both are valid, the spec must say so and explain when to use each. If only one is canonical, the other must be removed from the spec. As-is, a developer writing their first trait method has no guidance on which form to write — and will see contradictory examples. The self: \u0026Self form is also notably more verbose than Rust's \u0026self on every single method. If it's the only form, that is a consistent annotation burden the spec should acknowledge and defend.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "bug",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:18:39Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:04:25Z",
+  "closed_at": "2026-04-13T00:04:25Z",
+  "close_reason": "both forms documented as valid sugar in ferrum-lang-syntax.md §3.3: 'self in method position is sugar: self: \u0026Self can be written \u0026self'. The spec is internally consistent. No change needed.",
+  "labels": [
+    "api-design",
+    "cognitive-load",
+    "dx",
+    "review"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-g91.3",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-g91",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:18:38Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-8rf.7",
+  "title": "using is function coloring — spec denies it but propagation is real",
+  "description": "Every function that calls a using(allocator) function must itself declare using(allocator), or wrap the call in a with block. This is function coloring by another name. The spec says 'using is not an effect annotation. There is no effect system tracking which functions allocate.' — but this is semantic deflection. The propagation is real. A caller who adds allocation to a deep helper function must update every function in the call chain up to the with block. The difference from async coloring: the propagation is via lexical scope rather than return type, so the chain ends at the nearest enclosing with block. But the spec does not explain this boundary clearly.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:20:47Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:03:10Z",
+  "closed_at": "2026-04-13T00:03:10Z",
+  "close_reason": "Closed",
+  "labels": [
+    "cognitive-load",
+    "dx",
+    "lang-design",
+    "review"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.7",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:20:47Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

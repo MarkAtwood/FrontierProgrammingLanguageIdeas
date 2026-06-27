@@ -1,0 +1,15 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-2v0",
+  "title": "Add Mermaid diagrams for scope nesting, thread pool, and pattern matching (low priority)",
+  "description": "Three low-priority diagram opportunities grouped together: (1) ferrum-introduction-to-ownership.md scope nesting hierarchy showing when variables in nested blocks are freed; (2) ferrum-introduction-to-async.md runtime thread pool showing how many tasks multiplex onto few OS threads; (3) ferrum-introduction-to-option-result.md pattern matching decision tree showing exhaustiveness for Option and Result variants. All three have adequate prose coverage already — diagrams would help visual learners only.",
+  "status": "closed",
+  "priority": 4,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:41:49Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:23:04Z",
+  "closed_at": "2026-04-13T00:23:04Z",
+  "close_reason": "Closed"
+}

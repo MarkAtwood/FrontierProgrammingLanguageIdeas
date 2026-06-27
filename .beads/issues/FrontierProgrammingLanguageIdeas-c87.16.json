@@ -1,0 +1,25 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-c87.16",
+  "title": "Write ferrum_extlib_cas.md",
+  "description": "CCSP lib_ccsp_cas: content-addressable storage (Git object model). Not in Ferrum stdlib. Design extlib module: blob/tree/commit object types, SHA-256 addressed, hash verified on read, pluggable backends (filesystem, in-memory for tests, remote delegate), useful for build systems, package management, config sync, distributed state.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-11T06:21:26Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-11T07:01:37Z",
+  "closed_at": "2026-04-11T07:01:37Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-c87.16",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-c87",
+      "type": "parent-child",
+      "created_at": "2026-04-10T23:21:25Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

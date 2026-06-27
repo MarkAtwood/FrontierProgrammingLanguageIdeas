@@ -1,0 +1,25 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-c87.20",
+  "title": "Write ferrum_extlib_draw_x11.md",
+  "description": "CCSP lib_ccsp_draw_x11: legacy and embedded Linux display backend via Xlib+XRender. Not in Ferrum stdlib. Design extlib module: X11 window creation, XRender antialiased compositing, XShm shared memory for local display, Damage extension for partial repaints, use case: embedded systems without Wayland compositor, XWayland compatibility mode.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-11T06:21:41Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-11T07:02:02Z",
+  "closed_at": "2026-04-11T07:02:02Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-c87.20",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-c87",
+      "type": "parent-child",
+      "created_at": "2026-04-10T23:21:40Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

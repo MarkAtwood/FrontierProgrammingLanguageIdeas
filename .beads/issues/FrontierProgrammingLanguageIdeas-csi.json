@@ -1,0 +1,15 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-csi",
+  "title": "Remove async fn: make effect system handle async",
+  "description": "The docs claim 'no colored functions' but use 'async fn' syntax throughout, which IS a function color. This is a direct contradiction caught by a reviewer. Resolution: remove 'async fn' from all Ferrum docs and specs. All async functions become regular fn with '\\! Async' in their effect signature. The '.await' operator works in any function context with the '\\! Async' effect. Update: ferrum-introduction-to-async.md, ferrum-lang-concurrency.md, ferrum-lang-syntax.md, ferrum-introduction-for-rust-programmers.md, ferrum-lang-core.md, ferrum-introduction-for-programmers.md, ferrum-introduction-for-haskell-programmers.md, and any other doc using 'async fn'.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T06:04:25Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T06:26:03Z",
+  "closed_at": "2026-04-12T06:26:03Z",
+  "close_reason": "Closed"
+}

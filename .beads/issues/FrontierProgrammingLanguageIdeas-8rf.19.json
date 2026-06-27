@@ -1,0 +1,29 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-8rf.19",
+  "title": "Contract enforcement modes table: requires stays in ReleaseSafe, ensures/invariant stripped",
+  "description": "The distinction between build modes is correct engineering: requires checks are precondition violations (caller bugs) that you want to catch in production via ReleaseSafe. ensures and invariant checks are implementation verification that add overhead proportional to function complexity and are correctly stripped in release. A reviewer might suggest 'strip everything in release for performance' — this is wrong. Precondition violations in production are security and correctness bugs. The asymmetric stripping is the right call and should be defended.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "decision",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:22:33Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:18:09Z",
+  "closed_at": "2026-04-13T00:18:09Z",
+  "close_reason": "Closed",
+  "labels": [
+    "lang-design",
+    "review"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.19",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:22:33Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

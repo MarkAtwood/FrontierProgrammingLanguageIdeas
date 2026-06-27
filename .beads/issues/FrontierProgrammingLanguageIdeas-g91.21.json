@@ -1,0 +1,29 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-g91.21",
+  "title": "Explicit overflow operators +% +| — defend over method chain style",
+  "description": "Ferrum uses operator syntax for wrapping (a +% b) and saturating (a +| b) arithmetic, rather than Rust's .wrapping_add(b) / .saturating_add(b) method calls. A reviewer may suggest 'just use method calls like Rust'. Defend: operator syntax is essential for readability in DSP, cryptography, and protocol code where wrapping arithmetic is the norm. Having to write (a.wrapping_add(b)).wrapping_add(c) instead of a +% b +% c is illegible. The operator approach is correct for a systems language targeting these domains.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "decision",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:20:43Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:18:17Z",
+  "closed_at": "2026-04-13T00:18:17Z",
+  "close_reason": "Closed",
+  "labels": [
+    "api-design",
+    "review"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-g91.21",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-g91",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:20:42Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-g91.14",
+  "title": "Effect variable ?E not in type parameter list — third generic mechanism",
+  "description": "Ferrum has three distinct syntactic mechanisms for generics: (1) type parameters in [T, U] brackets; (2) region/lifetime parameters in ['a] or \u003c'a, 'b\u003e (spec is inconsistent); (3) effect variables ?E declared by use anywhere in an effect position. A caller learning generics must master three different parameter mechanisms. Effect variables are especially unusual: they are 'declared by use' (no declaration site, just a ?-prefixed name in an effect annotation), and they are always inferred, never explicit at call sites. This is a novel concept with no analogue in any mainstream language. The spec should either: (a) unify effect variables into the [T] parameter list (e.g., fn map[T, U, ?E](f: fn(T): U ! ?E)), making the parameter explicit and visible; or (b) justify why a third mechanism is necessary and document it prominently in the generics chapter.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:19:57Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:09:25Z",
+  "closed_at": "2026-04-13T00:09:25Z",
+  "close_reason": "Closed",
+  "labels": [
+    "api-design",
+    "review",
+    "type-system"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-g91.14",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-g91",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:19:57Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

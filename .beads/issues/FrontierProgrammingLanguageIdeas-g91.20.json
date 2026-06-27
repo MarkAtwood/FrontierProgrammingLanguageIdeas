@@ -1,0 +1,29 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-g91.20",
+  "title": "Effect inference within modules, required at pub boundaries — defend this",
+  "description": "Private functions have inferred effects; pub functions require explicit effect annotations. A reviewer may suggest 'require effects everywhere for consistency' or 'infer effects everywhere including pub'. Defend: requiring effects everywhere is Rust's mistake — annotation burden everywhere. Inferring at pub boundaries violates the 'public API is the contract' principle — a caller cannot know what a pub function does without annotation. The current rule is the correct tradeoff: private = light, pub = explicit contract. This should be preserved.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "decision",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:20:42Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:18:21Z",
+  "closed_at": "2026-04-13T00:18:21Z",
+  "close_reason": "Closed",
+  "labels": [
+    "api-design",
+    "review"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-g91.20",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-g91",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:20:42Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

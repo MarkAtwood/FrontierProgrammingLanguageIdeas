@@ -1,0 +1,30 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-8rf.15",
+  "title": "SyncGuard via __sync_guard_marker is a naming convention dressed as a type interface",
+  "description": "SyncGuard is implemented as: any type with 'pub const __sync_guard_marker = {}' is a sync guard. Any struct that happens to have this field — including by accident — becomes a sync guard for linter purposes. There is no verification that the type actually holds a resource until dropped, or that it represents a lock. This is a naming convention, not a type contract. The double-underscore prefix is a code smell (reserved-name-style hacks). A proper design would be a pub interface 'SyncGuard' with a destructor requirement, not an ad-hoc marker field. The linter cannot be confident it has caught all sync guards, only the ones that declared the marker.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "chore",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:21:54Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:18:13Z",
+  "closed_at": "2026-04-13T00:18:13Z",
+  "close_reason": "Closed",
+  "labels": [
+    "abstraction",
+    "lang-design",
+    "review"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.15",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:21:53Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

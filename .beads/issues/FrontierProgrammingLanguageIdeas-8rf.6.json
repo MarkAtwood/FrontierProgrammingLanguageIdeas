@@ -1,0 +1,30 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-8rf.6",
+  "title": "@as(d64, binary_float_expr) silently produces inexact decimal — no compile detection",
+  "description": "The spec warns 'Do not use @as(d64, 0.1)' but the compiler allows it. @as(d64, x) where x is a binary float produces an inexact decimal. The type system cannot distinguish 'decimal literal that is exact' from 'binary float cast to decimal'. A caller initializing d64 values from f64 constants or computations silently gets wrong results. What caller observes: financial calculations off by small non-obvious amounts. The correctness invariant is enforced by documentation, not by the type.",
+  "status": "closed",
+  "priority": 0,
+  "issue_type": "bug",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:20:39Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T23:54:09Z",
+  "closed_at": "2026-04-12T23:54:09Z",
+  "close_reason": "Closed",
+  "labels": [
+    "lang-design",
+    "review",
+    "type-safety"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.6",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:20:39Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

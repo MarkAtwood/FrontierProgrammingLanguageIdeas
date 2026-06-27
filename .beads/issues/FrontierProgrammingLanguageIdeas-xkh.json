@@ -1,0 +1,15 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-xkh",
+  "title": "SMT auto-discharge boundary invisible to callers writing contracts",
+  "description": "Some refinement-type obligations are discharged automatically by the SMT solver (Z3); others fall through and require manual proof terms. There is no documented rule for which is which. A caller writing a function contract cannot predict whether their arithmetic assertion will be automatically verified or whether they must write a proof term. When Z3 fails, the compiler asks for a proof but does not explain what Z3 could not discharge or why. Callers must internalize Z3's capabilities to write contracts confidently. The spec must document the boundary conditions where SMT succeeds vs. fails, or provide a deterministic subset of constraints that are always auto-discharged.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:12:42Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T19:34:07Z",
+  "closed_at": "2026-04-12T19:34:07Z",
+  "close_reason": "Closed"
+}

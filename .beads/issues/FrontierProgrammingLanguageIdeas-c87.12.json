@@ -1,0 +1,25 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-c87.12",
+  "title": "Write ferrum_extlib_pki.md",
+  "description": "CCSP lib_ccsp_pki: key generation, CSR creation, certificate signing, PKCS#12. Ferrum stdlib has Ed25519 key generation but not PKI infrastructure. Design extlib module: key generation defaults (Ed25519/X25519 primary, P-256/P-384 interop, RSA-2048/3072 legacy-only), CSR construction, self-signed certs for DANE usage 3, PKCS#12 import/export.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-11T06:21:11Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-11T07:01:28Z",
+  "closed_at": "2026-04-11T07:01:28Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-c87.12",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-c87",
+      "type": "parent-child",
+      "created_at": "2026-04-10T23:21:10Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

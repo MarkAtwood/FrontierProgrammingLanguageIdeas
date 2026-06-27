@@ -1,0 +1,30 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-g91.5",
+  "title": "Async effect missing from core effects table in §2.1",
+  "description": "ferrum-lang-ownership.md §2.1 lists core effects as: IO, Net, Sync, Unsafe, Panic, Alloc[A]. The Async effect is NOT in this list. But ! Async is used extensively throughout ferrum-introduction-to-async.md, ferrum-introduction-for-rust-programmers.md, ferrum-lang-concurrency.md, and the PRFAQ. A caller reading the core type system reference will not see Async listed and will not know it exists, its semantics, or how it interacts with the other effects. Add Async to the core effects table with a description of what it means (can suspend/await).",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "bug",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:19:00Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:03:23Z",
+  "closed_at": "2026-04-13T00:03:23Z",
+  "close_reason": "Closed",
+  "labels": [
+    "api-design",
+    "review",
+    "type-safety"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-g91.5",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-g91",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:19:00Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

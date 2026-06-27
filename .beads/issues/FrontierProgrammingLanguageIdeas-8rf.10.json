@@ -1,0 +1,31 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-8rf.10",
+  "title": "requires(never) is a doc comment with extra syntax — will silently drift",
+  "description": "requires(never) strips the check in all build modes and is described as 'documentation only'. A contract that is never checked will never be caught when it becomes wrong. If the function changes such that the precondition is violated, requires(never) provides no feedback. It is a doc comment that callers may mistake for an enforced invariant. The use case given (hot loops that are too expensive to check) is real, but the mechanism is unsafe. A better design would require explicit opt-in annotation in tests to verify requires(never) contracts offline.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:21:13Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:03:20Z",
+  "closed_at": "2026-04-13T00:03:20Z",
+  "close_reason": "Closed",
+  "labels": [
+    "cognitive-load",
+    "dx",
+    "lang-design",
+    "review"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.10",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:21:12Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

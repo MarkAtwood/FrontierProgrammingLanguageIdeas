@@ -1,0 +1,25 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-c87.15",
+  "title": "Write ferrum_extlib_json.md",
+  "description": "CCSP lib_ccsp_json: JSON RFC 8259 DOM and streaming. Not in Ferrum stdlib (data.cbor exists but not JSON). Design extlib module: DOM parse/serialize, streaming SAX-style parser, typed struct derive (serde-style), integer as i64 not f64, UTF-8 validation on parse, configurable security limits (depth, string size, doc size), JSONTestSuite compliance, integration with dynamic value type.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-11T06:21:23Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-11T07:01:35Z",
+  "closed_at": "2026-04-11T07:01:35Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-c87.15",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-c87",
+      "type": "parent-child",
+      "created_at": "2026-04-10T23:21:22Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

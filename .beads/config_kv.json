@@ -1,0 +1,13 @@
+{
+  "auto_compact_enabled": "false",
+  "compact_batch_size": "50",
+  "compact_parallel_workers": "5",
+  "compact_tier1_days": "30",
+  "compact_tier1_dep_levels": "2",
+  "compact_tier2_commits": "100",
+  "compact_tier2_days": "90",
+  "compact_tier2_dep_levels": "5",
+  "compaction_enabled": "false",
+  "issue_prefix": "FrontierProgrammingLanguageIdeas",
+  "kv.memory.deref-coercions-e-g-string-str-are-deliberately": "Deref coercions (e.g. \u0026String → \u0026str) are deliberately excluded from Ferrum for now. The non-goals in ferrum-lang-core.md say 'implicit coercions of any kind'. Mark considered adding them but decided to leave the clean rule intact. Revisit if call-site friction becomes a real complaint."
+}

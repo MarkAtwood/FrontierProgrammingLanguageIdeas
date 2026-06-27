@@ -1,0 +1,25 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-c87.24",
+  "title": "Write ferrum_extlib_font.md",
+  "description": "CCSP lib_ccsp_font: FreeType 2 wrapper for font loading, glyph rasterization, and atlas management. Not in Ferrum stdlib. Design extlib module: font loading (TTF/OTF), glyph rasterization, metrics and kerning, glyph atlas management, variable font support (OpenType Font Variations axes), abstraction over FreeType so callers do not depend on it directly.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-11T06:21:54Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-11T07:02:11Z",
+  "closed_at": "2026-04-11T07:02:11Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-c87.24",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-c87",
+      "type": "parent-child",
+      "created_at": "2026-04-10T23:21:54Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

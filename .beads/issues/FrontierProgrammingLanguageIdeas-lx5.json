@@ -1,0 +1,14 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-lx5",
+  "title": "@pure attribute lets functions lie about their effects",
+  "description": "The @pure attribute forces the compiler to treat a function as pure even when it has real effects (e.g. a memoization cache that acquires a Mutex). The spec documents this as 'grep for @pure to find all places humans overrode the compiler,' framing an API lie as an audit feature. The effect system's value is that callers can trust type signatures. Any mechanism that lets a function misrepresent its effects destroys that guarantee. A @pure function can cause IO, allocate, or race — and callers have no defense. Must either remove @pure or restrict it to patterns the compiler can mechanically verify (e.g. immutable static data only, with proof).",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "bug",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:11:23Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T16:39:14Z",
+  "closed_at": "2026-04-12T16:39:14Z",
+  "close_reason": "Fixed in ferrum-introduction-to-effects.md: @pure is now compiler-verified, valid only when inferred effects are a subset of {Alloc, Sync}. IO, Net, Panic, Unsafe, Async cannot be suppressed — they are compile errors. Design decision and limitation (correctness of caching logic) documented inline."
+}

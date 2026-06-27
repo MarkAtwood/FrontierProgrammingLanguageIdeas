@@ -1,0 +1,30 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-8rf.11",
+  "title": "Numeric comptime interfaces as parameter types require undisclosed compiler changes",
+  "description": "The spec shows: 'fn popcount(value: std.meta.Integer) u32'. But std.meta.Integer is defined as 'pub fn Integer(comptime T: type) void'. Using a fn(type)void as a parameter type is not valid Zig. In Zig today you would write 'fn popcount(value: anytype) u32' with an internal comptime check. The spec claims 'This is a pure standard library addition... no compiler changes required.' This claim is false. Either the parameter-type-as-constraint syntax requires new compiler support, or the examples are aspirational and the actual stdlib interface would look different. What caller observes: the spec's code examples won't compile in Zig today, and the degree of compiler change required is hidden.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:21:25Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:09:21Z",
+  "closed_at": "2026-04-13T00:09:21Z",
+  "close_reason": "Closed",
+  "labels": [
+    "lang-design",
+    "review",
+    "type-system"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.11",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:21:24Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

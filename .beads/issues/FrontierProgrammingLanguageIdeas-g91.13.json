@@ -1,0 +1,31 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-g91.13",
+  "title": "@pure conflates referential transparency with no-allocation",
+  "description": "@pure in ferrum-lang-ownership.md §2.4 has two stated behaviors: (1) it makes a correctness claim — same inputs produce same outputs (referential transparency), and (2) it suppresses ! Alloc from the visible effect signature. These are orthogonal properties. A function can be referentially transparent while allocating (e.g., fn intern(s: \u0026str): \u0026'static str that looks up or inserts into a static cache — same input always returns the same interned pointer, but allocates on first call). A function can be non-allocating but not referentially transparent (a pure math function). By conflating them, @pure means 'I claim this is pure AND I'm hiding its allocations'. Hiding allocation is a dangerous side effect to conflate with purity. Suggested fix: split into @pure (referential transparency only) and @hide_alloc or a separate mechanism for suppressing ! Alloc from the effect set. Or: document explicitly that @pure means 'treats internal allocation as an implementation detail of a pure interface', with clear no-alloc caller guidance.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:19:56Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:06:24Z",
+  "closed_at": "2026-04-13T00:06:24Z",
+  "close_reason": "resolved by g91.1: @pure no longer suppresses ! Alloc; @no_alloc introduced as separate static-verification attribute. The conflation is gone.",
+  "labels": [
+    "abstraction",
+    "api-design",
+    "review",
+    "type-system"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-g91.13",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-g91",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:19:56Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

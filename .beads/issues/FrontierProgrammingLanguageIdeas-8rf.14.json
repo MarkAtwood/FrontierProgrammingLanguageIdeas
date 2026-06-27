@@ -1,0 +1,30 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-8rf.14",
+  "title": "layout block as separate top-level declaration splits struct/layout definition",
+  "description": "The layout block is a separate top-level declaration 'layout TypeName { ... }' that references a struct by name. Problems: (1) A struct can exist without a layout — nothing in the struct definition tells you a layout exists elsewhere. (2) If the struct is renamed, the layout silently becomes an orphan or attach error. (3) The struct and its layout can be in different files/modules with no connection visible at the struct definition site. Suggested restructuring: inline the layout block inside the struct definition, as Ada's representation clauses are inline with the type declaration. This makes the struct's binary contract self-contained.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "chore",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:21:46Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:18:15Z",
+  "closed_at": "2026-04-13T00:18:15Z",
+  "close_reason": "Closed",
+  "labels": [
+    "abstraction",
+    "lang-design",
+    "review"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.14",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:21:46Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

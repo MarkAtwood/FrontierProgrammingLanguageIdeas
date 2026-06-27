@@ -1,0 +1,30 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-8rf.2.1",
+  "title": "Warn on contract expressions calling void-return or *T-argument functions",
+  "description": "At the contract declaration site, walk the expression AST. If any called function has a void return type or takes a mutable pointer argument (*T where T is not const), emit a warning: 'contract expression may have side effects — behavior differs between debug and release builds'. Warning suppressed with a per-contract annotation (syntax TBD). Implementable as an AST pass over requires/ensures/invariant expressions, no new language concepts.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:50:43Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T23:55:27Z",
+  "closed_at": "2026-04-12T23:55:27Z",
+  "close_reason": "Closed",
+  "labels": [
+    "lang-design",
+    "review",
+    "type-safety"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.2.1",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf.2",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:50:43Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

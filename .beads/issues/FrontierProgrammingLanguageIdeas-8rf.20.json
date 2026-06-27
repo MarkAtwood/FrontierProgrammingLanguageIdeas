@@ -1,0 +1,29 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-8rf.20",
+  "title": "Decimal literal never touches binary float — lexer stores original string",
+  "description": "The spec states '0.1d64 is never converted to binary float at any point. The lexer stores decimal literals as their original string representation.' This is the critical correctness property of decimal float. A reviewer might suggest 'just use @as(d64, ...) for convenience' or 'the compiler can convert from f64 implicitly'. Both are wrong. The moment a decimal value touches binary float, it is inexact. The separate literal suffix (d32/d64/d128) enforced at the lexer level is the only way to guarantee the decimal invariant. Defend this design.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "decision",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:22:40Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:18:06Z",
+  "closed_at": "2026-04-13T00:18:06Z",
+  "close_reason": "Closed",
+  "labels": [
+    "lang-design",
+    "review"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.20",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:22:39Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-783",
+  "title": "Proof termination checker too restrictive — structural recursion only",
+  "description": "The proof termination checker only accepts structural recursion: the recursive call must be on an obviously smaller sub-term. This rejects proofs that are mathematically sound but use a non-obvious termination argument (e.g. well-founded relations, lexicographic order, measure functions). A proof writer implementing a valid proof must either restructure it unnaturally to satisfy the checker, or give up and use trusted — which defeats the point of writing the proof. The termination checker must either support well-founded recursion with user-supplied measure functions, or the spec must document exactly which patterns are accepted so proof authors know what is achievable.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:12:54Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T19:46:14Z",
+  "closed_at": "2026-04-12T19:46:14Z",
+  "close_reason": "Closed"
+}

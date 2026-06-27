@@ -1,0 +1,30 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-8rf.16",
+  "title": "STM restricted to Copy types — eliminates most real-world use cases silently",
+  "description": "TVar wraps 'any Copy-able type'. Shared mutable state in real programs is often heap-allocated: strings, slices, complex structs, maps. None of these are Copy-able. To use STM with non-Copy state, callers must store indices or handles in the TVar and manage the actual data separately — which reintroduces the manual locking complexity that STM is supposed to remove. The abstraction is pitched at the wrong level: it works for scalars (which atomics already handle), but not for the complex shared state where composable transactions are most valuable. The spec presents STM's limitations briefly but does not foreground this as a fundamental scope constraint.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "chore",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:22:01Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:18:11Z",
+  "closed_at": "2026-04-13T00:18:11Z",
+  "close_reason": "Closed",
+  "labels": [
+    "abstraction",
+    "lang-design",
+    "review"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.16",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:22:01Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

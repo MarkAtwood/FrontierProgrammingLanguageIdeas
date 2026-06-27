@@ -1,0 +1,31 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-8rf.9",
+  "title": "old() allocates in debug builds but not release — hidden allocation violates Zig principle",
+  "description": "When old(items) snapshots a slice, it allocates via the ambient allocator in debug mode. Release mode strips the contract and allocates nothing. Zig's principle is 'no hidden allocations'. This violates it. The function's memory budget differs between debug and release. For embedded targets with tight heap budgets, a debug build can OOM where a release build succeeds.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:21:05Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:03:17Z",
+  "closed_at": "2026-04-13T00:03:17Z",
+  "close_reason": "Closed",
+  "labels": [
+    "cognitive-load",
+    "dx",
+    "lang-design",
+    "review"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.9",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:21:04Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-3uu",
+  "title": "? operator error coercion mechanism unspecified in core docs",
+  "description": "The ? operator propagates errors across mismatched error types (e.g. a function returning Result\u003cConfig, ConfigError\u003e can use ? on a Result\u003cString, IoError\u003e). This requires an automatic coercion from IoError to ConfigError. The core docs do not specify what mechanism performs this coercion — there is no mention of From/Into traits or equivalent. Callers do not know what constraints their error type must satisfy to use ?, whether information is lost in coercion, or what happens when no coercion is available. This is load-bearing behavior for idiomatic error handling and must be formally specified.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "bug",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:11:04Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T17:06:50Z",
+  "closed_at": "2026-04-12T17:06:50Z",
+  "close_reason": "Fixed in ferrum-lang-syntax.md (§1.6) and ferrum-introduction-to-option-result.md. ? does not coerce via From. Error union (E1 | E2 | ...) is the primary model: compiler infers the union from ? expressions in the body. Private functions use Result[T, _] for inference; pub functions write the union explicitly. Explicit .map_err() is used when collapsing to a named type. Design decision documented inline in syntax spec."
+}

@@ -1,0 +1,15 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-638",
+  "title": "Add Mermaid diagram for static vs dynamic dispatch",
+  "description": "ferrum-introduction-to-traits.md explains that generic fn with [T: Trait] monomorphizes into separate copies per type at compile time, while dyn Trait uses a single function with a vtable at runtime. This is a critical design tradeoff. A side-by-side diagram showing the code-generation difference (one fn → N specialized copies vs one fn + vtable pointer) would make the tradeoff immediately visible.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:41:38Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T23:58:03Z",
+  "closed_at": "2026-04-12T23:58:03Z",
+  "close_reason": "Closed"
+}

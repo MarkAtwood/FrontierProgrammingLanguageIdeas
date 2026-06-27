@@ -1,0 +1,31 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-8rf.8",
+  "title": "layout block: multiple _ entries and duplicate .byte keys are invalid Zig syntax",
+  "description": "Two syntax problems in the layout block spec: (1) The padding example uses '._' as a field name multiple times in one layout block. Zig struct literals reject duplicate field names. (2) The frag_off spanning example uses '.byte = 6, .bits = 3..7, .byte = 7' — a struct literal with the key 'byte' appearing twice, which is also a Zig compile error. Both cases are presented as valid Zinc syntax but conflict with Zig's existing field-init rules. Either these require new syntax (the spec needs to define it) or the examples are wrong. Caller observes: the spec is internally inconsistent and callers cannot know whether these examples are aspirational or correct.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:20:55Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:03:13Z",
+  "closed_at": "2026-04-13T00:03:13Z",
+  "close_reason": "Closed",
+  "labels": [
+    "cognitive-load",
+    "dx",
+    "lang-design",
+    "review"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.8",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:20:54Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

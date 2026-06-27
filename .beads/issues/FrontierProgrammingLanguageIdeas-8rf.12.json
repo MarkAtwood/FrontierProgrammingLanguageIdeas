@@ -1,0 +1,30 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-8rf.12",
+  "title": "Fixed(I,F) arithmetic operators require undisclosed compiler changes or are wrong",
+  "description": "The spec shows 'var z: Q16_16 = x + y' for Fixed types and claims 'Fixed is a standard library type, not a compiler primitive... No compiler changes required.' But Zig does not support operator overloading for custom types. The + operator on Fixed(16,16) would not call Fixed's addition method without compiler support. Either Fixed requires compiler recognition as an intrinsic (like bf16), or + doesn't work and callers must write x.add(y) — which the spec also shows in separate examples. The spec is inconsistent: the overview uses operator syntax, the detailed arithmetic section uses method syntax. Callers can't know which is correct.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:21:32Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:09:18Z",
+  "closed_at": "2026-04-13T00:09:18Z",
+  "close_reason": "Closed",
+  "labels": [
+    "lang-design",
+    "review",
+    "type-system"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.12",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:21:32Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

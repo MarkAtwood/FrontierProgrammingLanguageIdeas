@@ -1,0 +1,15 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-ktb",
+  "title": "given [A: Allocator] creates a second parallel constraint system alongside effects",
+  "description": "Ferrum has two orthogonal constraint systems: the effect system (\\! IO, \\! Net, etc.) and the allocator capability system (given [A: Allocator]). A function can have both independently. Callers must learn both syntaxes, understand how they interact, and read error messages that are split across two domains. The cognitive cost of 'effects + allocators' is higher than a unified system. The design should either: (a) absorb allocator constraints into the effect system (e.g. \\! Alloc, \\! NoAlloc) so all constraints use the same syntax, or (b) explicitly document why the two systems are separate and what callers need to know about their interaction.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:12:24Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T19:43:03Z",
+  "closed_at": "2026-04-12T19:43:03Z",
+  "close_reason": "Closed"
+}

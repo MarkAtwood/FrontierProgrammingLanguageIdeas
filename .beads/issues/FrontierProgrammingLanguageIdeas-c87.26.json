@@ -1,0 +1,25 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-c87.26",
+  "title": "Write ferrum_extlib_widget.md",
+  "description": "CCSP lib_ccsp_widget: Flutter layout model (constraints down, sizes up, parent sets position) in Ferrum. Not in Ferrum stdlib. Design extlib module: layout widgets (flex, stack, constrained, padded, expanded, aligned, scrollable, sized_box, aspect_ratio, wrap), leaf widgets (text, image, colored_box, custom_paint), gesture detectors (tap, drag, hover, scale), dirty region tracking, O(n) single-pass layout guarantee.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-11T06:22:03Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-11T07:02:16Z",
+  "closed_at": "2026-04-11T07:02:16Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-c87.26",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-c87",
+      "type": "parent-child",
+      "created_at": "2026-04-10T23:22:02Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

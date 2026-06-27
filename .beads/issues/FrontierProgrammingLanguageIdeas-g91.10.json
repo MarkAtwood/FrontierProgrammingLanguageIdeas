@@ -1,0 +1,31 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-g91.10",
+  "title": "@noncancellable attribute on a block is syntactically inconsistent",
+  "description": "ferrum-lang-concurrency.md §1.2.1 shows '@noncancellable { db.write(\u0026data)? ... }' — the @attr syntax applied to a block, not an item. Ferrum's @ attributes are defined as item-level annotations (functions, structs, etc.). Using @attr on a block is a unique syntactic form not explained in the core spec. A caller seeing @noncancellable will not know how to parse it (is it a block attribute? a block decorator? an expression attribute?). Either: (a) block attributes are a general feature and the syntax spec must document them, or (b) @noncancellable should be a different syntactic form (a keyword, a macro call, or a scope modifier like 'scope critical { }').",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:19:34Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:10:19Z",
+  "closed_at": "2026-04-13T00:10:19Z",
+  "close_reason": "Closed",
+  "labels": [
+    "abstraction",
+    "api-design",
+    "naming",
+    "review"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-g91.10",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-g91",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:19:33Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

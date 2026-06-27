@@ -1,0 +1,15 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-3r2",
+  "title": "Proof obligations not mandated at type level — witnesses are optional",
+  "description": "Functions with Prop type parameters can be called without providing a real proof witness derived from the proof function. The proof witness is erased before code generation, and there is no compile-time enforcement that the witness was constructed from valid premises vs. trivially assumed. The proof system makes proofs look mandatory in signatures but does not ensure they were actually proven. Proof witness types must be opaque: constructable only by running the designated proof function, never by direct struct construction or trusted assertion. Without this, the verification system is documentation, not enforcement.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "bug",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:11:36Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T19:15:02Z",
+  "closed_at": "2026-04-12T19:15:02Z",
+  "close_reason": "Closed"
+}

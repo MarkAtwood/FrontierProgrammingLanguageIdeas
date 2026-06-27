@@ -1,0 +1,15 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-5s3",
+  "title": "Scope cancellation: blocking task behavior at scope exit unspecified",
+  "description": "The async spec states that scope exit cancels all spawned tasks. But it does not specify: whether cancellation is synchronous or asynchronous; what happens when a task is blocked in a syscall that cannot be interrupted; whether a task can resist or delay cancellation; or how long the scope may block waiting for tasks to finish. Developers who assume scope cleanup is instantaneous may get silent resource leaks or infinite waits. Developers who assume tasks cannot resist cancellation may get surprised by misbehaving tasks. The spec must define cancellation semantics: at minimum, whether cancellation is cooperative and what happens on timeout.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:13:01Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T19:38:26Z",
+  "closed_at": "2026-04-12T19:38:26Z",
+  "close_reason": "Closed"
+}

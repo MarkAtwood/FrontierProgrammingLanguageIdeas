@@ -1,0 +1,30 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-8rf.3",
+  "title": "old() on non-Copy types silently requires using(allocator) — invisible coupling",
+  "description": "When an ensures clause uses old(expr) and expr is a slice or pointer-containing type, the compiler needs to allocate a snapshot. This requires an ambient allocator. The connection is invisible: the ensures clause says old(items), not old(items) using allocator. A function that adds old() to an ensures clause may now silently require that the caller wrap it in a with block where it did not before. This is a hidden API-breaking change. What caller observes: compile error about missing ambient allocator, caused by a change in the callee's ensures clause.",
+  "status": "closed",
+  "priority": 0,
+  "issue_type": "bug",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:20:11Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T23:54:02Z",
+  "closed_at": "2026-04-12T23:54:02Z",
+  "close_reason": "Closed",
+  "labels": [
+    "lang-design",
+    "review",
+    "type-safety"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.3",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:20:10Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

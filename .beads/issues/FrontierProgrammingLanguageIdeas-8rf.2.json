@@ -1,0 +1,31 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-8rf.2",
+  "title": "Contract expressions with side effects produce debug/release behavioral divergence",
+  "description": "The spec says contract expressions 'should be pure' but 'the compiler does not enforce this in v1'. A requires or ensures clause that allocates, writes state, or has I/O will run in debug mode and be stripped in release. The program has different observable behavior in the two modes. This is not a Heisenbug risk — it is a guaranteed behavioral divergence. Zig's entire value proposition is no hidden control flow. What caller observes: a test suite that passes in ReleaseSafe but fails in Debug, or vice versa, with no compiler feedback explaining why.",
+  "design": "Emit a compiler warning for any contract expression that calls a function with a void return type or that takes a mutable pointer argument (*T, not *const T). These are reliable surface indicators of side effects. Does not require a 'pure' concept in the language. Warning fires at the contract declaration site, not the call site. Can be suppressed with a per-contract annotation if the caller has verified the expression is safe. Goal: create friction at the right point without blocking v1.",
+  "status": "closed",
+  "priority": 0,
+  "issue_type": "bug",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:20:07Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T20:01:32Z",
+  "closed_at": "2026-04-12T23:54:00Z",
+  "close_reason": "Closed",
+  "labels": [
+    "lang-design",
+    "review",
+    "type-safety"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.2",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:20:06Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

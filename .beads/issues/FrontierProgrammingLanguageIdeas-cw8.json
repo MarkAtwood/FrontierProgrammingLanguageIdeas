@@ -1,0 +1,15 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-cw8",
+  "title": "Fix angle-bracket generics in Ferrum code blocks",
+  "description": "Several docs use Rust-style angle brackets (Vec\u003ci32\u003e, HashMap\u003cK,V\u003e, Result\u003cT,E\u003e) in Ferrum code blocks instead of the correct square brackets (Vec[i32], HashMap[K,V], Result[T,E]). Ferrum uses square brackets exclusively for generics. Affected files found so far: ferrum-introduction-to-iterators.md (heavily affected — dozens of instances), ferrum-introduction-for-rust-programmers.md (Rust comparison blocks are fine, but check Ferrum blocks), compiler-agent-api.md, ferrum-PLAN-FAST.md, SemanticQuery-protocol-spec.md. The rule: angle brackets in type position in a ferrum code block are wrong and should be square brackets. Angle brackets in rust code blocks for comparison are correct and should not be changed.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T06:20:11Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T06:54:57Z",
+  "closed_at": "2026-04-12T06:54:57Z",
+  "close_reason": "Closed"
+}

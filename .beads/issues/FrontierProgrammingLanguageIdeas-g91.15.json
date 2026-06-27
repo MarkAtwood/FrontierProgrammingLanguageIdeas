@@ -1,0 +1,30 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-g91.15",
+  "title": "thread_local! macro syntax in spec: Ferrum has no macro_rules system",
+  "description": "ferrum-lang-ownership.md §2.4 shows: 'thread_local! { static COUNTER: Cell\u003ci32\u003e = Cell::new(0); }'. This is Rust macro invocation syntax (foo! { ... }). Ferrum explicitly excludes proc macros and macro_rules. If thread-local storage is a Ferrum feature, it must be expressed in Ferrum syntax (an attribute, a keyword, a library type, etc.). Additionally, Cell::new(0) uses Rust's :: path separator; Ferrum uses . for paths. This code block is pure Rust and should not appear in a Ferrum spec. Fix: either show thread-local storage in actual Ferrum syntax or remove the example.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "bug",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:20:13Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:21:53Z",
+  "closed_at": "2026-04-13T00:21:53Z",
+  "close_reason": "Closed",
+  "labels": [
+    "api-design",
+    "naming",
+    "review"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-g91.15",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-g91",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:20:13Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

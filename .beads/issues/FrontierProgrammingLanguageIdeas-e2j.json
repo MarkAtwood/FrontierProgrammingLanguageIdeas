@@ -1,0 +1,14 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-e2j",
+  "title": "Allocator field-level tracking undefined at task spawn — potential use-after-free",
+  "description": "The spec says arena capabilities cannot cross task boundaries; spawning with Heap as alloc is required. But it does not define what happens when a struct containing arena-allocated fields is moved into a Heap task. If field-level allocators are not tracked, a struct with a nested arena-allocated slice can be moved into the task, the arena scope exits and frees memory, and the task holds a dangling pointer. This is a potential use-after-free in structured concurrency that is invisible to the type system. The spec must either formally define field-level allocator tracking rules, or prohibit passing structs with non-Heap fields across task boundaries.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "bug",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:11:49Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T17:57:34Z",
+  "closed_at": "2026-04-12T17:57:34Z",
+  "close_reason": "Closed"
+}

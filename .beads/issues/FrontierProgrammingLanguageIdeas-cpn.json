@@ -1,0 +1,15 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-cpn",
+  "title": "pub fn effect annotation: spec says warning but goal implies error",
+  "description": "The effects doc says if a pub function omits its effect annotation, 'the compiler emits an error.' Another passage describes it as 'emits a warning.' These are contradictory. If it is a warning, a library can export a pub fn with real IO effects but no \\! IO annotation. Callers who check the public API see no IO effect and assume it is safe to call from a pure context. The function silently performs IO, violating the stated guarantee that every effect is visible in the type signature. If it is an error, this is already solved. The spec must be consistent: choose error (recommended) and document the decision explicitly.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:12:03Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T19:29:54Z",
+  "closed_at": "2026-04-12T19:29:54Z",
+  "close_reason": "Closed"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-9i6",
+  "title": "Binary layout constraints not enforced at value construction time",
+  "description": "Binary layout declarations include field constraints (e.g. nanoseconds: u32 where value \u003c 1_000_000_000). The generated read() validates constraints, but the logical type constructor does not. A caller can construct a Timestamp with nanoseconds = 2_000_000_000 — this compiles and produces an invalid value that write() will serialize without error. The constraint is checked on the way in from bytes but not on the way out to bytes. Either: (a) make the struct fields private and provide a constructor that validates all constraints, or (b) make direct field assignment a compiler error when the value cannot be proven to satisfy the constraint.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:12:36Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T19:24:57Z",
+  "closed_at": "2026-04-12T19:24:57Z",
+  "close_reason": "resolved by design: layout blocks are structural only, no where clauses permitted; value constraints belong in the type system as constrained types"
+}

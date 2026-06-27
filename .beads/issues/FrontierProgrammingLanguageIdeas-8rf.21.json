@@ -1,0 +1,29 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-8rf.21",
+  "title": "Layout block: every bit must be accounted for, no gaps, no overlaps, total size verified",
+  "description": "The layout verifier requires: all bit positions within [0, total_size), no overlapping fields, every bit accounted for, field width compatible with type. This is the correct level of rigor for binary format work. A reviewer might suggest 'allow implicit padding' or 'make total_size optional'. Both weaken the guarantee. Implicit padding is exactly what packed struct provides and what causes endless bugs in binary protocol code. Requiring explicit accounting for every bit means the layout is self-documenting and the compiler verifies the documentation. Defend the strictness.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "decision",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:22:46Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:18:04Z",
+  "closed_at": "2026-04-13T00:18:04Z",
+  "close_reason": "Closed",
+  "labels": [
+    "lang-design",
+    "review"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.21",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:22:46Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

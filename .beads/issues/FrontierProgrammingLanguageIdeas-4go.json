@@ -1,0 +1,15 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-4go",
+  "title": "Constrained type arithmetic result type unspecified",
+  "description": "The spec defines constrained types (e.g. type Percent = u8 where value \u003c= 100) and how to convert into them, but says nothing about arithmetic on them. The result type of Percent + Percent is unspecified: is it u8, Percent, or something else? If u8, callers must manually re-check constraints, adding boilerplate. If Percent, the compiler must prove the sum satisfies the constraint (often impossible statically). Callers who add two Percent values expecting a Percent will be surprised either by a type error or by a runtime failure. The spec must define arithmetic semantics for constrained types, including whether operations produce constrained or unconstrained results.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:11:56Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T19:20:48Z",
+  "closed_at": "2026-04-12T19:20:48Z",
+  "close_reason": "Closed"
+}

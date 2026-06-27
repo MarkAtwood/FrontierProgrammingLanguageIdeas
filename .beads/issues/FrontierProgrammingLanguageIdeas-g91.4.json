@@ -1,0 +1,30 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-g91.4",
+  "title": "\u0026String → \u0026str deref coercion: spec contradicts non-goals",
+  "description": "ferrum-introduction-to-strings.md states: 'String dereferences to \u0026str. Any function that takes \u0026str accepts \u0026String automatically' with an example showing word_count(\u0026owned) where owned: String and word_count takes \u0026str. This is a deref coercion. But ferrum-lang-core.md §1 non-goals explicitly lists 'Implicit coercions of any kind'. The bd memory also records this as a deliberate design decision: deref coercions are excluded. The strings doc is wrong and will confuse callers. Either: (a) the decision changed and the non-goals must be updated, or (b) the strings doc must be corrected (callers must write word_count(owned.as_str()) or word_count(\u0026*owned)).",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "bug",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:18:47Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:05:18Z",
+  "closed_at": "2026-04-13T00:05:18Z",
+  "close_reason": "Closed",
+  "labels": [
+    "api-design",
+    "review",
+    "type-safety"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-g91.4",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-g91",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:18:47Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-g91.6",
+  "title": "Region annotation syntax: [T]\u003c'a, 'b\u003e mixes two generic parameter systems",
+  "description": "ferrum-lang-ownership.md §1.2 shows: 'fn choose[T]\u003c'a, 'b\u003e(x: \u0026'a T, y: \u0026'b T, use_x: bool): \u0026'a T'. This mixes two syntactic systems: [T] is Ferrum's generic parameter syntax, but \u003c'a, 'b\u003e is Rust's lifetime parameter syntax. Ferrum uses [T] for type parameters. If lifetime/region parameters have their own separate \u003c...\u003e syntax, the spec must explain why and how to parse a signature with both. More likely this is a spec error and the correct form is fn choose['a, 'b, T](...) with all generic params unified in [...]. A caller encountering this signature will not know how to read it.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "bug",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:19:01Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:03:25Z",
+  "closed_at": "2026-04-13T00:03:25Z",
+  "close_reason": "Closed",
+  "labels": [
+    "api-design",
+    "cognitive-load",
+    "dx",
+    "review"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-g91.6",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-g91",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:19:01Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

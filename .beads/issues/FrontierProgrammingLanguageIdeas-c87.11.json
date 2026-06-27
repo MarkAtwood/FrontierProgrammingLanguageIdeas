@@ -1,0 +1,25 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-c87.11",
+  "title": "Write ferrum_extlib_cert.md",
+  "description": "CCSP lib_ccsp_cert: X.509 certificate parsing, validation, and revocation. Not in Ferrum stdlib. Design extlib module: DER parse to typed cert struct (reference-counted), RFC 5280 path validation (explicit at_time parameter, never calls clock), name constraints, EKU, SAN, AIA chasing, OCSP, CRL, DANE TLSA stapling.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-11T06:21:07Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-11T07:01:26Z",
+  "closed_at": "2026-04-11T07:01:26Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-c87.11",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-c87",
+      "type": "parent-child",
+      "created_at": "2026-04-10T23:21:07Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

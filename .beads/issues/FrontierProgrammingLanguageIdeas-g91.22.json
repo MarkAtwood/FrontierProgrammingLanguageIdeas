@@ -1,0 +1,29 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-g91.22",
+  "title": "GADTs at the language level — defend as worth the complexity",
+  "description": "Ferrum includes GADTs (enum Expr[T] with variant-level type refinement). A reviewer may argue this is too complex for a systems language or that it duplicates functionality available through other means. Defend: GADTs eliminate entire classes of runtime errors in state machine and protocol code. Without GADTs, the type 'Expr[T]' cannot enforce that Add(a, b) only appears where T = i32. With GADTs, the evaluator 'fn eval[T](expr: Expr[T]): T' is total by construction — no match arm can be absent. This prevents bugs in compilers, type checkers, and protocol implementations. The complexity cost is bounded (GADTs are only needed for these specific use cases) and the safety benefit is unbounded.",
+  "status": "closed",
+  "priority": 3,
+  "issue_type": "decision",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:20:43Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:18:19Z",
+  "closed_at": "2026-04-13T00:18:19Z",
+  "close_reason": "Closed",
+  "labels": [
+    "api-design",
+    "review"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-g91.22",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-g91",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:20:43Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

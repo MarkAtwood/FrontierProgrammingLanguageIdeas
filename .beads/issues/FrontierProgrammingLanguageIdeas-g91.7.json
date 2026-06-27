@@ -1,0 +1,31 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-g91.7",
+  "title": "Three dispatch choices: [T: Trait], impl Trait, dyn Trait — Rust's DX mistake inherited",
+  "description": "Ferrum inherits Rust's three-way dispatch choice: (1) generic bounds [T: Trait] for static dispatch, (2) impl Trait in parameter position for static dispatch with hidden type, (3) dyn Trait for dynamic dispatch. Callers must understand the performance and allocation implications of each choice. Especially confusing: impl Trait in parameter position is still static dispatch (the caller can't pass a dyn Trait where impl Trait is expected), but dyn Trait in parameter position is dynamic. The differences have major implications: impl Trait monomorphizes (code bloat), dyn Trait vtable-dispatches (runtime overhead, allocation for Box[dyn Trait]), [T: Trait] is the most general. A well-designed API would have a sensible default and make the choice invisible in the common case. Consider: collapse impl Trait in parameter position into [T: Trait] (they are equivalent) to reduce to two choices; or provide guidance on when to use each.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:19:15Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:03:28Z",
+  "closed_at": "2026-04-13T00:03:28Z",
+  "close_reason": "Closed",
+  "labels": [
+    "api-design",
+    "cognitive-load",
+    "dx",
+    "review"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-g91.7",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-g91",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:19:14Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

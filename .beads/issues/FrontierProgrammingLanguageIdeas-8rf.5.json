@@ -1,0 +1,30 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-8rf.5",
+  "title": "STM TVar.read() outside transaction is runtime-only error — type system cannot enforce",
+  "description": "TVar.read() 'returns an error if called outside a transaction context' rather than being enforced by the type system. Code that reads a TVar outside atomically() compiles fine. The error is only discovered at runtime. Haskell's STM prevents this statically via the STM monad. Zinc's lack of effect system means the call-inside-transaction rule cannot be enforced. What caller observes: unexpected error.STMNotInTransaction at runtime, often deep in call chains.",
+  "status": "closed",
+  "priority": 0,
+  "issue_type": "bug",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:20:33Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T23:54:07Z",
+  "closed_at": "2026-04-12T23:54:07Z",
+  "close_reason": "Closed",
+  "labels": [
+    "lang-design",
+    "review",
+    "type-safety"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.5",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:20:33Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

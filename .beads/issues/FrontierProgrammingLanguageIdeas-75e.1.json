@@ -1,0 +1,24 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-75e.1",
+  "title": "Reframe opening framing: this is not always pre-submission",
+  "description": "Lines 5-6 were copied from UPSTREAM unchanged: 'You are doing a deep pre-submission code review. Your audience is the author, before they submit.' A LANG-DESIGN review may not be pre-submission at all — it can be applied to an existing API, a library in production, or a design proposal. The framing needs to describe what this mode is for: API design critique, not patch review. Fix: state clearly what artifact is being reviewed (a library API surface, a language feature interface, a design doc) and who the audience is.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:10:22Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T20:47:16Z",
+  "closed_at": "2026-04-12T20:47:16Z",
+  "close_reason": "All four PROMPT-review-lang.md fixes applied in one pass.",
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-75e.1",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-75e",
+      "type": "parent-child",
+      "created_at": "2026-04-12T09:10:22Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

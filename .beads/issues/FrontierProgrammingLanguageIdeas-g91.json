@@ -1,0 +1,19 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-g91",
+  "title": "Review: Ferrum language design",
+  "notes": "DX rating: AWKWARD — The effect system and allocation model are well-designed but the surface has too much notation debt: three dispatch syntaxes, two self-param forms, region annotations mixing two bracket systems, effect variables as a third generic mechanism. The common paths (write a struct, implement a trait, write an async function) are navigable but have more surface friction than necessary.\nConfidence: 70% chance of missed design flaw. Least confident flags: (1) the self: \u0026Self vs \u0026self issue — I identified both forms in the spec but didn't determine if the spec defines both as valid syntax or if one is an error; (2) the Result[T] single-param form — there may be a default error type defined somewhere I didn't read (the spec is large). Would update assessment if: shown a section of the spec that defines a default error type for Result, or a section that explicitly allows both self: \u0026Self and \u0026self as equivalent syntax.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "epic",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:13:30Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-06-26T20:01:32Z",
+  "closed_at": "2026-04-13T00:22:01Z",
+  "close_reason": "all steps complete",
+  "labels": [
+    "api-design",
+    "review"
+  ]
+}

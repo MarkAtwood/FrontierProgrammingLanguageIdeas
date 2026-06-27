@@ -1,0 +1,24 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-75e.2",
+  "title": "Operationalize 'mistakes of Rust' in the persona",
+  "description": "Lines 14-17 say the reviewer 'watched Rust make some deeply unfortunate choices' and 'does not want to repeat them' — but never says what those choices are. The reviewer is given an attitude but not a checklist. The whole point of this persona is to apply a specific DX lens; leaving the anti-patterns implicit defeats that. Fix: add a concrete list of Rust DX failure modes the reviewer should actively watch for: lifetime annotation burden, async coloring problem, trait object vs generic explosion, macro system escaping type safety, borrow-checker fighting that forces unsafe, error type proliferation, coherence/orphan rules preventing extensibility.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:10:28Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T20:47:17Z",
+  "closed_at": "2026-04-12T20:47:17Z",
+  "close_reason": "All four PROMPT-review-lang.md fixes applied in one pass.",
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-75e.2",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-75e",
+      "type": "parent-child",
+      "created_at": "2026-04-12T09:10:27Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

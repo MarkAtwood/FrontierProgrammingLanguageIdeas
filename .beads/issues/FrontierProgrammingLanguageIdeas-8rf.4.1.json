@@ -1,0 +1,38 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-8rf.4.1",
+  "title": "@invalidate(self) builtin — signals struct is intentionally leaving valid state",
+  "description": "Add @invalidate(self) as a compiler builtin available inside *Self methods on structs with invariant declarations. Sets the hidden __valid field to false. After this call, the post-method invariant check is skipped. Stripped entirely in release mode. Linter warns when a deinit method on a struct with invariants omits @invalidate.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:47:24Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:00:52Z",
+  "closed_at": "2026-04-13T00:00:52Z",
+  "close_reason": "superseded: deinit exemption approach (spec updated in 8rf.4) requires no @invalidate builtin or __valid field. deinit methods are simply not invariant-checked.",
+  "labels": [
+    "lang-design",
+    "review",
+    "type-safety"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.4.1",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf.4",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:47:23Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.4.1",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf.4.2",
+      "type": "blocks",
+      "created_at": "2026-04-12T16:47:39Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

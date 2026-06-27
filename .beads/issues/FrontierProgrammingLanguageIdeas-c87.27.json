@@ -1,0 +1,25 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-c87.27",
+  "title": "Write ferrum_extlib_anim.md",
+  "description": "CCSP lib_ccsp_anim: animation engine with curves and spring physics. Not in Ferrum stdlib. Design extlib module: float value animation over time, easing curves (linear, ease-in, ease-out, ease-in-out), spring physics, animation sequences, parallel groups, stagger, event-loop driven timer integration, widget state animation, frame interpolation.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-11T06:22:05Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-11T07:02:18Z",
+  "closed_at": "2026-04-11T07:02:18Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-c87.27",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-c87",
+      "type": "parent-child",
+      "created_at": "2026-04-10T23:22:05Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

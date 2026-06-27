@@ -1,0 +1,30 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-8rf.18",
+  "title": "old() looks like a function call but is a compiler keyword — callers will misuse it",
+  "description": "old(expr) in ensures clauses looks like a regular function call. It isn't — it is a compiler-magic keyword that captures a value at function entry. Callers who try to use old() outside an ensures clause (in a requires clause, in a regular expression, in a helper function) will get a confusing error. More importantly, callers reading the signature will not know old() is special until they hit the error. A dedicated syntax — old\\!expr, #old(expr), or @old(expr) using Zig's builtin convention — would signal that this is not a user-space call.",
+  "status": "closed",
+  "priority": 4,
+  "issue_type": "chore",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:22:16Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:21:55Z",
+  "closed_at": "2026-04-13T00:21:55Z",
+  "close_reason": "Closed",
+  "labels": [
+    "lang-design",
+    "naming",
+    "review"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.18",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:22:16Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

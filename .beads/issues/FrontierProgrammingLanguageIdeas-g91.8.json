@@ -1,0 +1,31 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-g91.8",
+  "title": "scope syntax inconsistency: 'scope s { s.spawn() }' vs 'scope |s| { }'",
+  "description": "The spec uses two different syntaxes for creating a scope: ferrum-lang-concurrency.md uses 'scope s { let h = s.spawn(fetch(url)) }' (bare identifier after scope keyword), while ferrum-introduction-to-async.md uses 'scope |s| { let h = s.spawn(|...| ...) }' (closure-like |s| form). These are syntactically distinct and it is unclear if both are valid or if one is an error. A developer trying to spawn a task has two different examples and no way to know which is correct. Unify to one syntax and remove the other from the spec.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "bug",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:19:16Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:01:05Z",
+  "closed_at": "2026-04-13T00:01:05Z",
+  "close_reason": "not reproduced: both ferrum-introduction-to-async.md and ferrum-lang-concurrency.md consistently use 'scope s { s.spawn() }' — no |s| form found in current files",
+  "labels": [
+    "api-design",
+    "cognitive-load",
+    "dx",
+    "review"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-g91.8",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-g91",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:19:15Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

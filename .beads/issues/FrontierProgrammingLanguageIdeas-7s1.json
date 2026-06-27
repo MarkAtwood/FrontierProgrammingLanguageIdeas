@@ -1,0 +1,15 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-7s1",
+  "title": "Add Mermaid architecture diagram for concurrency primitive tiers",
+  "description": "ferrum-lang-concurrency.md defines three tiers of concurrency primitives (Language, Module, Out-of-band) in prose and a summary table. A layered architecture diagram showing which primitives live at each tier, what compiler feature enforces them (region inference, borrow checker, effect tracking, proof obligations), and the dependencies between tiers would serve as a useful reference diagram for the whole concurrency model.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:41:39Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T23:58:03Z",
+  "closed_at": "2026-04-12T23:58:03Z",
+  "close_reason": "Closed"
+}

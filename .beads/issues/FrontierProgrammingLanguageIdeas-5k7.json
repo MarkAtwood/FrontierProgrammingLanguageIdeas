@@ -1,0 +1,14 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-5k7",
+  "title": "Research: does ! Panic effect track unwrap() calls through iterator chains?",
+  "description": "Iterator chains encourage .unwrap() as a convenience (.map(|s| s.parse().unwrap())). If Ferrum's ! Panic effect tracks all panic sites including unwrap(), then the function using this chain would have ! Panic in its signature and callers would be warned. If ! Panic is not tracked, unwrap() panics are invisible in the type signature. Need to determine: (1) does the spec say ! Panic is inferred for any function calling unwrap(), (2) does it propagate through closures in iterator chains, (3) are there cases where ! Panic is suppressed or not inferred. If ! Panic is fully tracked, document it prominently. If not, this is a type-safety hole requiring a design decision.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:13:41Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T20:20:10Z",
+  "closed_at": "2026-04-12T20:20:10Z",
+  "close_reason": "Added §2.7 '\\! Panic — Sources and Inference': explicit source table (unwrap/expect/panic\\!/assert/indexing), non-sources table (arithmetic wrapping, ? operator, checked_add), closure body inference rule, full iterator chain example, design decision note on wrapping arithmetic preserving \\! Panic as a meaningful annotation."
+}

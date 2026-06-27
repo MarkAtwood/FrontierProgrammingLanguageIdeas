@@ -1,0 +1,30 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-g91.9",
+  "title": "spawn_detached name misleads: task is still scope-bounded",
+  "description": "ferrum-lang-concurrency.md §1.2 shows 's.spawn_detached(expr)' described as 'no handle returned, task still bounded by scope'. The word 'detached' universally means 'not bounded by a parent scope' (POSIX detached threads, Java daemon threads, Go goroutines). A caller reading spawn_detached will expect the task to outlive the scope. The correct name is spawn_untracked or spawn_no_handle or spawn_void. The current name will cause experienced concurrent programmers to write scope-escaping code patterns that happen not to escape because of the scope guarantee — until they reach for or_abandon and get surprised again.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:19:33Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:10:17Z",
+  "closed_at": "2026-04-13T00:10:17Z",
+  "close_reason": "Closed",
+  "labels": [
+    "api-design",
+    "naming",
+    "review"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-g91.9",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-g91",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:19:33Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

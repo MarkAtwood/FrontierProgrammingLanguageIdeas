@@ -1,0 +1,14 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-b1b",
+  "title": "Research: does effect polymorphism ?E interact correctly with closure captures?",
+  "description": "A closure that closes over mutable state has hidden effects not tracked in its type signature. If that closure is passed to a function using ?E effect polymorphism, the ?E reflects the closure's declared effects — but not the effects of mutation through captured state. Example: a closure capturing \u0026mut Vec has observable effects (mutation) but these are not IO, Net, or any named effect. If the effect system only tracks named effects and not mutation-through-captures, then ?E functions can silently have more effects than their signatures indicate. Research: (1) Does mutation of captured state count as an effect in Ferrum? (2) How does the borrow checker interact with the effect system for captured mutable references?",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-12T16:14:01Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-12T20:31:14Z",
+  "closed_at": "2026-04-12T20:31:14Z",
+  "close_reason": "Added 'Closure Captures and the Effect System' subsection to §2.5: mutation through captures is orthogonal to named effects, tracked by Fn/FnMut/FnOnce hierarchy not the effect system. Table showing the two systems answer different questions. No spec gap — the design is sound; the explanation was missing."
+}

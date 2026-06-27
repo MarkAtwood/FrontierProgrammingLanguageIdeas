@@ -1,0 +1,38 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-8rf.1.2",
+  "title": "Capture ambient allocator into fat pointer context when taking pointer to using(X) function",
+  "description": "When a using(X) function is converted to a function pointer inside a with(X: expr) block, the compiler captures expr into the fat pointer's ctx slot. At the indirect call site, ctx is extracted and threaded back as the ambient allocator before the call. For using(scratch, persistent), ctx points to a compiler-generated struct holding both captured allocators. Compile error if a using(X) function pointer is taken outside a with(X) block.",
+  "status": "closed",
+  "priority": 1,
+  "issue_type": "feature",
+  "assignee": "Mark Atwood",
+  "owner": "mark@wolfssl.com",
+  "created_at": "2026-04-12T23:55:18Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-13T00:04:13Z",
+  "closed_at": "2026-04-13T00:04:13Z",
+  "close_reason": "Closed",
+  "labels": [
+    "lang-design",
+    "review",
+    "type-safety"
+  ],
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.1.2",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf.1.1",
+      "type": "blocks",
+      "created_at": "2026-04-12T16:55:35Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    },
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-8rf.1.2",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-8rf.1",
+      "type": "parent-child",
+      "created_at": "2026-04-12T16:55:17Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}

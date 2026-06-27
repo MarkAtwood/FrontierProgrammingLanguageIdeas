@@ -1,0 +1,25 @@
+{
+  "id": "FrontierProgrammingLanguageIdeas-c87.29",
+  "title": "Write ferrum_extlib_a11y.md",
+  "description": "CCSP lib_ccsp_a11y: accessibility tree adapters for AT-SPI2 (Linux), NSAccessibility (macOS), UIA (Windows). Not in Ferrum stdlib. Design extlib module: accessibility descriptor type per widget (role, label, description, value, state, actions), AT-SPI2 tree generation from widget tree, screen reader support (Orca), platform adapter trait, Wayland+X11 compatible via D-Bus.",
+  "status": "closed",
+  "priority": 2,
+  "issue_type": "task",
+  "assignee": "Mark Atwood",
+  "owner": "mark.atwood@gmail.com",
+  "created_at": "2026-04-11T06:22:13Z",
+  "created_by": "Mark Atwood",
+  "updated_at": "2026-04-11T07:02:23Z",
+  "closed_at": "2026-04-11T07:02:23Z",
+  "close_reason": "Closed",
+  "dependencies": [
+    {
+      "issue_id": "FrontierProgrammingLanguageIdeas-c87.29",
+      "depends_on_id": "FrontierProgrammingLanguageIdeas-c87",
+      "type": "parent-child",
+      "created_at": "2026-04-10T23:22:13Z",
+      "created_by": "Mark Atwood",
+      "metadata": "{}"
+    }
+  ]
+}
